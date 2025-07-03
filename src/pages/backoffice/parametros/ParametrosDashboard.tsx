@@ -13,7 +13,7 @@ export default function ParametrosDashboard() {
     { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/documentos' },
     { title: 'Tipos de Evento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-evento' },
     { title: 'Tipos de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-epi' },
-    { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/brands' },
+    { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/marcas' },
     { title: 'EPIs', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/epis' },
     { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/occurrence-types' },
   ]
