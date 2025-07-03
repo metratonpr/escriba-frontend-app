@@ -22,6 +22,8 @@ import DocumentTypesPage from '../pages/backoffice/parametros/documentTypes/Docu
 import DocumentTypeFormPage from '../pages/backoffice/parametros/documentTypes/DocumentTypeFormPage'
 import EventTypesPage from '../pages/backoffice/parametros/eventTypes/EventTypesPage'
 import EventTypeFormPage from '../pages/backoffice/parametros/eventTypes/EventTypeFormPage'
+import EpiTypesPage from '../pages/backoffice/parametros/epiTypes/EpiTypesPage'
+import EpiTypeFormPage from '../pages/backoffice/parametros/epiTypes/EpiTypeFormPage'
 
 
 export const router = createBrowserRouter([
@@ -61,6 +63,10 @@ export const router = createBrowserRouter([
       { path: 'tipos-evento', element: <EventTypesPage /> },
       { path: 'tipos-evento/novo', element: <EventTypeFormPage /> },
       { path: 'tipos-evento/editar/:id', element: <EventTypeFormPage /> },
+      { path: 'tipos-epi', element: <EpiTypesPage /> },
+      { path: 'tipos-epi/novo', element: <EpiTypeFormPage /> },
+      { path: 'tipos-epi/editar/:id', element: <EpiTypeFormPage /> },
+
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
