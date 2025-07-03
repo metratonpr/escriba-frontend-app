@@ -12,6 +12,8 @@ import CompanyTypesPage from '../pages/backoffice/parametros/companyType/Company
 import CompanyTypeFormPage from '../pages/backoffice/parametros/companyType/CompanyTypeFormPage'
 import SectorsPage from '../pages/backoffice/parametros/sectors/SectorsPage'
 import SectorFormPage from '../pages/backoffice/parametros/sectors/SectorFormPage'
+import JobTitlesPage from '../pages/backoffice/parametros/jobTitle/JobTitlesPage'
+import JobTitleFormPage from '../pages/backoffice/parametros/jobTitle/JobTitleFormPage'
 
 
 export const router = createBrowserRouter([
@@ -34,8 +36,11 @@ export const router = createBrowserRouter([
       { path: 'tipos-empresa/novo', element: <CompanyTypeFormPage /> },
       { path: 'tipos-empresa/editar/:id', element: <CompanyTypeFormPage /> },
       { path: 'setores', element: <SectorsPage /> },
-      { path: 'setores/novo', element: <SectorFormPage/> },
+      { path: 'setores/novo', element: <SectorFormPage /> },
       { path: 'setores/editar/:id', element: <SectorFormPage /> },
+      { path: 'cargos', element: <JobTitlesPage /> },
+      { path: 'cargos/novo', element: <JobTitleFormPage /> },
+      { path: 'cargos/editar/:id', element: <JobTitleFormPage /> },
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },

@@ -7,14 +7,14 @@ export default function ParametrosDashboard() {
     { title: 'Grupos de Empresas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/grupos-empresa' },
     { title: 'Tipos de Empresa', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-empresa' },
     { title: 'Setores', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/setores' },
-    { title: 'Cargos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/job-titles' },
-    { title: 'Emissores de Documento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/document-issuers' },
-    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/documents' },
-    { title: 'Tipos de Evento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/event-types' },
-    { title: 'Tipos de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/epi-types' },
-    { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/brands' },
-    { title: 'EPIs', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/epis' },
-    { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/occurrence-types' },
+    { title: 'Cargos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/cargos' },
+    { title: 'Emissores de Documento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/document-issuers' },
+    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/documents' },
+    { title: 'Tipos de Evento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/event-types' },
+    { title: 'Tipos de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/epi-types' },
+    { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/brands' },
+    { title: 'EPIs', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/epis' },
+    { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/occurrence-types' },
   ]
 
   const breadcrumbs: BreadcrumbItem[] = [
