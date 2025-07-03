@@ -1,0 +1,75 @@
+// src/pages/backoffice/parametros/documentTypes/DocumentTypeFormPage.tsx
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
+import Toast from "../../../../components/Layout/Feedback/Toast";
+import { FormInput } from "../../../../components/form/FormInput";
+import { FormActions } from "../../../../components/form/FormActions";
+import {
+  createDocumentType,
+  getDocumentTypeById,
+  updateDocumentType,
+} from "../../../../services/documentTypeService";
+
+export default function DocumentTypeFormPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEdit = Boolean(id);
+
+  const [form, setForm] = useState({ name: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+
+  useEffect(() => {
+    if (isEdit) {
+      getDocumentTypeById(id!)
+        .then(setForm)
+        .catch(() => {
+          setToast({ open: true, message: "Erro ao carregar tipo de documento.", type: "error" });
+          navigate("/backoffice/tipos-documento");
+        });
+    }
+  }, [id]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    try {
+      if (isEdit) {
+        await updateDocumentType(id!, form);
+      } else {
+        await createDocumentType(form);
+      }
+      setToast({ open: true, message: `Tipo ${isEdit ? "atualizado" : "criado"} com sucesso.`, type: "success" });
+      navigate("/backoffice/tipos-documento");
+    } catch (err: any) {
+      setErrors(err.response?.data?.errors ?? {});
+      setToast({ open: true, message: "Erro ao salvar tipo de documento.", type: "error" });
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto p-4">
+      <Breadcrumbs
+        items={[
+          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Tipos de Documento", to: "/backoffice/tipos-documento" },
+          { label: isEdit ? "Editar" : "Novo", to: "#" },
+        ]}
+      />
+      <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</h1>
+
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+        <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
+        <FormActions cancelUrl="/backoffice/tipos-documento" text={isEdit ? "Atualizar" : "Criar"} />
+      </form>
+
+      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+    </div>
+  );
+}

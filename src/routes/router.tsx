@@ -14,6 +14,14 @@ import SectorsPage from '../pages/backoffice/parametros/sectors/SectorsPage'
 import SectorFormPage from '../pages/backoffice/parametros/sectors/SectorFormPage'
 import JobTitlesPage from '../pages/backoffice/parametros/jobTitle/JobTitlesPage'
 import JobTitleFormPage from '../pages/backoffice/parametros/jobTitle/JobTitleFormPage'
+import DocumentIssuersPage from '../pages/backoffice/parametros/documentIssuers/DocumentIssuersPage'
+import DocumentIssuerFormPage from '../pages/backoffice/parametros/documentIssuers/DocumentIssuerFormPage'
+import DocumentsPage from '../pages/backoffice/parametros/document/DocumentsPage'
+import DocumentFormPage from '../pages/backoffice/parametros/document/DocumentFormPage'
+import DocumentTypesPage from '../pages/backoffice/parametros/documentTypes/DocumentTypesPage'
+import DocumentTypeFormPage from '../pages/backoffice/parametros/documentTypes/DocumentTypeFormPage'
+import EventTypesPage from '../pages/backoffice/parametros/eventTypes/EventTypesPage'
+import EventTypeFormPage from '../pages/backoffice/parametros/eventTypes/EventTypeFormPage'
 
 
 export const router = createBrowserRouter([
@@ -41,6 +49,18 @@ export const router = createBrowserRouter([
       { path: 'cargos', element: <JobTitlesPage /> },
       { path: 'cargos/novo', element: <JobTitleFormPage /> },
       { path: 'cargos/editar/:id', element: <JobTitleFormPage /> },
+      { path: 'orgaos-emissores', element: <DocumentIssuersPage /> },
+      { path: 'orgaos-emissores/novo', element: <DocumentIssuerFormPage /> },
+      { path: 'orgaos-emissores/editar/:id', element: <DocumentIssuerFormPage /> },
+      { path: 'tipos-documento', element: <DocumentTypesPage /> },
+      { path: 'tipos-documento/novo', element: <DocumentTypeFormPage /> },
+      { path: 'tipos-documento/editar/:id', element: <DocumentTypeFormPage /> },
+      { path: 'documentos', element: <DocumentsPage /> },
+      { path: 'documentos/novo', element: <DocumentFormPage /> },
+      { path: 'documentos/editar/:id', element: <DocumentFormPage /> },
+      { path: 'tipos-evento', element: <EventTypesPage /> },
+      { path: 'tipos-evento/novo', element: <EventTypeFormPage /> },
+      { path: 'tipos-evento/editar/:id', element: <EventTypeFormPage /> },
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
