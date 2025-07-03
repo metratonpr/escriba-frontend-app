@@ -26,6 +26,8 @@ import EpiTypesPage from '../pages/backoffice/parametros/epiTypes/EpiTypesPage'
 import EpiTypeFormPage from '../pages/backoffice/parametros/epiTypes/EpiTypeFormPage'
 import BrandsPage from '../pages/backoffice/parametros/brands/BrandsPage'
 import BrandFormPage from '../pages/backoffice/parametros/brands/BrandFormPage'
+import EpisPage from '../pages/backoffice/parametros/epis/EpisPage'
+import EpiFormPage from '../pages/backoffice/parametros/epis/EpiFormPage'
 
 
 export const router = createBrowserRouter([
@@ -71,6 +73,9 @@ export const router = createBrowserRouter([
       { path: 'marcas', element: <BrandsPage /> },
       { path: 'marcas/novo', element: <BrandFormPage /> },
       { path: 'marcas/editar/:id', element: <BrandFormPage /> },
+       { path: 'epis', element: <EpisPage /> },
+      { path: 'epis/novo', element: <EpiFormPage /> },
+      { path: 'epis/editar/:id', element: <EpiFormPage /> },
 
 
       { path: 'secoes', element: <SecoesDashboard /> },
