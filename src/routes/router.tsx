@@ -10,6 +10,8 @@ import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/Comp
 import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
 import CompanyTypesPage from '../pages/backoffice/parametros/companyType/CompanyTypesPage'
 import CompanyTypeFormPage from '../pages/backoffice/parametros/companyType/CompanyTypeFormPage'
+import SectorsPage from '../pages/backoffice/parametros/sectors/SectorsPage'
+import SectorFormPage from '../pages/backoffice/parametros/sectors/SectorFormPage'
 
 
 export const router = createBrowserRouter([
@@ -31,6 +33,9 @@ export const router = createBrowserRouter([
       { path: 'tipos-empresa', element: <CompanyTypesPage /> },
       { path: 'tipos-empresa/novo', element: <CompanyTypeFormPage /> },
       { path: 'tipos-empresa/editar/:id', element: <CompanyTypeFormPage /> },
+      { path: 'setores', element: <SectorsPage /> },
+      { path: 'setores/novo', element: <SectorFormPage/> },
+      { path: 'setores/editar/:id', element: <SectorFormPage /> },
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
