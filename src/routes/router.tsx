@@ -6,6 +6,8 @@ import ColaboradoresDashboard from '../pages/backoffice/colaboradores/Colaborado
 import EventosDashboard from '../pages/backoffice/eventos/EventosDashboard'
 import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashboard'
 import SecoesDashboard from '../pages/backoffice/secoes/SecoesDashboard'
+import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupsPage'
+import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
 
 
 export const router = createBrowserRouter([
@@ -21,7 +23,10 @@ export const router = createBrowserRouter([
       { path: 'colaboradores', element: <ColaboradoresDashboard /> },
       { path: 'eventos', element: <EventosDashboard /> },
       { path: 'parametros', element: <ParametrosDashboard /> },
+      { path: 'grupos-empresa', element: <CompanyGroupsPage /> },  // rota no nível do backoffice
+      { path: 'grupos-empresa/novo', element: <CompanyGroupFormPage /> },
+      { path: 'grupos-empresa/editar/:id', element: <CompanyGroupFormPage /> },
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
-])
+]);

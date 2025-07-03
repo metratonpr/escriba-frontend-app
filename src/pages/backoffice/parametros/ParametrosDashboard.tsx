@@ -4,7 +4,7 @@ import ItemMenuCard from '../../../components/Layout/ItemMenuCard'
 
 export default function ParametrosDashboard() {
   const cards = [
-    { title: 'Grupos de Empresas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/company-groups' },
+    { title: 'Grupos de Empresas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/grupos-empresa' },
     { title: 'Tipos de Empresa', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/company-types' },
     { title: 'Setores', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/sectors' },
     { title: 'Cargos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/parametros/job-titles' },
