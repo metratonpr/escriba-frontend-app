@@ -1,31 +1,42 @@
-// src/pages/backoffice/BackofficeLayout.tsx
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import Sidebar from './Sidebar'
+import Header from './Header'
 
 export default function BackofficeLayout() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const toggleSidebar = () => setMobileOpen(!mobileOpen)
+  const closeSidebar = () => setMobileOpen(false)
+
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-gray-800 text-white p-4 hidden md:block">
-        <h2 className="text-xl font-bold mb-4">Menu</h2>
-        <nav className="flex flex-col gap-2">
-          <a href="/backoffice/empresas" className="hover:underline">Empresas</a>
-          <a href="#" className="hover:underline">Colaboradores</a>
-          <a href="#" className="hover:underline">Eventos</a>
-          <a href="#" className="hover:underline">Parâmetros</a>
-          <a href="#" className="hover:underline">Seções</a>
-        </nav>
-      </aside>
-      <div className="flex-1">
-        <header className="bg-white shadow p-4 flex justify-between items-center">
-          <h1 className="text-lg font-semibold">Backoffice</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Usuário</span>
-            <img src="https://i.pravatar.cc/32" alt="avatar" className="rounded-full w-8 h-8" />
-          </div>
-        </header>
-        <main className="p-6">
-          <Outlet />
-        </main>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <Header onToggleSidebar={toggleSidebar} />
+
+      {/* Overlay para mobile */}
+      <div
+        className={`fixed inset-0 z-40 bg-black bg-opacity-40 transition-opacity md:hidden ${
+          mobileOpen ? 'block' : 'hidden'
+        }`}
+        onClick={closeSidebar}
+        aria-hidden="true"
+      ></div>
+
+      {/* Sidebar aparece somente no mobile como drawer */}
+      <div className="md:hidden">
+        <Sidebar isOpen={mobileOpen} onClose={closeSidebar} />
       </div>
+
+      {/* Conteúdo principal ocupa 100% da tela no desktop */}
+      <main className="flex-1 mt-8 px-4 sm:px-6 lg:px-8 min-h-0 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          <Outlet />
+        </div>
+      </main>
+
+      <footer className="bg-white border-t border-gray-200 px-4 py-4 text-sm text-center text-gray-500">
+        © {new Date().getFullYear()} Escriba APP - Desenolvido por Iapotech . Todos os direitos reservados.
+      </footer>
     </div>
   )
 }

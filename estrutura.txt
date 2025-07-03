@@ -1,0 +1,46 @@
+.
+├── README.md
+├── eslint.config.js
+├── estrutura.txt
+├── index.html
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   └── vite.svg
+├── src
+│   ├── App.css
+│   ├── App.tsx
+│   ├── api
+│   ├── assets
+│   │   ├── public
+│   │   └── react.svg
+│   ├── components
+│   │   └── Layout
+│   ├── features
+│   ├── hooks
+│   ├── index.css
+│   ├── layouts
+│   │   ├── BackofficeLayout.tsx
+│   │   ├── Header.tsx
+│   │   ├── PublicLayout.tsx
+│   │   └── Sidebar.tsx
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── Login.tsx
+│   │   └── backoffice
+│   ├── routes
+│   │   └── router.tsx
+│   ├── schemas
+│   ├── store
+│   ├── theme
+│   ├── types
+│   ├── utils
+│   └── vite-env.d.ts
+├── tailwind.config.js
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+
+19 directories, 25 files

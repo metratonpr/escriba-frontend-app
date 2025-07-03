@@ -1,25 +1,12 @@
-// src/routes/router.tsx
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import EmpresasDashboard from '../pages/backoffice/empresas/EmpresasDashboard'
 import Login from '../pages/Login'
+import BackofficeLayout from '../layouts/BackofficeLayout'
+import ColaboradoresDashboard from '../pages/backoffice/colaboradores/ColaboradoresDashboard'
+import EventosDashboard from '../pages/backoffice/eventos/EventosDashboard'
+import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashboard'
+import SecoesDashboard from '../pages/backoffice/secoes/SecoesDashboard'
 
-
-const PublicLayout = () => (
-  <div className="flex items-center justify-center h-screen">
-    <a href="/backoffice/empresas" className="text-white bg-blue-600 px-6 py-3 rounded-lg shadow">
-      Entrar no Backoffice
-    </a>
-  </div>
-)
-
-const PrivateLayout = () => (
-  <div className="min-h-screen flex">
-    <aside className="w-64 bg-gray-800 text-white p-4">Sidebar</aside>
-    <main className="flex-1 p-6">
-      <Outlet />
-    </main>
-  </div>
-)
 
 export const router = createBrowserRouter([
   {
@@ -28,12 +15,13 @@ export const router = createBrowserRouter([
   },
   {
     path: '/backoffice',
-    element: <PrivateLayout />,
+    element: <BackofficeLayout />,
     children: [
-      {
-        path: 'empresas',
-        element: <EmpresasDashboard />,
-      },
+      { path: 'empresas', element: <EmpresasDashboard /> },
+      { path: 'colaboradores', element: <ColaboradoresDashboard /> },
+      { path: 'eventos', element: <EventosDashboard /> },
+      { path: 'parametros', element: <ParametrosDashboard /> },
+      { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
 ])
