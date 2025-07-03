@@ -8,6 +8,8 @@ import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashbo
 import SecoesDashboard from '../pages/backoffice/secoes/SecoesDashboard'
 import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupsPage'
 import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
+import CompanyTypesPage from '../pages/backoffice/parametros/companyType/CompanyTypesPage'
+import CompanyTypeFormPage from '../pages/backoffice/parametros/companyType/CompanyTypeFormPage'
 
 
 export const router = createBrowserRouter([
@@ -26,6 +28,9 @@ export const router = createBrowserRouter([
       { path: 'grupos-empresa', element: <CompanyGroupsPage /> },  // rota no nível do backoffice
       { path: 'grupos-empresa/novo', element: <CompanyGroupFormPage /> },
       { path: 'grupos-empresa/editar/:id', element: <CompanyGroupFormPage /> },
+      { path: 'tipos-empresa', element: <CompanyTypesPage /> },
+      { path: 'tipos-empresa/novo', element: <CompanyTypeFormPage /> },
+      { path: 'tipos-empresa/editar/:id', element: <CompanyTypeFormPage /> },
       { path: 'secoes', element: <SecoesDashboard /> },
     ],
   },
