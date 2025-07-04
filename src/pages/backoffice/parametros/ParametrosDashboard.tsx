@@ -15,7 +15,7 @@ export default function ParametrosDashboard() {
     { title: 'Tipos de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-epi' },
     { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/marcas' },
     { title: 'EPIs', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/epis' },
-    { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/occurrence-types' },
+    { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-ocorrencia' },
   ]
 
   const breadcrumbs: BreadcrumbItem[] = [

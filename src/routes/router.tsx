@@ -28,6 +28,8 @@ import BrandsPage from '../pages/backoffice/parametros/brands/BrandsPage'
 import BrandFormPage from '../pages/backoffice/parametros/brands/BrandFormPage'
 import EpisPage from '../pages/backoffice/parametros/epis/EpisPage'
 import EpiFormPage from '../pages/backoffice/parametros/epis/EpiFormPage'
+import OccurrenceTypeFormPage from '../pages/backoffice/parametros/occurrenceTypes/OccurrenceTypeFormPage'
+import OccurrenceTypesListPage from '../pages/backoffice/parametros/occurrenceTypes/OccurrenceTypesListPage'
 
 
 export const router = createBrowserRouter([
@@ -73,9 +75,12 @@ export const router = createBrowserRouter([
       { path: 'marcas', element: <BrandsPage /> },
       { path: 'marcas/novo', element: <BrandFormPage /> },
       { path: 'marcas/editar/:id', element: <BrandFormPage /> },
-       { path: 'epis', element: <EpisPage /> },
+      { path: 'epis', element: <EpisPage /> },
       { path: 'epis/novo', element: <EpiFormPage /> },
       { path: 'epis/editar/:id', element: <EpiFormPage /> },
+      { path: 'tipos-ocorrencia', element: <OccurrenceTypesListPage /> },
+      { path: 'tipos-ocorrencia/novo', element: <OccurrenceTypeFormPage /> },
+      { path: 'tipos-ocorrencia/editar/:id', element: <OccurrenceTypeFormPage /> },
 
 
       { path: 'secoes', element: <SecoesDashboard /> },
