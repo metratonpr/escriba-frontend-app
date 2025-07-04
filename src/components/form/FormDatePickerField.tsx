@@ -1,10 +1,10 @@
-// FormDatePickerField.tsx
+// src/components/form/FormDatePickerField.tsx
 import React from "react";
 
 interface FormDatePickerFieldProps {
   label: string;
   name: string;
-  value: string; // formato esperado: "yyyy-MM-dd"
+  value: string; // Esperado no formato "yyyy-MM-dd"
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
   disabled?: boolean;
