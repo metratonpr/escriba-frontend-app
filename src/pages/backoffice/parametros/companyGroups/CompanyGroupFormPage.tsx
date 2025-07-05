@@ -1,3 +1,4 @@
+// src/pages/backoffice/parametros/companyGroups/CompanyGroupFormPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -13,7 +14,7 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
-
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function CompanyGroupFormPage() {
   const { id } = useParams();
@@ -33,6 +34,7 @@ export default function CompanyGroupFormPage() {
     message: "",
     type: "success" as "success" | "error",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Parâmetros", to: "/backoffice/parametros" },
@@ -41,7 +43,8 @@ export default function CompanyGroupFormPage() {
   ];
 
   useEffect(() => {
-    if (isEdit) {
+    if (isEdit && id) {
+      setIsLoading(true);
       getCompanyGroupById(Number(id))
         .then(setForm)
         .catch(() => {
@@ -51,7 +54,8 @@ export default function CompanyGroupFormPage() {
             type: "error",
           });
           navigate("/backoffice/grupos-empresa");
-        });
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [id]);
 
@@ -101,52 +105,58 @@ export default function CompanyGroupFormPage() {
         {isEdit ? "Editar Grupo de Empresa" : "Novo Grupo de Empresa"}
       </h1>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="grid gap-6 mb-6 md:grid-cols-2">
-          <FormInput
-            label="Nome"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            error={errors.name}
-            required
-          />
-
-          <FormInput
-            label="Responsável"
-            name="responsible"
-            value={form.responsible}
-            onChange={handleChange}
-            error={errors.responsible}
-            required
-          />
-
-          <FormInput
-            label="E-mail de Contato"
-            name="contact_email"
-            value={form.contact_email}
-            onChange={handleChange}
-            error={errors.contact_email}
-            required
-            type="email"
-            className="md:col-span-2"
-          />
-
-          <FormTextArea
-            label="Descrição"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            error={errors.description}
-            className="md:col-span-2"
-          />
+      {isEdit && isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <Spinner />
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="grid gap-6 mb-6 md:grid-cols-2">
+            <FormInput
+              label="Nome"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              error={errors.name}
+              required
+            />
 
-        <FormActions
-          cancelUrl="/backoffice/grupos-empresa"
-          text={isEdit ? "Atualizar" : "Criar"}
-        />
-      </form>
+            <FormInput
+              label="Responsável"
+              name="responsible"
+              value={form.responsible}
+              onChange={handleChange}
+              error={errors.responsible}
+              required
+            />
+
+            <FormInput
+              label="E-mail de Contato"
+              name="contact_email"
+              value={form.contact_email}
+              onChange={handleChange}
+              error={errors.contact_email}
+              required
+              type="email"
+              className="md:col-span-2"
+            />
+
+            <FormTextArea
+              label="Descrição"
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              error={errors.description}
+              className="md:col-span-2"
+            />
+          </div>
+
+          <FormActions
+            cancelUrl="/backoffice/grupos-empresa"
+            text={isEdit ? "Atualizar" : "Criar"}
+          />
+        </form>
+      )}
 
       <Toast
         open={toast.open}

@@ -1,4 +1,3 @@
-// src/pages/backoffice/parametros/eventTypes/EventTypeFormPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
@@ -6,6 +5,7 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 import {
   createEventType,
   getEventTypeById,
@@ -20,15 +20,18 @@ export default function EventTypeFormPage() {
   const [form, setForm] = useState({ nome_tipo_evento: "", descricao: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
+      setIsLoading(true);
       getEventTypeById(id!)
         .then(setForm)
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar tipo de evento.", type: "error" });
           navigate("/backoffice/tipos-evento");
-        });
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [id]);
 
@@ -65,26 +68,32 @@ export default function EventTypeFormPage() {
       />
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Evento" : "Novo Tipo de Evento"}</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-        <FormInput
-          label="Nome do Tipo de Evento"
-          name="nome_tipo_evento"
-          value={form.nome_tipo_evento}
-          onChange={handleChange}
-          error={errors.nome_tipo_evento}
-          required
-        />
+      {isEdit && isLoading ? (
+        <div className="h-96 flex items-center justify-center">
+          <Spinner />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+          <FormInput
+            label="Nome do Tipo de Evento"
+            name="nome_tipo_evento"
+            value={form.nome_tipo_evento}
+            onChange={handleChange}
+            error={errors.nome_tipo_evento}
+            required
+          />
 
-        <FormTextArea
-          label="Descrição"
-          name="descricao"
-          value={form.descricao}
-          onChange={handleChange}
-          error={errors.descricao}
-        />
+          <FormTextArea
+            label="Descrição"
+            name="descricao"
+            value={form.descricao}
+            onChange={handleChange}
+            error={errors.descricao}
+          />
 
-        <FormActions cancelUrl="/backoffice/tipos-evento" text={isEdit ? "Atualizar" : "Criar"} />
-      </form>
+          <FormActions cancelUrl="/backoffice/tipos-evento" text={isEdit ? "Atualizar" : "Criar"} />
+        </form>
+      )}
 
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </div>

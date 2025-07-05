@@ -1,18 +1,16 @@
-// src/pages/backoffice/colaboradores/EmployeeFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { createEmployee, getEmployeeById, updateEmployee } from "../../../../services/employeeService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Toast from "../../../../components/Layout/Feedback/Toast";
 import { FormInput } from "../../../../components/form/FormInput";
+import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
-import { FormEmployeeItem } from "./FormEmployeeItem";
-import { getEmployeeById, createEmployee, updateEmployee } from "../../../../services/employeeService";
-import { getJobTitles } from "../../../../services/jobTitleService";
-import { getSectors } from "../../../../services/sectorService";
-import { getCompanies } from "../../../../services/companyService";
+import Toast from "../../../../components/Layout/Feedback/Toast";
+import Spinner from "../../../../components/Layout/ui/Spinner";
+import CustomAssignmentsTable from "../../../../components/form/CustomAssignmentsTable";
 
-const cnhOptions = [
+const LICENSE_TYPES = [
   "A", "B", "C", "D", "E", "AB", "AC", "AD", "AE", "Não Possui"
 ].map((v) => ({ value: v, label: v }));
 
@@ -21,7 +19,7 @@ export default function EmployeeFormPage() {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<any>({
     name: "",
     cpf: "",
     rg: "",
@@ -29,190 +27,156 @@ export default function EmployeeFormPage() {
     birth_date: "",
     driver_license_type: "",
     first_license_date: "",
-    job_titles: [],
-    sectors: [],
-    companies: [],
+    assignments: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
-
-  const [jobTitleOptions, setJobTitleOptions] = useState([]);
-  const [sectorOptions, setSectorOptions] = useState([]);
-  const [companyOptions, setCompanyOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    getJobTitles().then(res => setJobTitleOptions((res.data || res).map((j: any) => ({ label: j.name, value: String(j.id) }))));
-    getSectors().then(res => setSectorOptions((res.data || res).map((s: any) => ({ label: s.name, value: String(s.id) }))));
-    getCompanies().then(res => setCompanyOptions((res.data || res).map((c: any) => ({ label: c.name, value: String(c.id) }))));
-
     if (isEdit && id) {
+      setIsLoading(true);
       getEmployeeById(id)
         .then((data) => {
           setForm({
-            ...data,
-            companies: data.companies.map((c: any) => ({
-              id: String(c.id),
-              start_date: c.pivot?.start_date || "",
-              end_date: c.pivot?.end_date || "",
-              status: c.pivot?.status || "",
-            })),
-            sectors: data.sectors.map((s: any) => ({
-              id: String(s.id),
-              start_date: s.pivot?.start_date || "",
-              end_date: s.pivot?.end_date || "",
-              status: s.pivot?.status || "",
-            })),
-            job_titles: data.job_titles.map((j: any) => ({
-              id: String(j.id),
-              start_date: j.pivot?.start_date || "",
-              end_date: j.pivot?.end_date || "",
-              status: j.pivot?.status || "",
-            })),
+            name: data.name,
+            cpf: data.cpf,
+            rg: data.rg,
+            rg_issuer: data.rg_issuer || "",
+            birth_date: data.birth_date || "",
+            driver_license_type: data.driver_license_type,
+            first_license_date: data.first_license_date || "",
+            assignments: data.assignments?.map((a: any) => ({
+              company_sector_id: a.company_sector_id,
+              company_name: a.company_sector?.company?.name || `Empresa #${a.company_sector_id}`,
+              sector_name: a.company_sector?.sector?.name || `Setor #${a.company_sector_id}`,
+              job_title_id: a.job_title_id,
+              job_title_name: a.job_title?.name || `Cargo #${a.job_title_id}`,
+              start_date: a.start_date,
+              end_date: a.end_date,
+            })) || [],
           });
         })
         .catch(() => {
-          setToast({
-            open: true,
-            message: "Erro ao carregar colaborador.",
-            type: "error",
-          });
+          setToast({ open: true, message: "Erro ao carregar colaborador.", type: "error" });
           navigate("/backoffice/colaboradores");
-        });
+        })
+        .finally(() => setIsLoading(false));
     }
-
   }, [id]);
+
+  const validateAssignments = (assignments: any[]) => {
+    for (const a of assignments) {
+      if (a.end_date && new Date(a.end_date) < new Date(a.start_date)) {
+        return `Data de fim (${a.end_date}) não pode ser anterior à data de início (${a.start_date}).`;
+      }
+    }
+    return null;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleItemChange = (key: "job_titles" | "sectors" | "companies", index: number, field: string, value: string) => {
-    const list = [...(form[key] as any[])];
-    list[index] = { ...list[index], [field]: value };
-    setForm((prev) => ({ ...prev, [key]: list }));
-  };
-
-  const handleItemAdd = (key: "job_titles" | "sectors" | "companies") => {
-    setForm((prev) => ({ ...prev, [key]: [...(prev[key] as any[]), { id: "", start_date: "", end_date: "", status: "" }] }));
-  };
-
-  const handleItemRemove = (key: "job_titles" | "sectors" | "companies", index: number) => {
-    const list = [...(form[key] as any[])];
-    list.splice(index, 1);
-    setForm((prev) => ({ ...prev, [key]: list }));
+    setForm((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setIsLoading(true);
+
+    const payload = {
+      ...form,
+      assignments: form.assignments.map((a: any) => ({
+        company_sector_id: a.company_sector_id,
+        job_title_id: a.job_title_id,
+        start_date: a.start_date,
+        end_date: a.end_date || null,
+      })),
+    };
+
+    const validationError = validateAssignments(payload.assignments);
+    if (validationError) {
+      setToast({ open: true, message: validationError, type: "error" });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (isEdit) {
-        await updateEmployee(id!, form);
+        await updateEmployee(+id!, payload);
       } else {
-        await createEmployee(form);
+        await createEmployee(payload);
       }
       setToast({ open: true, message: `Colaborador ${isEdit ? "atualizado" : "criado"} com sucesso.`, type: "success" });
       navigate("/backoffice/colaboradores");
     } catch (err: any) {
+      console.error("Backend validation errors:", err.response?.data);
       setErrors(err.response?.data?.errors ?? {});
       setToast({ open: true, message: "Erro ao salvar colaborador.", type: "error" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <Breadcrumbs
-        items={[
-          { label: "Colaboradores", to: "/backoffice/colaboradores" },
-          { label: isEdit ? "Editar" : "Novo", to: "#" },
-        ]}
-      />
+    <div className="max-w-4xl mx-auto p-6">
+      <Breadcrumbs items={[{ label: "Colaboradores", to: "/backoffice/colaboradores" }, { label: isEdit ? "Editar" : "Novo", to: "#" }]} />
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <FormInput id="name" name="name" label="Nome" value={form.name} onChange={handleChange} error={errors.name} required />
-          <FormInput id="cpf" name="cpf" label="CPF" value={form.cpf} onChange={handleChange} error={errors.cpf} required />
-          <FormInput id="rg" name="rg" label="RG" value={form.rg} onChange={handleChange} error={errors.rg} required />
-          <FormInput id="rg_issuer" name="rg_issuer" label="Emissor do RG" value={form.rg_issuer} onChange={handleChange} error={errors.rg_issuer} required />
-          <FormInput id="birth_date" name="birth_date" type="date" label="Nascimento" value={form.birth_date} onChange={handleChange} error={errors.birth_date} required />
-          <FormSelectField label="Categoria CNH" name="driver_license_type" value={form.driver_license_type} onChange={handleChange} options={cnhOptions} error={errors.driver_license_type} required />
-          <FormInput id="first_license_date" name="first_license_date" type="date" label="1ª Habilitação" value={form.first_license_date} onChange={handleChange} error={errors.first_license_date} />
-        </div>
+      {isLoading && isEdit ? (
+        <Spinner />
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormInput id="name" name="name" label="Nome" value={form.name} onChange={handleChange} error={errors.name} required />
+            <FormInput id="cpf" name="cpf" label="CPF" value={form.cpf} onChange={handleChange} error={errors.cpf} required />
+            <FormInput id="rg" name="rg" label="RG" value={form.rg} onChange={handleChange} error={errors.rg} required />
 
-        <FormEmployeeItem
-          label="Cargos"
-          name="job_titles"
-          items={form.job_titles}
-          onAdd={() => handleItemAdd("job_titles")}
-          onRemove={(i) => handleItemRemove("job_titles", i)}
-          onChange={(i, k, v) => handleItemChange("job_titles", i, k, v)}
-          errorMap={errors}
-          fields={[
-            { name: "id", label: "Cargo", type: "select", options: jobTitleOptions },
-            { name: "start_date", label: "Início", type: "date" },
-            { name: "end_date", label: "Fim", type: "date" },
-            {
-              name: "status", label: "Status", type: "select", options: [
-                { value: "ativo", label: "Ativo" },
-                { value: "afastado", label: "Afastado" },
-                { value: "desligado", label: "Desligado" },
-              ]
-            },
-          ]}
-        />
+            <FormInput id="rg_issuer" name="rg_issuer" label="Órgão Emissor" value={form.rg_issuer} onChange={handleChange} error={errors.rg_issuer} required />
 
-        <FormEmployeeItem
-          label="Setores"
-          name="sectors"
-          items={form.sectors}
-          onAdd={() => handleItemAdd("sectors")}
-          onRemove={(i) => handleItemRemove("sectors", i)}
-          onChange={(i, k, v) => handleItemChange("sectors", i, k, v)}
-          errorMap={errors}
-          fields={[
-            { name: "id", label: "Setor", type: "select", options: sectorOptions },
-            { name: "start_date", label: "Início", type: "date" },
-            { name: "end_date", label: "Fim", type: "date" },
-            {
-              name: "status", label: "Status", type: "select", options: [
-                { value: "ativo", label: "Ativo" },
-                { value: "afastado", label: "Afastado" },
-                { value: "desligado", label: "Desligado" },
-              ]
-            },
-          ]}
-        />
+            <FormDatePickerField
+              name="birth_date"
+              label="Data de Nascimento"
+              value={form.birth_date || ""}
+              onChange={(e) => setForm((prev: any) => ({ ...prev, birth_date: e.target.value }))}
+              error={errors.birth_date}
+              required
+            />
 
-        <FormEmployeeItem
-          label="Empresas"
-          name="companies"
-          items={form.companies}
-          onAdd={() => handleItemAdd("companies")}
-          onRemove={(i) => handleItemRemove("companies", i)}
-          onChange={(i, k, v) => handleItemChange("companies", i, k, v)}
-          errorMap={errors}
-          fields={[
-            { name: "id", label: "Empresa", type: "select", options: companyOptions },
-            { name: "start_date", label: "Início", type: "date" },
-            { name: "end_date", label: "Fim", type: "date" },
-            {
-              name: "status", label: "Status", type: "select", options: [
-                { value: "ativo", label: "Ativo" },
-                { value: "afastado", label: "Afastado" },
-                { value: "desligado", label: "Desligado" },
-              ]
-            },
-          ]}
-        />
+            <FormSelectField
+              name="driver_license_type"
+              label="Categoria CNH"
+              value={form.driver_license_type}
+              onChange={handleChange}
+              options={LICENSE_TYPES}
+              error={errors.driver_license_type}
+              required
+            />
 
-        <div className="mt-6">
-          <FormActions onCancel={() => navigate("/backoffice/colaboradores")} text={isEdit ? "Atualizar" : "Criar"} />
-        </div>
-      </form>
+            <FormDatePickerField
+              name="first_license_date"
+              label="Data da 1ª Habilitação"
+              value={form.first_license_date || ""}
+              onChange={(e) => setForm((prev: any) => ({ ...prev, first_license_date: e.target.value }))}
+              error={errors.first_license_date}
+            />
+          </div>
 
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+          <div className="mt-8">
+            <CustomAssignmentsTable
+              value={form.assignments}
+              onChange={(list) => setForm((prev) => ({ ...prev, assignments: list }))}
+              error={errors.assignments}
+            />
+          </div>
+
+          <div className="mt-6">
+            <FormActions loading={isLoading} onCancel={() => navigate("/backoffice/colaboradores")} text={isEdit ? "Atualizar" : "Criar"} />
+          </div>
+        </form>
+      )}
+
+      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, open: false }))} />
     </div>
   );
 }

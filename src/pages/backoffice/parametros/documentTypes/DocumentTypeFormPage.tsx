@@ -10,6 +10,7 @@ import {
   getDocumentTypeById,
   updateDocumentType,
 } from "../../../../services/documentTypeService";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function DocumentTypeFormPage() {
   const { id } = useParams();
@@ -19,15 +20,18 @@ export default function DocumentTypeFormPage() {
   const [form, setForm] = useState({ name: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
+      setIsLoading(true);
       getDocumentTypeById(id!)
         .then(setForm)
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar tipo de documento.", type: "error" });
           navigate("/backoffice/tipos-documento");
-        });
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [id]);
 
@@ -64,10 +68,16 @@ export default function DocumentTypeFormPage() {
       />
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-        <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
-        <FormActions cancelUrl="/backoffice/tipos-documento" text={isEdit ? "Atualizar" : "Criar"} />
-      </form>
+      {isEdit && isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <Spinner />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+          <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
+          <FormActions cancelUrl="/backoffice/tipos-documento" text={isEdit ? "Atualizar" : "Criar"} />
+        </form>
+      )}
 
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </div>

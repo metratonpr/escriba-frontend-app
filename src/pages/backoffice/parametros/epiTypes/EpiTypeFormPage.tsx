@@ -10,6 +10,7 @@ import {
   createEpiType,
   updateEpiType,
 } from "../../../../services/epiTypeService";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function EpiTypeFormPage() {
   const { id } = useParams();
@@ -19,15 +20,30 @@ export default function EpiTypeFormPage() {
   const [form, setForm] = useState({ name: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isEdit) {
-      getEpiTypeById(id!).then(setForm).catch(() => {
-        setToast({ open: true, message: "Erro ao carregar tipo.", type: "error" });
-        navigate("/backoffice/tipos-epi");
-      });
-    }
-  }, [id]);
+useEffect(() => {
+  if (isEdit && id) {
+    setIsLoading(true);
+    getEpiById(+id)
+      .then((data) => {
+        setForm({
+          name: data.name,
+          epi_type: data.type ? { id: data.type.id, label: data.type.name } : null,
+          brand: data.brand ? { id: data.brand.id, label: data.brand.name } : null,
+          company: data.company ? { id: data.company.id, label: data.company.name } : null,
+          ca: data.ca,
+          ca_expiration: data.ca_expiration.slice(0, 10),
+        });
+      })
+      .catch(() => {
+        setToast({ open: true, message: "Erro ao carregar EPI.", type: "error" });
+        navigate("/backoffice/epis");
+      })
+      .finally(() => setIsLoading(false));
+  }
+}, [id]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -62,18 +78,24 @@ export default function EpiTypeFormPage() {
       />
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de EPI" : "Novo Tipo de EPI"}</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-        <FormInput
-          label="Nome"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          error={errors.name}
-          required
-        />
+      {isEdit && isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <Spinner />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+          <FormInput
+            label="Nome"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            error={errors.name}
+            required
+          />
 
-        <FormActions cancelUrl="/backoffice/tipos-epi" text={isEdit ? "Atualizar" : "Criar"} />
-      </form>
+          <FormActions cancelUrl="/backoffice/tipos-epi" text={isEdit ? "Atualizar" : "Criar"} />
+        </form>
+      )}
 
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </div>

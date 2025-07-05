@@ -5,6 +5,7 @@ import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormActions } from "../../../../components/form/FormActions";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 import {
   getBrandById,
@@ -25,13 +26,18 @@ export default function BrandFormPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
-      getBrandById(id!).then(setForm).catch(() => {
-        setToast({ open: true, message: "Erro ao carregar marca.", type: "error" });
-        navigate("/backoffice/marcas");
-      });
+      setIsLoading(true);
+      getBrandById(id!)
+        .then(setForm)
+        .catch(() => {
+          setToast({ open: true, message: "Erro ao carregar marca.", type: "error" });
+          navigate("/backoffice/marcas");
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [id]);
 
@@ -66,12 +72,18 @@ export default function BrandFormPage() {
       ]} />
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Marca" : "Nova Marca"}</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-        <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
-        <FormInput label="Site" name="website" value={form.website} onChange={handleChange} error={errors.website} type="url" />
-        <FormInput label="E-mail de Suporte" name="support_email" value={form.support_email} onChange={handleChange} error={errors.support_email} type="email" />
-        <FormActions cancelUrl="/backoffice/marcas" text={isEdit ? "Atualizar" : "Criar"} />
-      </form>
+      {isEdit && isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <Spinner />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+          <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
+          <FormInput label="Site" name="website" value={form.website} onChange={handleChange} error={errors.website} type="url" />
+          <FormInput label="E-mail de Suporte" name="support_email" value={form.support_email} onChange={handleChange} error={errors.support_email} type="email" />
+          <FormActions cancelUrl="/backoffice/marcas" text={isEdit ? "Atualizar" : "Criar"} />
+        </form>
+      )}
 
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </div>

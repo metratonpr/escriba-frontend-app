@@ -1,4 +1,3 @@
-// src/pages/backoffice/empresas/CompanyFormPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
@@ -7,22 +6,27 @@ import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
 
-import {
-  getCompanyById,
-  createCompany,
-  updateCompany,
-} from "../../../../services/companyService";
-import { getCompanyGroups } from "../../../../services/companyGroupService";
-import { getCompanyTypes } from "../../../../services/companyTypeService";
+
+import { getCompanyById, createCompany, updateCompany } from "../../../../services/companyService";
+import CompanyGroupAutocompleteField from "../../../../components/form/CompanyGroupAutocompleteField";
+import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTypeAutocompleteField";
+import SectorFormWithTable from "../../../../components/form/SectorFormWithTable";
+import Spinner from "../../../../components/Layout/ui/Spinner";
+
+const STATES = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
+  "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO",
+  "RR", "SC", "SP", "SE", "TO"
+].map((uf) => ({ value: uf, label: uf }));
 
 export default function CompanyFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    company_group_id: "",
-    company_type_id: "",
+  const [form, setForm] = useState<any>({
+    company_group_id: null,
+    company_type_id: null,
     name: "",
     cnpj: "",
     phone: "",
@@ -31,31 +35,21 @@ export default function CompanyFormPage() {
     state: "",
     responsible: "",
     email: "",
+    sectors: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
-
-  const [groups, setGroups] = useState([]);
-  const [types, setTypes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    getCompanyGroups().then((res) => {
-      const data = Array.isArray(res) ? res : res.data;
-      setGroups(data.map((g: any) => ({ value: g.id, label: g.name })));
-    });
-
-    getCompanyTypes().then((res) => {
-      const data = Array.isArray(res) ? res : res.data;
-      setTypes(data.map((t: any) => ({ value: t.id, label: t.name })));
-    });
-
     if (isEdit && id) {
+      setIsLoading(true);
       getCompanyById(+id)
         .then((data) => {
           setForm({
-            company_group_id: String(data.company_group_id ?? ""),
-            company_type_id: String(data.company_type_id ?? ""),
+            company_group_id: data.group ? { id: data.group.id, label: data.group.name } : null,
+            company_type_id: data.type ? { id: data.type.id, label: data.type.name } : null,
             name: data.name ?? "",
             cnpj: data.cnpj ?? "",
             phone: data.phone ?? "",
@@ -64,28 +58,40 @@ export default function CompanyFormPage() {
             state: data.state ?? "",
             responsible: data.responsible ?? "",
             email: data.email ?? "",
+            sectors: data.sectors?.map((s: any) => ({ id: s.id, label: s.name })) ?? [],
           });
         })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar empresa.", type: "error" });
           navigate("/backoffice/empresas");
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
     }
   }, [id]);
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    const payload = {
+      ...form,
+      company_group_id: form.company_group_id?.id,
+      company_type_id: form.company_type_id?.id,
+      sectors: form.sectors.map((s: any) => s.id),
+    };
+
     try {
       if (isEdit) {
-        await updateCompany(Number(id), form);
+        await updateCompany(Number(id), payload);
       } else {
-        await createCompany(form);
+        await createCompany(payload);
       }
       setToast({ open: true, message: `Empresa ${isEdit ? "atualizada" : "criada"} com sucesso.`, type: "success" });
       navigate("/backoffice/empresas");
@@ -95,51 +101,63 @@ export default function CompanyFormPage() {
     }
   };
 
+
+
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <Breadcrumbs
-        items={[
-          { label: "Empresas", to: "/backoffice/empresas" },
-          { label: isEdit ? "Editar" : "Nova", to: "#" },
-        ]}
-      />
+      <Breadcrumbs items={[{ label: "Empresas", to: "/backoffice/empresas" }, { label: isEdit ? "Editar" : "Nova", to: "#" }]} />
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormSelectField
-            label="Grupo da Empresa"
-            name="company_group_id"
-            value={form.company_group_id ?? ""}
-            onChange={handleChange}
-            options={groups}
-            error={errors.company_group_id}
-            required
-          />
-          <FormSelectField
-            label="Tipo de Empresa"
-            name="company_type_id"
-            value={form.company_type_id ?? ""}
-            onChange={handleChange}
-            options={types}
-            error={errors.company_type_id}
-            required
-          />
-          <FormInput id="name" name="name" label="Nome" value={form.name ?? ""} onChange={handleChange} error={errors.name} required />
-          <FormInput id="cnpj" name="cnpj" label="CNPJ" value={form.cnpj ?? ""} onChange={handleChange} error={errors.cnpj} required />
-          <FormInput id="phone" name="phone" label="Telefone" value={form.phone ?? ""} onChange={handleChange} error={errors.phone} />
-          <FormInput id="email" name="email" label="E-mail" type="email" value={form.email ?? ""} onChange={handleChange} error={errors.email} />
-          <FormInput id="responsible" name="responsible" label="Responsável" value={form.responsible ?? ""} onChange={handleChange} error={errors.responsible} />
-          <FormInput id="address" name="address" label="Endereço" value={form.address ?? ""} onChange={handleChange} error={errors.address} />
-          <FormInput id="city" name="city" label="Cidade" value={form.city ?? ""} onChange={handleChange} error={errors.city} />
-          <FormInput id="state" name="state" label="Estado" value={form.state ?? ""} onChange={handleChange} error={errors.state} />
+      {isEdit && isLoading ? (
+        <div className="h-96 flex items-center justify-center">
+          <Spinner />
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CompanyGroupAutocompleteField
+              value={form.company_group_id}
+              onChange={(v) => setForm((prev: any) => ({ ...prev, company_group_id: v }))}
+              error={errors.company_group_id}
+              required
+            />
+            <CompanyTypeAutocompleteField
+              value={form.company_type_id}
+              onChange={(v) => setForm((prev: any) => ({ ...prev, company_type_id: v }))}
+              error={errors.company_type_id}
+              required
+            />
+            <FormInput id="name" name="name" label="Nome" value={form.name} onChange={handleChange} error={errors.name} required />
+            <FormInput id="cnpj" name="cnpj" label="CNPJ" value={form.cnpj} onChange={handleChange} error={errors.cnpj} required />
+            <FormInput id="phone" name="phone" label="Telefone" value={form.phone} onChange={handleChange} error={errors.phone} />
+            <FormInput id="email" name="email" label="E-mail" value={form.email} onChange={handleChange} error={errors.email} required />
+            <FormInput id="responsible" name="responsible" label="Responsável" value={form.responsible} onChange={handleChange} error={errors.responsible} required />
+            <FormInput id="address" name="address" label="Endereço" value={form.address} onChange={handleChange} error={errors.address} />
+            <FormInput id="city" name="city" label="Cidade" value={form.city} onChange={handleChange} error={errors.city} />
+            <FormSelectField
+              name="state"
+              label="Estado"
+              value={form.state}
+              onChange={handleChange}
+              options={STATES}
+              error={errors.state}
+              required
+            />
+            <div className="md:col-span-2">
+              <SectorFormWithTable
+                value={form.sectors}
+                onChange={(val) => setForm((prev: any) => ({ ...prev, sectors: val }))}
+              />
+              {errors.sectors && <p className="text-sm text-red-600 mt-1">{errors.sectors}</p>}
+            </div>
+          </div>
 
-        <div className="mt-6">
-          <FormActions onCancel={() => navigate("/backoffice/empresas")} text={isEdit ? "Atualizar" : "Criar"} />
-        </div>
-      </form>
+          <div className="mt-6">
+            <FormActions onCancel={() => navigate("/backoffice/empresas")} text={isEdit ? "Atualizar" : "Criar"} />
+          </div>
+        </form>
+      )}
 
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, open: false }))} />
     </div>
   );
 }

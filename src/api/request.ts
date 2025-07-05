@@ -1,4 +1,3 @@
-// src/api/request.ts
 import http from "./http";
 import type { AxiosResponse, Method } from "axios";
 
@@ -19,14 +18,14 @@ export async function request<T = any>(
     console.log(`🔄 JSON request para: ${url}`, {
       method,
       params,
-      body: data,
+      body: method !== "GET" ? data : undefined,
     });
 
     const config = {
       url,
       method,
       params,
-      data,
+      ...(method !== "GET" && { data }), // ✅ só inclui `data` se for método válido
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",

@@ -12,6 +12,7 @@ import {
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function CompanyTypeFormPage() {
     const { id } = useParams();
@@ -21,15 +22,18 @@ export default function CompanyTypeFormPage() {
     const [form, setForm] = useState({ name: "", description: "" });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (isEdit) {
+            setIsLoading(true);
             getCompanyTypeById(Number(id))
                 .then(setForm)
                 .catch(() => {
                     setToast({ open: true, message: "Erro ao carregar tipo.", type: "error" });
                     navigate("/backoffice/tipos-empresa");
-                });
+                })
+                .finally(() => setIsLoading(false));
         }
     }, [id]);
 
@@ -64,11 +68,17 @@ export default function CompanyTypeFormPage() {
             ]} />
             <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Empresa" : "Novo Tipo de Empresa"}</h1>
 
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-                <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
-                <FormTextArea label="Descrição" name="description" value={form.description} onChange={handleChange} error={errors.description} />
-                <FormActions cancelUrl="/backoffice/tipos-empresa" text={isEdit ? "Atualizar" : "Criar"} />
-            </form>
+            {isEdit && isLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                    <Spinner />
+                </div>
+            ) : (
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+                    <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
+                    <FormTextArea label="Descrição" name="description" value={form.description} onChange={handleChange} error={errors.description} />
+                    <FormActions cancelUrl="/backoffice/tipos-empresa" text={isEdit ? "Atualizar" : "Criar"} />
+                </form>
+            )}
 
             <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
         </div>
