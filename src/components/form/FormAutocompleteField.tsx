@@ -9,22 +9,28 @@ interface Option {
 
 interface AutocompleteFieldProps {
   label: string;
+  name: string;
   options: Option[];
   value: Option | null;
   onChange: (value: Option | null) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function FormAutocompleteField({
   label,
+  name,
   options,
   value,
   onChange,
   placeholder = "Digite para buscar...",
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: AutocompleteFieldProps) {
   const [query, setQuery] = useState("");
 
@@ -37,13 +43,21 @@ export default function FormAutocompleteField({
 
   return (
     <div className={`w-full ${className}`}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
+      <label
+        htmlFor={name}
+        className="block text-sm font-medium text-gray-700 dark:text-white mb-1"
+      >
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <Combobox value={value} onChange={onChange} disabled={disabled}>
         <div className="relative">
           <Combobox.Input
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            id={name}
+            name={name}
+            className={`h-10 w-full rounded-lg border px-3 py-2 text-sm text-gray-900 bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500
+              dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+                error ? "border-red-500" : "border-gray-300"
+              }`}
             displayValue={(opt: Option) => opt?.label || ""}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
@@ -53,14 +67,16 @@ export default function FormAutocompleteField({
           </Combobox.Button>
 
           {filteredOptions.length > 0 && (
-            <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 sm:text-sm">
+            <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 sm:text-sm dark:bg-gray-800">
               {filteredOptions.map((option) => (
                 <Combobox.Option
                   key={option.id}
                   value={option}
                   className={({ active }) =>
                     `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                      active ? "bg-blue-600 text-white" : "text-gray-900"
+                      active
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-900 dark:text-white"
                     }`
                   }
                 >
@@ -86,6 +102,7 @@ export default function FormAutocompleteField({
           )}
         </div>
       </Combobox>
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

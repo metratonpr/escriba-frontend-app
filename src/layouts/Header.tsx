@@ -28,11 +28,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         </button>
         <h1 className="text-lg font-semibold text-gray-800">Escriba APP</h1>
         <nav className="hidden md:flex gap-6 ml-10">
-          <Link to="/backoffice/empresas" className="text-sm font-medium text-gray-600 hover:text-blue-600">
+          <Link to="/backoffice/entidades" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Empresas
           </Link>
-          <Link to="/backoffice/colaboradores" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Funcionários
+          <Link to="/backoffice/equipes" className="text-sm font-medium text-gray-600 hover:text-blue-600">
+            Equipes
           </Link>
           <Link to="/backoffice/eventos" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Eventos

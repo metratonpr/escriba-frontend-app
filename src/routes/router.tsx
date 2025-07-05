@@ -30,6 +30,12 @@ import EpisPage from '../pages/backoffice/parametros/epis/EpisPage'
 import EpiFormPage from '../pages/backoffice/parametros/epis/EpiFormPage'
 import OccurrenceTypeFormPage from '../pages/backoffice/parametros/occurrenceTypes/OccurrenceTypeFormPage'
 import OccurrenceTypesListPage from '../pages/backoffice/parametros/occurrenceTypes/OccurrenceTypesListPage'
+import CompanyFormPage from '../pages/backoffice/empresas/companies/CompanyFormPage'
+import CompaniesPage from '../pages/backoffice/empresas/companies/CompaniesPage'
+import EmployeesPage from '../pages/backoffice/colaboradores/employee/EmployeesPage'
+import EmployeeFormPage from '../pages/backoffice/colaboradores/employee/EmployeeFormPage'
+import MedicalExamPage from '../pages/backoffice/colaboradores/exames/MedicalExamPage'
+import MedicalExamFormPage from '../pages/backoffice/colaboradores/exames/MedicalExamFormPage'
 
 
 export const router = createBrowserRouter([
@@ -41,8 +47,8 @@ export const router = createBrowserRouter([
     path: '/backoffice',
     element: <BackofficeLayout />,
     children: [
-      { path: 'empresas', element: <EmpresasDashboard /> },
-      { path: 'colaboradores', element: <ColaboradoresDashboard /> },
+      { path: 'entidades', element: <EmpresasDashboard /> },
+      { path: 'equipes', element: <ColaboradoresDashboard /> },
       { path: 'eventos', element: <EventosDashboard /> },
       { path: 'parametros', element: <ParametrosDashboard /> },
       { path: 'grupos-empresa', element: <CompanyGroupsPage /> },  // rota no nível do backoffice
@@ -81,6 +87,15 @@ export const router = createBrowserRouter([
       { path: 'tipos-ocorrencia', element: <OccurrenceTypesListPage /> },
       { path: 'tipos-ocorrencia/novo', element: <OccurrenceTypeFormPage /> },
       { path: 'tipos-ocorrencia/editar/:id', element: <OccurrenceTypeFormPage /> },
+      { path: 'empresas', element: <CompaniesPage /> },
+      { path: 'empresas/nova', element: <CompanyFormPage /> },
+      { path: 'empresas/editar/:id', element: <CompanyFormPage /> },
+      { path: 'colaboradores', element: <EmployeesPage /> },
+      { path: 'colaboradores/novo', element: <EmployeeFormPage /> },
+      { path: 'colaboradores/editar/:id', element: <EmployeeFormPage /> },
+      { path: 'exames-medicos', element: <MedicalExamPage /> },
+      { path: 'exames-medicos/novo', element: <MedicalExamFormPage /> },
+      { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
 
 
       { path: 'secoes', element: <SecoesDashboard /> },

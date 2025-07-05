@@ -26,18 +26,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
       <nav className="flex flex-col gap-3">
         <Link
-          to="/backoffice/empresas"
+          to="/backoffice/entidades"
           className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
           onClick={onClose}
         >
           Empresas
         </Link>
         <Link
-          to="/backoffice/colaboradores"
+          to="/backoffice/equipes"
           className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
           onClick={onClose}
         >
-          Colaboradores
+          Equipes
         </Link>
         <Link
           to="/backoffice/eventos"
