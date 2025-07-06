@@ -6,7 +6,6 @@ import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
 
-
 import { getCompanyById, createCompany, updateCompany } from "../../../../services/companyService";
 import CompanyGroupAutocompleteField from "../../../../components/form/CompanyGroupAutocompleteField";
 import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTypeAutocompleteField";
@@ -46,7 +45,8 @@ export default function CompanyFormPage() {
     if (isEdit && id) {
       setIsLoading(true);
       getCompanyById(+id)
-        .then((data) => {
+        .then((response) => {
+          const data = response.data;
           setForm({
             company_group_id: data.group ? { id: data.group.id, label: data.group.name } : null,
             company_type_id: data.type ? { id: data.type.id, label: data.type.name } : null,
@@ -58,7 +58,9 @@ export default function CompanyFormPage() {
             state: data.state ?? "",
             responsible: data.responsible ?? "",
             email: data.email ?? "",
-            sectors: data.sectors?.map((s: any) => ({ id: s.id, label: s.name })) ?? [],
+            sectors: Array.isArray(data.company_sectors)
+              ? data.company_sectors.map((s: any) => s.sector ? { id: s.sector.id, label: s.sector.name } : null).filter(Boolean)
+              : [],
           });
         })
         .catch(() => {
@@ -71,7 +73,6 @@ export default function CompanyFormPage() {
     }
   }, [id]);
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev: any) => ({ ...prev, [name]: value }));
@@ -80,11 +81,19 @@ export default function CompanyFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
     const payload = {
-      ...form,
       company_group_id: form.company_group_id?.id,
       company_type_id: form.company_type_id?.id,
-      sectors: form.sectors.map((s: any) => s.id),
+      name: form.name,
+      cnpj: form.cnpj,
+      phone: form.phone || null,
+      address: form.address || null,
+      city: form.city || null,
+      state: form.state,
+      responsible: form.responsible,
+      email: form.email,
+      company_sectors: form.sectors.map((s: any) => ({ sector_id: s.id })),
     };
 
     try {
@@ -100,8 +109,6 @@ export default function CompanyFormPage() {
       setToast({ open: true, message: "Erro ao salvar empresa.", type: "error" });
     }
   };
-
-
 
   return (
     <div className="max-w-7xl mx-auto p-6">

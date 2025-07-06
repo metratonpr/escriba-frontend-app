@@ -1,4 +1,3 @@
-// ✅ CompanyWithSectorAutocompleteField.tsx
 import React, { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import FormSelectField from "./FormSelectField";
@@ -43,7 +42,6 @@ export default function CompanySectorAutocompleteField({
         }));
         setOptions(formatted);
         setError(null);
-        console.log(data);
       } catch {
         setError("Erro ao buscar empresas.");
         setOptions([]);
@@ -58,10 +56,11 @@ export default function CompanySectorAutocompleteField({
   }, [query, fetchCompanies]);
 
   useEffect(() => {
-    if (company?._original?.sectors) {
-      const formatted = company._original.sectors.map((s: any) => ({
-        id: s.id,
-        label: s.name,
+    if (company?._original?.company_sectors) {
+      const formatted = company._original.company_sectors.map((cs: any) => ({
+        id: cs.sector.id,
+        label: cs.sector.name,
+        _original: cs,
       }));
       setSectors(formatted);
     } else {
@@ -73,7 +72,13 @@ export default function CompanySectorAutocompleteField({
     onChange({ company: selected, sector: null });
   };
 
-  const isInvalid = !company || !sector;
+  const handleSectorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = sectors.find((s) => String(s.id) === e.target.value);
+    onChange({
+      company,
+      sector: selected ? { ...selected, id: selected._original.id } : null,
+    });
+  };
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
@@ -86,7 +91,6 @@ export default function CompanySectorAutocompleteField({
           onChange={handleCompanyChange}
           onInputChange={setQuery}
           disabled={disabled}
-          required
         />
         {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
       </div>
@@ -96,21 +100,11 @@ export default function CompanySectorAutocompleteField({
           label="Setor"
           name="company_sector_id"
           value={sector?.id || ""}
-          onChange={(e) => {
-            const selected = sectors.find((s) => String(s.id) === e.target.value);
-            onChange({ company, sector: selected || null });
-          }}
+          onChange={handleSectorChange}
           options={sectors.map((s) => ({ value: s.id, label: s.label }))}
           disabled={disabled || sectors.length === 0}
-          required
         />
       </div>
-
-      {isInvalid && (
-        <div className="col-span-2">
-          <p className="text-sm text-red-600">Preencha todos os campos obrigatórios.</p>
-        </div>
-      )}
     </div>
   );
 }
