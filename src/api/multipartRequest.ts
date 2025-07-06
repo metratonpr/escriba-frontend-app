@@ -2,9 +2,6 @@
 import http from "./http";
 import type { AxiosResponse, Method } from "axios";
 
-/**
- * Requisição especializada para envio de arquivos via multipart/form-data (FormData).
- */
 export async function multipartRequest<T = any>(
   method: Method,
   url: string,
@@ -16,24 +13,17 @@ export async function multipartRequest<T = any>(
       throw new Error("O corpo da requisição deve ser uma instância de FormData.");
     }
 
-    console.log(`📤 Multipart request para: ${url}`, {
-      method,
-      params,
-      body: "[FormData]",
-    });
-
-    const config = {
+    const response: AxiosResponse<T> = await http.request({
       url,
       method,
       params,
       data,
       headers: {
+        // REMOVE 'Content-Type' manualmente
         Accept: "application/json",
-        // Não definimos Content-Type: será definido automaticamente pelo navegador
       },
-    };
+    });
 
-    const response: AxiosResponse<T> = await http.request(config);
     return response.data;
   } catch (error) {
     console.error(`❌ Erro multipart ${method.toUpperCase()} ${url}:`, error);

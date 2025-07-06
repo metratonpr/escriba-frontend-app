@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
+import debounce from "lodash/debounce";
 import { getEmployees } from "../../services/employeeService";
-
 
 interface Option {
   id: string | number;
@@ -24,30 +24,43 @@ export default function EmployeeAutocompleteField({
   className = "",
 }: EmployeeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
+  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getEmployees({ search: "", page: 1, perPage: 100 }) // ajuste se necessário
-      .then((res) => {
-        const data = Array.isArray(res) ? res : res.data;
-        const formatted = data.map((emp: any) => ({
+  const fetchEmployees = useCallback(
+    debounce(async (term: string) => {
+      try {
+        const response = await getEmployees({ search: term, page: 1, perPage: 25 });
+        const list = Array.isArray(response) ? response : response.data;
+
+        const mapped: Option[] = list.map((emp: any) => ({
           id: emp.id,
           label: emp.name,
         }));
-        setOptions(formatted);
-      })
-      .catch(() => {
-        setError("Erro ao carregar funcionários.");
-      });
-  }, []);
+
+        setOptions(mapped);
+      } catch {
+        setError("Erro ao buscar funcionários.");
+        setOptions([]);
+      }
+    }, 300),
+    []
+  );
+
+  useEffect(() => {
+    fetchEmployees(query);
+    return () => fetchEmployees.cancel();
+  }, [query, fetchEmployees]);
 
   return (
     <>
       <FormAutocompleteField
+        name="employee_id"
         label={label}
-        options={options}
         value={value}
+        options={options}
         onChange={onChange}
+        onInputChange={setQuery}
         disabled={disabled}
         className={className}
       />
