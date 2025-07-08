@@ -1,39 +1,32 @@
-import React, { useRef, useState } from "react";
-import { Trash2, UploadCloud } from "lucide-react";
-import { Link } from "react-router-dom";
-import DeleteModal from "../Layout/ui/DeleteModal";
+import React, { useRef } from "react";
+import { UploadCloud } from "lucide-react";
 
 export type UploadFile =
   | File
   | {
-    id: number;
-    nome_arquivo: string;
-    url_arquivo: string;
-  };
+      id: number;
+      nome_arquivo: string;
+      url_arquivo: string;
+    };
 
 interface FileUploadProps {
   label?: string;
-  files: UploadFile[];
+  files?: UploadFile[];
   setFiles: (files: UploadFile[]) => void;
   showToast: (msg: string, type?: "error" | "success") => void;
   multiple?: boolean;
   maxSizeMB?: number;
-  baseUrl?: string;
-  onRemove?: (index: number) => void;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
   label = "Enviar Arquivos",
-  files,
+  files = [],
   setFiles,
   showToast,
   multiple = true,
   maxSizeMB = 50,
-  baseUrl = "",
-  onRemove,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileToDeleteIndex, setFileToDeleteIndex] = useState<number | null>(null);
 
   const ACCEPT = [
     ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif",
@@ -55,17 +48,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
     });
 
     setFiles(multiple ? [...files, ...validFiles] : validFiles);
+    e.target.value = ""; // limpa input
   };
-
-  const confirmRemove = () => {
-    if (fileToDeleteIndex === null) return;
-    if (onRemove) onRemove(fileToDeleteIndex);
-    setFiles(files.filter((_, i) => i !== fileToDeleteIndex));
-    setFileToDeleteIndex(null);
-  };
-
-  const renderName = (file: UploadFile) =>
-    file instanceof File ? file.name : file.nome_arquivo;
 
   return (
     <div className="space-y-2">
@@ -90,53 +74,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onChange={handleFileChange}
         />
       </div>
-
-      {files.length > 0 && (
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700 mt-4">
-          {files.map((file, index) => {
-            const fileName = renderName(file);
-
-            const isPersisted = !(file instanceof File);
-            const viewerUrl = isPersisted ? `/backoffice/exames-medicos/anexo/${(file as any).id}` : undefined;
-
-            return (
-              <li
-                key={index}
-                className="flex justify-between items-center py-2 text-sm text-gray-700 dark:text-gray-200"
-              >
-                {viewerUrl ? (
-                  <Link
-                    to={`/backoffice/exames-medicos/anexo/${(file as any).id}`}
-                    state={{ attachment: file }}
-                    className="text-blue-600 underline truncate max-w-xs"
-                  >
-                    {fileName}
-                  </Link>
-                ) : (
-                  <span className="truncate max-w-xs">{fileName}</span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setFileToDeleteIndex(index)}
-                  className="text-red-500 hover:text-red-700"
-                  aria-label={`Remover arquivo ${fileName}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <DeleteModal
-        isOpen={fileToDeleteIndex !== null}
-        onClose={() => setFileToDeleteIndex(null)}
-        onConfirm={confirmRemove}
-        itemName={fileToDeleteIndex !== null ? renderName(files[fileToDeleteIndex]) : ""}
-        description="Tem certeza que deseja excluir este arquivo? Esta ação não poderá ser desfeita."
-      />
     </div>
   );
 };

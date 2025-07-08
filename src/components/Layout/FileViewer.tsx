@@ -29,13 +29,29 @@ const FileViewer: React.FC<FileViewerProps> = ({ fileId, fileName }) => {
   const isPdf = /\.pdf$/i.test(fileName);
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {isImage && <img src={url} alt={fileName} className="rounded shadow" />}
+    <div className="w-full h-[90vh] mx-auto flex justify-center items-center">
+      {isImage && (
+        <img
+          src={url}
+          alt={fileName}
+          className="max-h-full max-w-full rounded shadow object-contain"
+        />
+      )}
       {isPdf && (
-        <iframe src={url} className="w-full h-[80vh] border" title="PDF Viewer"></iframe>
+        <iframe
+          src={url}
+          className="w-full h-full border rounded"
+          title="PDF Viewer"
+        ></iframe>
       )}
       {!isImage && !isPdf && (
-        <a href={url} download className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+        <a
+          href={url}
+          download
+          className="text-blue-600 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Baixar ou abrir
         </a>
       )}

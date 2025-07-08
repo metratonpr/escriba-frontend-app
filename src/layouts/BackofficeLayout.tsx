@@ -28,11 +28,9 @@ export default function BackofficeLayout() {
       </div>
 
       {/* Conteúdo principal ocupa 100% da tela no desktop */}
-      <main className="flex-1 mt-8 px-4 sm:px-6 lg:px-8 min-h-0 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
-          <Outlet />
-        </div>
-      </main>
+      <main className="flex-1 mt-8 px-4 sm:px-6 lg:px-8 min-h-0 overflow-y-auto max-w-7xl mx-auto w-full">
+  <Outlet />
+</main>
 
       <footer className="bg-white border-t border-gray-200 px-4 py-4 text-sm text-center text-gray-500">
         © {new Date().getFullYear()} Escriba APP - Desenolvido por Iapotech . Todos os direitos reservados.

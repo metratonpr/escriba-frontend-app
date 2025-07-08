@@ -98,7 +98,7 @@ export const router = createBrowserRouter([
       { path: 'exames-medicos/novo', element: <MedicalExamFormPage /> },
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
-      { path: "exames-medicos/anexo/:id", element: <ExamAttachmentViewerPage /> },
+      { path: "exames-medicos/editar/:examId/visualizar-anexo/:attachmentId", element: <ExamAttachmentViewerPage /> },
     ],
   },
 ]);

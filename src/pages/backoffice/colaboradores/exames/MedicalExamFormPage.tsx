@@ -16,6 +16,15 @@ import { FormActions } from "../../../../components/form/FormActions";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import EmployeeAutocompleteField from "../../../../components/form/EmployeeAutocompleteField";
 import FileUpload from "../../../../components/form/FileUpload";
+import ExamAttachmentList from "./ExamAttachmentList";
+
+export type UploadFile =
+  | File
+  | {
+      id: number;
+      nome_arquivo: string;
+      url_arquivo: string;
+    };
 
 export default function MedicalExamFormPage() {
   const { id } = useParams();
@@ -74,73 +83,73 @@ export default function MedicalExamFormPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setErrors({});
+    e.preventDefault();
+    setErrors({});
 
-  const formData = new FormData();
+    const formData = new FormData();
 
-  formData.append("employee_id", form.employee_id);
-  formData.append("exam_type", form.exam_type);
-  formData.append("exam_date", form.exam_date);
-  formData.append("cid", form.cid ?? "");
-  formData.append("fit", form.fit ? "1" : "0");
-  formData.append("result_attachment_url", form.result_attachment_url ?? "");
+    formData.append("employee_id", form.employee_id);
+    formData.append("exam_type", form.exam_type);
+    formData.append("exam_date", form.exam_date);
+    formData.append("cid", form.cid ?? "");
+    formData.append("fit", form.fit ? "1" : "0");
+    formData.append("result_attachment_url", form.result_attachment_url ?? "");
 
-  // Enviar apenas arquivos novos (File)
-  form.documents.forEach((doc) => {
-    if (doc instanceof File) {
-      formData.append("documents[]", doc);
-    }
-  });
-
-  // Enviar IDs de uploads a serem excluídos
-  deletedUploadIds.forEach((id) => {
-    formData.append("documents_to_delete[]", String(id));
-  });
-
-  // Debug opcional
-  // console.group("📦 FormData enviado:");
-  // for (const [key, value] of formData.entries()) {
-  //   console.log(`${key}:`, value);
-  // }
-  // console.groupEnd();
-
-  try {
-    if (isEdit) {
-      formData.append("_method", "PUT");
-      await updateMedicalExam(Number(id), formData);
-    } else {
-      await createMedicalExam(formData);
-    }
-
-    setToast({
-      open: true,
-      message: `Exame ${isEdit ? "atualizado" : "criado"} com sucesso`,
-      type: "success",
+    form.documents.forEach((doc) => {
+      if (doc instanceof File) {
+        formData.append("documents[]", doc);
+      }
     });
 
-    navigate("/backoffice/exames-medicos");
-  } catch (err: any) {
-    setErrors(err.response?.data?.errors || {});
-    setToast({
-      open: true,
-      message: "Erro ao salvar exame",
-      type: "error",
+    deletedUploadIds.forEach((id) => {
+      formData.append("documents_to_delete[]", String(id));
     });
-  }
-};
 
+    try {
+      if (isEdit) {
+        formData.append("_method", "PUT");
+        await updateMedicalExam(Number(id), formData);
+      } else {
+        await createMedicalExam(formData);
+      }
 
-  const handleRemoveFile = (index: number) => {
-    const removed = form.documents[index];
-    if (!(removed instanceof File)) {
-      setDeletedUploadIds((prev) => [...prev, removed.id]);
+      setToast({
+        open: true,
+        message: `Exame ${isEdit ? "atualizado" : "criado"} com sucesso`,
+        type: "success",
+      });
+
+      navigate("/backoffice/exames-medicos");
+    } catch (err: any) {
+      setErrors(err.response?.data?.errors || {});
+      setToast({
+        open: true,
+        message: "Erro ao salvar exame",
+        type: "error",
+      });
     }
-    setForm((prev) => ({
-      ...prev,
-      documents: prev.documents.filter((_, i) => i !== index),
-    }));
   };
+
+  const handleRemoveFile = (index: number, type: 'persisted' | 'pending') => {
+    if (type === 'persisted') {
+      const doc = form.documents.filter((d) => !(d instanceof File))[index] as any;
+      setDeletedUploadIds((prev) => [...prev, doc.id]);
+      setForm((prev) => ({
+        ...prev,
+        documents: prev.documents.filter((d) => !(d instanceof File) ? d.id !== doc.id : true),
+      }));
+    } else {
+      const pendingDocs = form.documents.filter((d) => d instanceof File);
+      const docToRemove = pendingDocs[index];
+      setForm((prev) => ({
+        ...prev,
+        documents: prev.documents.filter((d) => d !== docToRemove),
+      }));
+    }
+  };
+
+  const persisted = form.documents.filter((d) => !(d instanceof File));
+  const pending = form.documents.filter((d) => d instanceof File);
 
   return (
     <div className="max-w-3xl mx-auto p-4">
@@ -205,7 +214,12 @@ export default function MedicalExamFormPage() {
           files={form.documents}
           setFiles={(files) => setForm((prev) => ({ ...prev, documents: files }))}
           showToast={(msg, type) => setToast({ open: true, message: msg, type: type || "error" })}
-          baseUrl={import.meta.env.VITE_API_BASE_URL}
+        />
+
+        <ExamAttachmentList
+          examId={id || ""}
+          persisted={persisted}
+          pending={pending}
           onRemove={handleRemoveFile}
         />
 
