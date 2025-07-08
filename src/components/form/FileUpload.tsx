@@ -1,13 +1,15 @@
 import React, { useRef, useState } from "react";
 import { Trash2, UploadCloud } from "lucide-react";
+import { Link } from "react-router-dom";
 import DeleteModal from "../Layout/ui/DeleteModal";
 
-
-export type UploadFile = File | {
-  id: number;
-  nome_arquivo: string;
-  url_arquivo: string;
-};
+export type UploadFile =
+  | File
+  | {
+    id: number;
+    nome_arquivo: string;
+    url_arquivo: string;
+  };
 
 interface FileUploadProps {
   label?: string;
@@ -37,14 +39,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
     ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif",
     ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
     ".mp4", ".mov", ".avi", ".mkv", ".webm",
-    ".txt", ".csv", ".zip", ".rar"
+    ".txt", ".csv", ".zip", ".rar",
   ].join(",");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const newFiles = Array.from(e.target.files);
 
-    const validFiles = newFiles.filter(file => {
+    const validFiles = newFiles.filter((file) => {
       if (file.size > maxSizeMB * 1024 * 1024) {
         showToast(`Arquivo "${file.name}" excede o limite de ${maxSizeMB}MB.`, "error");
         return false;
@@ -57,7 +59,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const confirmRemove = () => {
     if (fileToDeleteIndex === null) return;
-
     if (onRemove) onRemove(fileToDeleteIndex);
     setFiles(files.filter((_, i) => i !== fileToDeleteIndex));
     setFileToDeleteIndex(null);
@@ -65,9 +66,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const renderName = (file: UploadFile) =>
     file instanceof File ? file.name : file.nome_arquivo;
-
-  const renderLink = (file: UploadFile) =>
-    file instanceof File ? undefined : `${baseUrl}${file.url_arquivo}`;
 
   return (
     <div className="space-y-2">
@@ -97,24 +95,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <ul className="divide-y divide-gray-200 dark:divide-gray-700 mt-4">
           {files.map((file, index) => {
             const fileName = renderName(file);
-            const fileUrl = renderLink(file);
+
+            const isPersisted = !(file instanceof File);
+            const viewerUrl = isPersisted ? `/backoffice/exames-medicos/anexo/${(file as any).id}` : undefined;
+
             return (
               <li
                 key={index}
                 className="flex justify-between items-center py-2 text-sm text-gray-700 dark:text-gray-200"
               >
-                {fileUrl ? (
-                  <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {viewerUrl ? (
+                  <Link
+                    to={`/backoffice/exames-medicos/anexo/${(file as any).id}`}
+                    state={{ attachment: file }}
                     className="text-blue-600 underline truncate max-w-xs"
                   >
                     {fileName}
-                  </a>
+                  </Link>
                 ) : (
                   <span className="truncate max-w-xs">{fileName}</span>
                 )}
+
                 <button
                   type="button"
                   onClick={() => setFileToDeleteIndex(index)}

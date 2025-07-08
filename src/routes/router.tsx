@@ -36,6 +36,7 @@ import EmployeesPage from '../pages/backoffice/colaboradores/employee/EmployeesP
 import EmployeeFormPage from '../pages/backoffice/colaboradores/employee/EmployeeFormPage'
 import MedicalExamPage from '../pages/backoffice/colaboradores/exames/MedicalExamPage'
 import MedicalExamFormPage from '../pages/backoffice/colaboradores/exames/MedicalExamFormPage'
+import ExamAttachmentViewerPage from '../pages/backoffice/colaboradores/exames/ExamAttachmentViewerPage'
 
 
 export const router = createBrowserRouter([
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
       { path: 'exames-medicos/novo', element: <MedicalExamFormPage /> },
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
+      { path: "exames-medicos/anexo/:id", element: <ExamAttachmentViewerPage /> },
     ],
   },
 ]);

@@ -1,45 +1,42 @@
-
-import React from "react";
+import { useEffect, useState } from "react";
 
 interface FileViewerProps {
-  fileUrl: string; // Exemplo: "medical_exams/2025/07/06/arquivo.pdf"
-  baseUrl?: string; // Pode vir de env: import.meta.env.VITE_API_BASE_URL
-  className?: string;
+  fileId: number;
+  fileName: string;
 }
 
-const FileViewer: React.FC<FileViewerProps> = ({
-  fileUrl,
-  baseUrl = import.meta.env.VITE_API_BASE_URL,
-  className = "w-full max-w-2xl mx-auto",
-}) => {
-  const fullUrl = `${baseUrl}/storage/${fileUrl}`.replace(/([^:]\/)\/+/g, "$1");
-  const extension = fileUrl.split(".").pop()?.toLowerCase();
+const FileViewer: React.FC<FileViewerProps> = ({ fileId, fileName }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(extension || "");
-  const isPDF = extension === "pdf";
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/view/${fileId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Falha ao carregar");
+        return res.blob();
+      })
+      .then((blob) => {
+        const objUrl = URL.createObjectURL(blob);
+        setUrl(objUrl);
+      })
+      .catch(() => setError("Erro ao carregar o anexo"));
+  }, [fileId]);
+
+  if (error) return <div className="text-red-600 text-center">{error}</div>;
+  if (!url) return <div className="text-center text-gray-500">Carregando...</div>;
+
+  const isImage = /\.(jpe?g|png|webp|gif)$/i.test(fileName);
+  const isPdf = /\.pdf$/i.test(fileName);
 
   return (
-    <div className={className}>
-      {isImage ? (
-        <img
-          src={fullUrl}
-          alt="Visualização do Arquivo"
-          className="w-full h-auto rounded shadow"
-        />
-      ) : isPDF ? (
-        <iframe
-          src={fullUrl}
-          title="Visualização de PDF"
-          className="w-full h-[600px] border rounded"
-        />
-      ) : (
-        <a
-          href={fullUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline"
-        >
-          Visualizar Documento
+    <div className="w-full max-w-2xl mx-auto">
+      {isImage && <img src={url} alt={fileName} className="rounded shadow" />}
+      {isPdf && (
+        <iframe src={url} className="w-full h-[80vh] border" title="PDF Viewer"></iframe>
+      )}
+      {!isImage && !isPdf && (
+        <a href={url} download className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">
+          Baixar ou abrir
         </a>
       )}
     </div>
