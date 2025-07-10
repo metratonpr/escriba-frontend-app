@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
-import { getEmployees } from "../../services/employeeService";
+import { getEpis } from "../../services/epiService";
 
 interface Option {
   id: string | number;
   label: string;
 }
 
-interface EmployeeAutocompleteFieldProps {
+interface EpiAutocompleteFieldProps {
   label?: string;
   value: Option | null;
   onChange: (value: Option | null) => void;
@@ -16,31 +16,31 @@ interface EmployeeAutocompleteFieldProps {
   className?: string;
 }
 
-export default function EmployeeAutocompleteField({
-  label = "Funcionário",
+export default function EpiAutocompleteField({
+  label = "EPI",
   value,
   onChange,
   disabled = false,
   className = "",
-}: EmployeeAutocompleteFieldProps) {
+}: EpiAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEmployees = useCallback(
+  const fetchEpis = useCallback(
     debounce(async (term: string) => {
       try {
-        const response = await getEmployees({ search: term, page: 1, perPage: 25 });
+        const response = await getEpis({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
 
-        const mapped: Option[] = list.map((emp: any) => ({
-          id: emp.id,
-          label: emp.name,
+        const mapped: Option[] = list.map((epi: any) => ({
+          id: epi.id,
+          label: epi.name,
         }));
 
         setOptions(mapped);
       } catch {
-        setError("Erro ao buscar funcionários.");
+        setError("Erro ao buscar EPIs.");
         setOptions([]);
       }
     }, 300),
@@ -48,9 +48,9 @@ export default function EmployeeAutocompleteField({
   );
 
   useEffect(() => {
-    fetchEmployees(query);
-    return () => fetchEmployees.cancel();
-  }, [query, fetchEmployees]);
+    fetchEpis(query);
+    return () => fetchEpis.cancel();
+  }, [query, fetchEpis]);
 
   useEffect(() => {
     if (value && !options.find((o) => o.id === value.id)) {
@@ -61,7 +61,7 @@ export default function EmployeeAutocompleteField({
   return (
     <>
       <FormAutocompleteField
-        name="employee_id"
+        name="epi_id"
         label={label}
         value={value}
         options={options}

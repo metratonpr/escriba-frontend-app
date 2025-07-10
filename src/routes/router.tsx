@@ -37,6 +37,10 @@ import EmployeeFormPage from '../pages/backoffice/colaboradores/employee/Employe
 import MedicalExamPage from '../pages/backoffice/colaboradores/exames/MedicalExamPage'
 import MedicalExamFormPage from '../pages/backoffice/colaboradores/exames/MedicalExamFormPage'
 import ExamAttachmentViewerPage from '../pages/backoffice/colaboradores/exames/ExamAttachmentViewerPage'
+import EpiDeliveriesPage from '../pages/backoffice/entregas/EpiDeliveriesPage'
+import EpiDeliveryFormPage from '../pages/backoffice/entregas/EpiDeliveryFormPage'
+import EventFormPage from '../pages/backoffice/eventos/events/EventFormPage'
+import EventPage from '../pages/backoffice/eventos/events/EventPage'
 
 
 export const router = createBrowserRouter([
@@ -50,7 +54,7 @@ export const router = createBrowserRouter([
     children: [
       { path: 'entidades', element: <EmpresasDashboard /> },
       { path: 'equipes', element: <ColaboradoresDashboard /> },
-      { path: 'eventos', element: <EventosDashboard /> },
+      { path: 'eventos-acoes', element: <EventosDashboard /> },
       { path: 'parametros', element: <ParametrosDashboard /> },
       { path: 'grupos-empresa', element: <CompanyGroupsPage /> },  // rota no nível do backoffice
       { path: 'grupos-empresa/novo', element: <CompanyGroupFormPage /> },
@@ -99,6 +103,12 @@ export const router = createBrowserRouter([
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
       { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
       { path: "exames-medicos/editar/:examId/visualizar-anexo/:attachmentId", element: <ExamAttachmentViewerPage /> },
+      { path: 'entregas-epis', element: <EpiDeliveriesPage /> },
+      { path: 'entregas-epis/nova', element: <EpiDeliveryFormPage /> },
+      { path: 'entregas-epis/editar/:id', element: <EpiDeliveryFormPage /> },
+      { path: 'eventos', element: <EventPage/> },
+      { path: 'eventos/novo', element: <EventFormPage  /> },
+      { path: 'eventos/editar/:id', element: <EventFormPage /> },
     ],
   },
 ]);

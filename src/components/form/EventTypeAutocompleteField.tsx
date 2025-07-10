@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
-import { getEmployees } from "../../services/employeeService";
+import { getEventTypes } from "../../services/eventTypeService";
 
 interface Option {
   id: string | number;
   label: string;
 }
 
-interface EmployeeAutocompleteFieldProps {
+interface EventTypeAutocompleteFieldProps {
   label?: string;
   value: Option | null;
   onChange: (value: Option | null) => void;
@@ -16,31 +16,29 @@ interface EmployeeAutocompleteFieldProps {
   className?: string;
 }
 
-export default function EmployeeAutocompleteField({
-  label = "Funcionário",
+export default function EventTypeAutocompleteField({
+  label = "Tipo de Evento",
   value,
   onChange,
   disabled = false,
   className = "",
-}: EmployeeAutocompleteFieldProps) {
+}: EventTypeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEmployees = useCallback(
+  const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
-        const response = await getEmployees({ search: term, page: 1, perPage: 25 });
-        const list = Array.isArray(response) ? response : response.data;
-
-        const mapped: Option[] = list.map((emp: any) => ({
-          id: emp.id,
-          label: emp.name,
+        const res = await getEventTypes({ search: term, page: 1, perPage: 20 });
+        const list = Array.isArray(res) ? res : res.data;
+        const mapped = list.map((item: any) => ({
+          id: item.id,
+          label: item.nome_tipo_evento,
         }));
-
         setOptions(mapped);
       } catch {
-        setError("Erro ao buscar funcionários.");
+        setError("Erro ao carregar tipos de evento.");
         setOptions([]);
       }
     }, 300),
@@ -48,20 +46,14 @@ export default function EmployeeAutocompleteField({
   );
 
   useEffect(() => {
-    fetchEmployees(query);
-    return () => fetchEmployees.cancel();
-  }, [query, fetchEmployees]);
-
-  useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    fetchOptions(query);
+    return () => fetchOptions.cancel();
+  }, [query, fetchOptions]);
 
   return (
     <>
       <FormAutocompleteField
-        name="employee_id"
+        name="event_type_id"
         label={label}
         value={value}
         options={options}

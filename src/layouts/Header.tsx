@@ -34,7 +34,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <Link to="/backoffice/equipes" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Equipes
           </Link>
-          <Link to="/backoffice/eventos" className="text-sm font-medium text-gray-600 hover:text-blue-600">
+          <Link to="/backoffice/eventos-acoes" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Eventos
           </Link>
           <Link to="/backoffice/parametros" className="text-sm font-medium text-gray-600 hover:text-blue-600">

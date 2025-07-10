@@ -1,3 +1,4 @@
+// src/components/form/TechnicianAutocompleteField.tsx
 import React, { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
@@ -8,7 +9,7 @@ interface Option {
   label: string;
 }
 
-interface EmployeeAutocompleteFieldProps {
+interface TechnicianAutocompleteFieldProps {
   label?: string;
   value: Option | null;
   onChange: (value: Option | null) => void;
@@ -16,18 +17,18 @@ interface EmployeeAutocompleteFieldProps {
   className?: string;
 }
 
-export default function EmployeeAutocompleteField({
-  label = "Funcionário",
+export default function TechnicianAutocompleteField({
+  label = "Técnico",
   value,
   onChange,
   disabled = false,
   className = "",
-}: EmployeeAutocompleteFieldProps) {
+}: TechnicianAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEmployees = useCallback(
+  const fetchTechnicians = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getEmployees({ search: term, page: 1, perPage: 25 });
@@ -40,7 +41,7 @@ export default function EmployeeAutocompleteField({
 
         setOptions(mapped);
       } catch {
-        setError("Erro ao buscar funcionários.");
+        setError("Erro ao buscar técnicos.");
         setOptions([]);
       }
     }, 300),
@@ -48,20 +49,14 @@ export default function EmployeeAutocompleteField({
   );
 
   useEffect(() => {
-    fetchEmployees(query);
-    return () => fetchEmployees.cancel();
-  }, [query, fetchEmployees]);
-
-  useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    fetchTechnicians(query);
+    return () => fetchTechnicians.cancel();
+  }, [query, fetchTechnicians]);
 
   return (
     <>
       <FormAutocompleteField
-        name="employee_id"
+        name="technician_id"
         label={label}
         value={value}
         options={options}

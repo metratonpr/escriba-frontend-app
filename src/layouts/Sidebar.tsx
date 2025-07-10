@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           Equipes
         </Link>
         <Link
-          to="/backoffice/eventos"
+          to="/backoffice/eventos-acoes"
           className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
           onClick={onClose}
         >

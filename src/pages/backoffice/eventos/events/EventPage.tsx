@@ -1,20 +1,14 @@
-// src/pages/backoffice/empresas/CompaniesPage.tsx
 import React, { useEffect, useState } from "react";
-import {
-  getCompanies,
-  deleteCompany,
-  type Company,
-  type PaginatedResponse,
-} from "../../../../services/companyService";
+import { deleteEvent, getEvents } from "../../../../services/eventService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
-import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
+import Spinner from "../../../../components/Layout/ui/Spinner";
+import TableTailwind from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
-export default function CompaniesPage() {
-  const [data, setData] = useState<PaginatedResponse<Company>>({ data: [], total: 0, page: 1, per_page: 25 });
+export default function EventPage() {
+  const [data, setData] = useState<PaginatedResponse<Event>>({ data: [], total: 0, page: 1, per_page: 25 });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
@@ -27,23 +21,14 @@ export default function CompaniesPage() {
   const load = async (q = "", pg = 1, limit = 25) => {
     setLoading(true);
     try {
-      const response = await getCompanies({ search: q, page: pg, perPage: limit });
-      const transformed = {
-        ...response,
-        data: response.data.map((c) => ({
-          ...c,
-          company_group_name: c.group?.name ?? "-",
-          company_type_name: c.type?.name ?? "-",
-        })),
-      };
-      setData(transformed);
+      const response = await getEvents({ search: q, page: pg, perPage: limit });
+      setData(response);
       setPage(pg);
       setPerPage(limit);
     } finally {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     load(search, page, perPage);
@@ -59,11 +44,11 @@ export default function CompaniesPage() {
   const handleConfirmDelete = async () => {
     if (!selectedId) return;
     try {
-      await deleteCompany(selectedId);
+      await deleteEvent(selectedId);
       await load(search, page, perPage);
-      setToast({ open: true, message: `Empresa "${selectedName}" excluída com sucesso.`, type: "success" });
+      setToast({ open: true, message: `Evento "${selectedName}" excluído com sucesso.`, type: "success" });
     } catch {
-      setToast({ open: true, message: `Erro ao excluir empresa "${selectedName}".`, type: "error" });
+      setToast({ open: true, message: `Erro ao excluir evento "${selectedName}".`, type: "error" });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -71,25 +56,25 @@ export default function CompaniesPage() {
     }
   };
 
-  const columns: Column<Company>[] = [
+  const columns: Column<Event>[] = [
     { label: "Nome", field: "name", sortable: true },
-    { label: "Grupo", field: "company_group_name" },
-    { label: "Tipo", field: "company_type_name" },
-    { label: "CNPJ", field: "cnpj" },
-    { label: "Cidade", field: "city" },
-    { label: "Estado", field: "state" },
+    { label: "Tipo", field: "event_type_id" },
+    { label: "Início", field: "start_date" },
+    { label: "Término", field: "end_date" },
+    { label: "Local", field: "location" },
     { label: "Responsável", field: "responsible" },
   ];
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Empresas", to: "/backoffice/empresas" }]} />
+      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Eventos", to: "/backoffice/eventos" }]} />
       <SearchBar onSearch={(q) => load(q)} onClear={() => load("")} />
       {loading && <Spinner />}
+
       {!loading && (
         <TableTailwind
-          title="Empresas"
-          createUrl="/backoffice/empresas/nova"
+          title="Eventos"
+          createUrl="/backoffice/eventos/novo"
           columns={columns}
           data={data.data}
           pagination={{
@@ -99,11 +84,12 @@ export default function CompaniesPage() {
             onPageChange: (p) => load(search, p, perPage),
             onPerPageChange: (pp) => load(search, 1, pp),
           }}
-          getEditUrl={(id) => `/backoffice/empresas/editar/${id}`}
+          getEditUrl={(id) => `/backoffice/eventos/editar/${id}`}
           onDelete={handleAskDelete}
         />
       )}
-      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir Empresa" />
+
+      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir evento" />
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </>
   );
