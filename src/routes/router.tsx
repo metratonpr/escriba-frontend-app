@@ -41,6 +41,8 @@ import EpiDeliveriesPage from '../pages/backoffice/entregas/EpiDeliveriesPage'
 import EpiDeliveryFormPage from '../pages/backoffice/entregas/EpiDeliveryFormPage'
 import EventFormPage from '../pages/backoffice/eventos/events/EventFormPage'
 import EventPage from '../pages/backoffice/eventos/events/EventPage'
+import OccurrencesPage from '../pages/backoffice/colaboradores/occurrences/OccurrencesPage'
+import OccurrenceFormPage from '../pages/backoffice/colaboradores/occurrences/OccurrenceFormPage'
 
 
 export const router = createBrowserRouter([
@@ -106,9 +108,12 @@ export const router = createBrowserRouter([
       { path: 'entregas-epis', element: <EpiDeliveriesPage /> },
       { path: 'entregas-epis/nova', element: <EpiDeliveryFormPage /> },
       { path: 'entregas-epis/editar/:id', element: <EpiDeliveryFormPage /> },
-      { path: 'eventos', element: <EventPage/> },
-      { path: 'eventos/novo', element: <EventFormPage  /> },
+      { path: 'eventos', element: <EventPage /> },
+      { path: 'eventos/novo', element: <EventFormPage /> },
       { path: 'eventos/editar/:id', element: <EventFormPage /> },
+      { path: 'ocorrencias', element: <OccurrencesPage /> },
+      { path: 'ocorrencias/novo', element: <OccurrenceFormPage /> },
+      { path: 'ocorrencias/editar/:id', element: <OccurrenceFormPage /> },
     ],
   },
 ]);
