@@ -43,6 +43,9 @@ import EventFormPage from '../pages/backoffice/eventos/events/EventFormPage'
 import EventPage from '../pages/backoffice/eventos/events/EventPage'
 import OccurrencesPage from '../pages/backoffice/colaboradores/occurrences/OccurrencesPage'
 import OccurrenceFormPage from '../pages/backoffice/colaboradores/occurrences/OccurrenceFormPage'
+import CompanyDocumentUploadListPage from '../pages/backoffice/empresas/companydocumentupload/CompanyDocumentUploadPage'
+import CompanyDocumentUploadFormPage from '../pages/backoffice/empresas/companydocumentupload/CompanyDocumentUploadFormPage'
+import CompanyAttachmentViewerPage from '../pages/backoffice/empresas/companies/CompanyAttachmentViewerPage'
 
 
 export const router = createBrowserRouter([
@@ -114,6 +117,10 @@ export const router = createBrowserRouter([
       { path: 'ocorrencias', element: <OccurrencesPage /> },
       { path: 'ocorrencias/novo', element: <OccurrenceFormPage /> },
       { path: 'ocorrencias/editar/:id', element: <OccurrenceFormPage /> },
+      { path: 'empresas/documentos', element: <CompanyDocumentUploadListPage /> },
+      { path: 'empresas/documentos/novo', element: <CompanyDocumentUploadFormPage /> },
+      { path: 'empresas/documentos/editar/:id', element: <CompanyDocumentUploadFormPage /> },
+      { path: 'empresas/editar/:companyId/visualizar-anexo/:attachmentId', element: <CompanyAttachmentViewerPage />},
     ],
   },
 ]);

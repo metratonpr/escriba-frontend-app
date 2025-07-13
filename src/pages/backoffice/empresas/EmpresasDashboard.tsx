@@ -6,6 +6,7 @@ import Breadcrumbs from '../../../components/Layout/Breadcrumbs';
 export default function EmpresasDashboard() {
   const cards = [
     { title: 'Cadastros', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/empresas' },
+    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/empresas/documentos' },
     { title: 'Gerenciar Eventos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/eventos' },
     { title: 'Gerenciar Ocorrências', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/ocorrencias' },
   ]

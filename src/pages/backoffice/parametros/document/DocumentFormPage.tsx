@@ -18,10 +18,18 @@ import {
   updateDocument,
   type DocumentCategory,
 } from "../../../../services/documentService";
+import DocumentVersionsField from "../../../../components/form/DocumentVersionsField";
 
 interface Option {
   id: string | number;
   label: string;
+}
+
+interface Version {
+  code?: string;
+  description?: string;
+  validity_days?: number | "";
+  version?: string;
 }
 
 export default function DocumentFormPage() {
@@ -40,7 +48,9 @@ export default function DocumentFormPage() {
 
   const [type, setType] = useState<Option | null>(null);
   const [issuer, setIssuer] = useState<Option | null>(null);
+  const [versions, setVersions] = useState<Version[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [versionErrors, setVersionErrors] = useState<Record<number, Record<string, string>>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -59,6 +69,12 @@ export default function DocumentFormPage() {
           });
           setType({ id: doc.document_type_id, label: doc.type?.name });
           setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name });
+          setVersions(doc.versions?.map((v: any) => ({
+            code: v.code,
+            description: v.description,
+            validity_days: v.validity_days,
+            version: v.version
+          })) ?? []);
         })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });
@@ -77,12 +93,14 @@ export default function DocumentFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setVersionErrors({});
     try {
       const payload = {
         ...form,
         validity_days: form.validity_days === "" ? null : Number(form.validity_days),
         document_type_id: Number(type?.id),
         document_issuer_id: Number(issuer?.id),
+        versions,
       };
       if (isEdit) {
         await updateDocument(id!, payload);
@@ -92,7 +110,19 @@ export default function DocumentFormPage() {
       setToast({ open: true, message: `Documento ${isEdit ? "atualizado" : "criado"} com sucesso.`, type: "success" });
       navigate("/backoffice/documentos");
     } catch (err: any) {
-      setErrors(err.response?.data?.errors ?? {});
+      const rawErrors = err.response?.data?.errors ?? {};
+      const versionFieldErrors: Record<number, Record<string, string>> = {};
+      Object.keys(rawErrors).forEach((key) => {
+        const match = key.match(/^versions\.(\d+)\.(\w+)$/);
+        if (match) {
+          const [_, indexStr, field] = match;
+          const index = Number(indexStr);
+          if (!versionFieldErrors[index]) versionFieldErrors[index] = {};
+          versionFieldErrors[index][field] = rawErrors[key];
+        }
+      });
+      setErrors(rawErrors);
+      setVersionErrors(versionFieldErrors);
       setToast({ open: true, message: "Erro ao salvar documento.", type: "error" });
     }
   };
@@ -162,6 +192,10 @@ export default function DocumentFormPage() {
 
           <DocumentTypeAutocompleteField value={type} onChange={setType} />
           <DocumentIssuerAutocompleteField value={issuer} onChange={setIssuer} />
+
+          <div className="md:col-span-2">
+            <DocumentVersionsField value={versions} onChange={setVersions} errors={versionErrors} />
+          </div>
 
           <div className="md:col-span-2">
             <FormActions cancelUrl="/backoffice/documentos" text={isEdit ? "Atualizar" : "Criar"} />
