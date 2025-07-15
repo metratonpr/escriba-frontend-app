@@ -6,6 +6,7 @@ import Breadcrumbs from '../../../components/Layout/Breadcrumbs';
 export default function ColaboradoresDashboard() {
   const cards = [
     { title: 'Funcionários', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/colaboradores' },
+    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/colaboradores/documentos' },
     { title: 'Exames Médicos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/exames-medicos' },
     { title: 'Entrega de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/entregas-epis' },
     { title: 'Eventos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/eventos' },

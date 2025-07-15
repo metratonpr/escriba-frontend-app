@@ -46,6 +46,9 @@ import OccurrenceFormPage from '../pages/backoffice/colaboradores/occurrences/Oc
 import CompanyDocumentUploadListPage from '../pages/backoffice/empresas/companydocumentupload/CompanyDocumentUploadPage'
 import CompanyDocumentUploadFormPage from '../pages/backoffice/empresas/companydocumentupload/CompanyDocumentUploadFormPage'
 import CompanyAttachmentViewerPage from '../pages/backoffice/empresas/companies/CompanyAttachmentViewerPage'
+import EmployeeDocumentUploadPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeDocumentUploadPage'
+import EmployeeDocumentUploadFormPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeDocumentUploadFormPage'
+import EmployeeAttachmentViewerPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeAttachmentViewerPage'
 
 
 export const router = createBrowserRouter([
@@ -120,7 +123,11 @@ export const router = createBrowserRouter([
       { path: 'empresas/documentos', element: <CompanyDocumentUploadListPage /> },
       { path: 'empresas/documentos/novo', element: <CompanyDocumentUploadFormPage /> },
       { path: 'empresas/documentos/editar/:id', element: <CompanyDocumentUploadFormPage /> },
-      { path: 'empresas/editar/:companyId/visualizar-anexo/:attachmentId', element: <CompanyAttachmentViewerPage />},
+      { path: 'empresas/editar/:companyId/visualizar-anexo/:attachmentId', element: <CompanyAttachmentViewerPage /> },
+      { path: 'colaboradores/documentos', element: <EmployeeDocumentUploadPage /> },
+      { path: 'colaboradores/documentos/novo', element: <EmployeeDocumentUploadFormPage /> },
+      { path: 'colaboradores/documentos/editar/:id', element: <EmployeeDocumentUploadFormPage /> },
+      { path: 'colaboradores/editar/:employeeId/visualizar-anexo/:attachmentId', element: <EmployeeAttachmentViewerPage /> },
     ],
   },
 ]);
