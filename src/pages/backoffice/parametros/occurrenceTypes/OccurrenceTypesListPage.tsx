@@ -1,5 +1,5 @@
 // src/pages/backoffice/parametros/occurrenceTypes/OccurrenceTypesListPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getOccurrenceTypes,
   deleteOccurrenceType,
@@ -11,6 +11,7 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
+import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function OccurrenceTypesListPage() {
   const [data, setData] = useState<PaginatedResponse<OccurrenceType>>({
@@ -90,6 +91,11 @@ export default function OccurrenceTypesListPage() {
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
 
+      {loading ? (
+        <div className="flex justify-center items-center py-10">
+          <Spinner />
+        </div>
+      ) : (
       <TableTailwind
         title="Tipos de Ocorrência"
         createUrl="/backoffice/tipos-ocorrencia/novo"
@@ -113,7 +119,8 @@ export default function OccurrenceTypesListPage() {
           setSelectedName(item?.name || "Tipo");
           setModalOpen(true);
         }}
-      />
+        />
+      )}
 
       <DeleteModal
         isOpen={modalOpen}

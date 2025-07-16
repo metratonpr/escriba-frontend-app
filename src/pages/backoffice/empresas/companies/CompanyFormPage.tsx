@@ -1,16 +1,31 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
-
 import { getCompanyById, createCompany, updateCompany } from "../../../../services/companyService";
 import CompanyGroupAutocompleteField from "../../../../components/form/CompanyGroupAutocompleteField";
 import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTypeAutocompleteField";
 import SectorFormWithTable from "../../../../components/form/SectorFormWithTable";
 import Spinner from "../../../../components/Layout/ui/Spinner";
+
+// Interface corrigida com campos relacionais
+interface CompanyResponse {
+  id: string;
+  name: string;
+  cnpj: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state: string;
+  responsible: string;
+  email: string;
+  group?: { id: string; name: string };
+  type?: { id: string; name: string };
+  company_sectors?: { sector: { id: string; name: string } }[];
+}
 
 const STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
@@ -42,36 +57,38 @@ export default function CompanyFormPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit && id) {
-      setIsLoading(true);
-      getCompanyById(+id)
-        .then((response) => {
-          const data = response.data;
-          setForm({
-            company_group_id: data.group ? { id: data.group.id, label: data.group.name } : null,
-            company_type_id: data.type ? { id: data.type.id, label: data.type.name } : null,
-            name: data.name ?? "",
-            cnpj: data.cnpj ?? "",
-            phone: data.phone ?? "",
-            address: data.address ?? "",
-            city: data.city ?? "",
-            state: data.state ?? "",
-            responsible: data.responsible ?? "",
-            email: data.email ?? "",
-            sectors: Array.isArray(data.company_sectors)
-              ? data.company_sectors.map((s: any) => s.sector ? { id: s.sector.id, label: s.sector.name } : null).filter(Boolean)
-              : [],
-          });
-        })
-        .catch(() => {
-          setToast({ open: true, message: "Erro ao carregar empresa.", type: "error" });
-          navigate("/backoffice/empresas");
-        })
-        .finally(() => {
-          setIsLoading(false);
+  if (isEdit && id) {
+    setIsLoading(true);
+    getCompanyById(id)
+      .then((data: CompanyResponse) => {
+        setForm({
+          company_group_id: data.group ? { id: data.group.id, label: data.group.name } : null,
+          company_type_id: data.type ? { id: data.type.id, label: data.type.name } : null,
+          name: data.name ?? "",
+          cnpj: data.cnpj ?? "",
+          phone: data.phone ?? "",
+          address: data.address ?? "",
+          city: data.city ?? "",
+          state: data.state ?? "",
+          responsible: data.responsible ?? "",
+          email: data.email ?? "",
+          sectors: Array.isArray(data.company_sectors)
+            ? data.company_sectors
+                .map((s) => s.sector && { id: s.sector.id, label: s.sector.name })
+                .filter(Boolean)
+            : [],
         });
-    }
-  }, [id]);
+      })
+      .catch(() => {
+        setToast({ open: true, message: "Erro ao carregar empresa.", type: "error" });
+        navigate("/backoffice/empresas");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }
+}, [id, isEdit, navigate]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -97,8 +114,8 @@ export default function CompanyFormPage() {
     };
 
     try {
-      if (isEdit) {
-        await updateCompany(Number(id), payload);
+      if (isEdit && id) {
+        await updateCompany(id, payload);
       } else {
         await createCompany(payload);
       }

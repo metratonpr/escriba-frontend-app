@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getEpis,
   deleteEpi,
@@ -12,33 +12,48 @@ import TableTailwind, { type Column } from "../../../../components/Layout/ui/Tab
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
-
 export default function EpisPage() {
-  const [data, setData] = useState<PaginatedResponse<Epi>>({ data: [], total: 0, page: 1, per_page: 25 });
+  const [data, setData] = useState<PaginatedResponse<Epi>>({
+    data: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const load = async (q = "", pg = 1, limit = 25) => {
+  const loadEpis = async (
+    q = search,
+    pg = page,
+    limit = perPage
+  ): Promise<void> => {
     setLoading(true);
     try {
       const response = await getEpis({ search: q, page: pg, perPage: limit });
       setData(response);
-      setPage(pg);
-      setPerPage(limit);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadEpis();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q.trim());
+    setPage(1); // Resetar para a primeira página
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -51,10 +66,18 @@ export default function EpisPage() {
     if (!selectedId) return;
     try {
       await deleteEpi(selectedId);
-      await load(search, page, perPage);
-      setToast({ open: true, message: `EPI "${selectedName}" excluído com sucesso.`, type: "success" });
+      setToast({
+        open: true,
+        message: `EPI "${selectedName}" excluído com sucesso.`,
+        type: "success",
+      });
+      await loadEpis();
     } catch {
-      setToast({ open: true, message: `Erro ao excluir EPI "${selectedName}".`, type: "error" });
+      setToast({
+        open: true,
+        message: `Erro ao excluir EPI "${selectedName}".`,
+        type: "error",
+      });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -73,8 +96,13 @@ export default function EpisPage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "EPIs", to: "/backoffice/epis" }]} />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load("")} />
+      <Breadcrumbs
+        items={[
+          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "EPIs", to: "/backoffice/epis" },
+        ]}
+      />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (
@@ -87,16 +115,30 @@ export default function EpisPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: setPage,
+            onPerPageChange: (pp) => {
+              setPage(1);
+              setPerPage(pp);
+            },
           }}
           getEditUrl={(id) => `/backoffice/epis/editar/${id}`}
           onDelete={handleAskDelete}
         />
       )}
 
-      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir EPI" />
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <DeleteModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedName ?? undefined}
+        title="Excluir EPI"
+      />
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </>
   );
 }

@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from "react";
+// src/components/Layout/ui/TableTailwind.tsx
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import get from "lodash.get";
 
 export type Column<T> = {
   label: string;
-  field: keyof T;
+  field: keyof T | string;
   sortable?: boolean;
   render?: (row: T) => React.ReactNode;
 };
@@ -26,6 +28,7 @@ type TableTailwindProps<T> = {
   pagination?: Pagination;
   getEditUrl?: (id: any) => string;
   onDelete?: (id: any) => void;
+  onSortChange?: (field: string, order: "asc" | "desc") => void;
 };
 
 export default function TableTailwind<T extends { id: any }>({
@@ -38,74 +41,39 @@ export default function TableTailwind<T extends { id: any }>({
   pagination,
   getEditUrl,
   onDelete,
+  onSortChange,
 }: TableTailwindProps<T>) {
-  const [orderBy, setOrderBy] = useState<keyof T>(columns[0].field);
+  const [orderBy, setOrderBy] = useState<string>(String(columns[0].field));
   const [order, setOrder] = useState<"asc" | "desc">("asc");
 
   const sortedData = useMemo(() => {
-    if (!orderBy) return data;
+    if (onSortChange) return data;
     return [...data].sort((a, b) => {
-      const aVal = a[orderBy];
-      const bVal = b[orderBy];
+      const aVal = get(a, orderBy);
+      const bVal = get(b, orderBy);
       if (aVal == null) return 1;
       if (bVal == null) return -1;
       if (typeof aVal === "string" && typeof bVal === "string") {
-        return order === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+        return order === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
       if (typeof aVal === "number" && typeof bVal === "number") {
         return order === "asc" ? aVal - bVal : bVal - aVal;
       }
       return 0;
     });
-  }, [data, orderBy, order]);
+  }, [data, orderBy, order, onSortChange]);
 
-  const handleSort = (field: keyof T) => {
+  const handleSort = (field: string) => {
+    let newOrder: "asc" | "desc" = "asc";
     if (orderBy === field) {
-      setOrder(order === "asc" ? "desc" : "asc");
+      newOrder = order === "asc" ? "desc" : "asc";
+      setOrder(newOrder);
     } else {
       setOrderBy(field);
       setOrder("asc");
     }
+    onSortChange?.(field, newOrder);
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-10" role="status" aria-live="polite">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v8z"
-          />
-        </svg>
-        <span className="sr-only">Carregando...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-600 py-4" role="alert">
-        {error}
-      </div>
-    );
-  }
 
   const totalPages = pagination ? Math.ceil(pagination.total / pagination.perPage) : 0;
 
@@ -115,191 +83,102 @@ export default function TableTailwind<T extends { id: any }>({
       onClick={() => !isDisabled && pagination?.onPageChange(page)}
       disabled={isDisabled}
       aria-current={isActive ? "page" : undefined}
-      className={`flex items-center justify-center px-3 h-8 leading-tight border border-gray-300 
-        ${isActive
-          ? "z-10 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white"
-          : "text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-        }
-        ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
-        ${label === "prev" ? "rounded-l-lg" : ""}
-        ${label === "next" ? "rounded-r-lg" : ""}
-      `}
-      aria-label={
-        label === "prev"
-          ? "Página anterior"
-          : label === "next"
-            ? "Próxima página"
-            : `Página ${page}`
-      }
+      className={`px-3 h-8 border ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-500"} ${isDisabled ? "opacity-50" : ""}`}
     >
-      {label === "prev" ? (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      ) : label === "next" ? (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      ) : (
-        page
-      )}
+      {label === "prev" ? "‹" : label === "next" ? "›" : page}
     </button>
   );
 
-  // Gera lista de páginas, com elipses se necessário
   const renderPaginationButtons = () => {
     if (!pagination) return null;
     const { currentPage } = pagination;
     const delta = 2;
     const range = [];
 
-    for (
-      let i = Math.max(1, currentPage - delta);
-      i <= Math.min(totalPages, currentPage + delta);
-      i++
-    ) {
+    for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
       range.push(i);
     }
 
-    const buttons = [];
-
-    // Botão anterior
-    buttons.push(createPageButton(currentPage - 1, "prev", false, currentPage === 1));
-
-    // Primeira página + elipse se necessário
-    if (range[0] > 1) {
-      buttons.push(createPageButton(1));
-      if (range[0] > 2) {
-        buttons.push(
-          <span key="start-ellipsis" className="flex items-center justify-center px-3 h-8 border-t border-b border-gray-300 select-none">
-            ...
-          </span>
-        );
-      }
-    }
-
-    // Páginas do range
-    range.forEach((page) => {
-      buttons.push(createPageButton(page, undefined, page === currentPage));
-    });
-
-    // Última página + elipse se necessário
-    if (range[range.length - 1] < totalPages) {
-      if (range[range.length - 1] < totalPages - 1) {
-        buttons.push(
-          <span key="end-ellipsis" className="flex items-center justify-center px-3 h-8 border-t border-b border-gray-300 select-none">
-            ...
-          </span>
-        );
-      }
-      buttons.push(createPageButton(totalPages));
-    }
-
-    // Botão próximo
-    buttons.push(createPageButton(currentPage + 1, "next", false, currentPage === totalPages));
+    const buttons = [
+      createPageButton(currentPage - 1, "prev", false, currentPage === 1),
+      ...(range[0] > 1 ? [createPageButton(1), range[0] > 2 ? <span key="start-ellipsis">...</span> : null] : []),
+      ...range.map((page) => createPageButton(page, undefined, page === currentPage)),
+      ...(range[range.length - 1] < totalPages
+        ? [range[range.length - 1] < totalPages - 1 ? <span key="end-ellipsis">...</span> : null, createPageButton(totalPages)]
+        : []),
+      createPageButton(currentPage + 1, "next", false, currentPage === totalPages),
+    ];
 
     return buttons;
   };
 
   return (
-    <div className="overflow-x-auto shadow-md rounded-lg">
+    <div className="overflow-x-auto shadow rounded-lg">
       {title && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white dark:bg-gray-800">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+        <div className="flex justify-between items-center px-4 py-3 border-b">
+          <h2 className="text-lg font-semibold">{title}</h2>
           {createUrl && (
-            <Link
-              to={createUrl}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+            <Link to={createUrl} className="bg-blue-600 text-white px-3 py-2 rounded text-sm">
               + Novo
             </Link>
           )}
         </div>
       )}
 
+      {loading && (
+        <div className="text-center py-4 text-sm text-gray-500">Carregando...</div>
+      )}
 
-      <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-300">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      {error && (
+        <div className="text-center py-4 text-sm text-red-600">{error}</div>
+      )}
+
+      <table className="min-w-full text-sm text-left text-gray-700">
+        <thead className="text-xs uppercase bg-gray-50">
           <tr>
             {columns.map((col) => (
               <th
                 key={String(col.field)}
-                scope="col"
-                className=" px-6 py-3 font-medium select-none cursor-pointer"
-                onClick={() => col.sortable && handleSort(col.field)}
-                aria-sort={
-                  orderBy === col.field
-                    ? order === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-                tabIndex={col.sortable ? 0 : undefined}
-                onKeyDown={(e) => {
-                  if (col.sortable && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-                    handleSort(col.field);
-                  }
-                }}
+                className="px-6 py-3 cursor-pointer"
+                onClick={() => col.sortable && handleSort(String(col.field))}
               >
                 <div className="flex items-center gap-1">
                   {col.label}
                   {col.sortable && (
-                    <svg
-                      className={`w-4 h-4 transition-transform ${orderBy === col.field && order === "desc" ? "rotate-180" : ""
-                        }`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
+                    <span>
+                      {orderBy === col.field ? (order === "asc" ? "▲" : "▼") : "↕"}
+                    </span>
                   )}
                 </div>
               </th>
             ))}
-            {(getEditUrl || onDelete) && (
-              <th scope="col" className="px-6 py-3 text-center">
-                Ações
-              </th>
-            )}
+            {(getEditUrl || onDelete) && <th className="px-6 py-3 text-right">Ações</th>}
           </tr>
         </thead>
-
         <tbody>
           {sortedData.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (getEditUrl || onDelete ? 1 : 0)} className="px-6 py-4 text-center">
+              <td colSpan={columns.length + 1} className="px-6 py-4 text-center">
                 Nenhum registro encontrado.
               </td>
             </tr>
           ) : (
             sortedData.map((row) => (
-              <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr key={row.id} className="border-b hover:bg-gray-50">
                 {columns.map((col) => (
-                  <td key={String(col.field)} className="px-6 py-4 align-top">
-                    {col.render ? col.render(row) : String(row[col.field] ?? "-")}
+                  <td key={String(col.field)} className="px-6 py-4">
+                    {col.render ? col.render(row) : String(get(row, col.field, "-"))}
                   </td>
                 ))}
                 {(getEditUrl || onDelete) && (
-                  <td className="px-6 py-4 text-right space-x-2">
+                  <td className="px-6 py-4 text-right">
                     {getEditUrl && (
-                      <Link
-                        to={getEditUrl(row.id)}
-                        className="text-blue-600 hover:underline"
-                        aria-label={`Editar ${String(row.id)}`}
-                      >
+                      <Link to={getEditUrl(row.id)} className="text-blue-600 hover:underline mr-3">
                         Editar
                       </Link>
                     )}
                     {onDelete && (
-                      <button
-                        onClick={() => onDelete(row.id)}
-                        className="text-red-600 hover:underline"
-                        aria-label={`Excluir ${String(row.id)}`}
-                      >
+                      <button onClick={() => onDelete(row.id)} className="text-red-600 hover:underline">
                         Excluir
                       </button>
                     )}
@@ -311,25 +190,17 @@ export default function TableTailwind<T extends { id: any }>({
         </tbody>
       </table>
 
-      {/* Paginação */}
       {pagination && (
-        <nav
-          className="flex flex-col md:flex-row items-center justify-between p-4 border-t border-gray-200 bg-white dark:bg-gray-800"
-          aria-label="Navegação da página"
-        >
-          <div className="text-sm text-gray-700 dark:text-gray-300 mb-2 md:mb-0 w-full md:w-auto">
-            Mostrando {(pagination.currentPage - 1) * pagination.perPage + 1} até{" "}
-            {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} de{" "}
-            {pagination.total} registros
+        <div className="flex items-center justify-between p-4 border-t">
+          <div className="text-sm">
+            Mostrando {Math.min((pagination.currentPage - 1) * pagination.perPage + 1, pagination.total)} -{" "}
+            {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} de {pagination.total}
           </div>
-          <ul className="inline-flex -space-x-px rtl:space-x-reverse text-sm h-8 overflow-x-auto">
-            {renderPaginationButtons()}
-          </ul>
+          <div className="flex space-x-1">{renderPaginationButtons()}</div>
           <select
             value={pagination.perPage}
-            onChange={(e) => pagination.onPerPageChange(parseInt(e.target.value, 10))}
-            className="mt-2 md:mt-0 ml-0 md:ml-4 rounded border border-gray-300 p-1 text-sm dark:bg-gray-700 dark:text-gray-200"
-            aria-label="Linhas por página"
+            onChange={(e) => pagination.onPerPageChange(Number(e.target.value))}
+            className="border p-1 rounded text-sm"
           >
             {[10, 25, 50, 100].map((num) => (
               <option key={num} value={num}>
@@ -337,7 +208,7 @@ export default function TableTailwind<T extends { id: any }>({
               </option>
             ))}
           </select>
-        </nav>
+        </div>
       )}
     </div>
   );

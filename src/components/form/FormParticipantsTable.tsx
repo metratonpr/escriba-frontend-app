@@ -1,18 +1,12 @@
-import React, { useState } from "react";
-import md5 from "md5";
+import { useState } from "react";
+import md5 from "md5"; // instale com: npm i md5 && npm i -D @types/md5
 import EmployeeAutocompleteField from "./EmployeeAutocompleteField";
 import { FormInput } from "./FormInput";
 import FormSwitchField from "./FormSwitchField";
 import { FormTextArea } from "./FormTextArea";
+import type { Participant } from "../../types/participant";
 
-interface Participant {
-  event_id: number;
-  employee_id: number;
-  employee?: { id: number; name: string };
-  certificate_number: string;
-  presence: boolean;
-  evaluation?: string;
-}
+
 
 interface Props {
   eventId: number;
@@ -44,19 +38,14 @@ export default function FormParticipantsTable({
     certificate_number: false,
   });
 
-const generateCertNumber = (employeeName: string) => {
-  const hash = md5(employeeName + Date.now().toString()); // 32 chars
-  return `${hash.slice(0, 4)}-${hash.slice(4, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}`;
-};
+  const generateCertNumber = (employeeName: string) => {
+    const hash = md5(employeeName + Date.now().toString());
+    return `${hash.slice(0, 4)}-${hash.slice(4, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}`;
+  };
 
   const handleAdd = () => {
-    const hasEmployee = !!current.employee?.id;
-
-    if (!hasEmployee) {
-      setFieldErrors({
-        employee: !hasEmployee,
-        certificate_number: false,
-      });
+    if (!current.employee) {
+      setFieldErrors({ employee: true, certificate_number: false });
       return;
     }
 
@@ -69,10 +58,7 @@ const generateCertNumber = (employeeName: string) => {
     );
 
     if (duplicate) {
-      setFieldErrors({
-        employee: true,
-        certificate_number: true,
-      });
+      setFieldErrors({ employee: true, certificate_number: true });
       return;
     }
 
@@ -95,24 +81,26 @@ const generateCertNumber = (employeeName: string) => {
       evaluation: "",
     });
 
-    setFieldErrors({
-      employee: false,
-      certificate_number: false,
-    });
+    setFieldErrors({ employee: false, certificate_number: false });
   };
 
-  const handleEmployeeChange = (value: { id: number; label: string } | null) => {
-    setCurrent((prev) => ({
-      ...prev,
-      employee: value,
-      certificate_number: value ? generateCertNumber(value.label) : "",
-    }));
+  const handleEmployeeChange = (value: { id: string | number; label: string } | null) => {
+    if (value) {
+      const numericId = typeof value.id === "string" ? parseInt(value.id, 10) : value.id;
+      setCurrent({
+        ...current,
+        employee: { id: numericId, label: value.label },
+        certificate_number: generateCertNumber(value.label),
+      });
+    } else {
+      setCurrent({ ...current, employee: null, certificate_number: "" });
+    }
   };
 
   const handleRemove = (index: number) => {
-    const list = [...participants];
-    list.splice(index, 1);
-    onChange(list);
+    const updated = [...participants];
+    updated.splice(index, 1);
+    onChange(updated);
   };
 
   return (
@@ -184,7 +172,7 @@ const generateCertNumber = (employeeName: string) => {
             <tbody>
               {participants.map((p, index) => (
                 <tr key={`${p.employee_id}-${index}`} className="border-b">
-                  <td className="px-4 py-2">{p.employee?.name || p.employee_id}</td>
+                  <td className="px-4 py-2">{p.employee?.name}</td>
                   <td className="px-4 py-2">{p.certificate_number}</td>
                   <td className="px-4 py-2">{p.presence ? "Sim" : "Não"}</td>
                   <td className="px-4 py-2">{p.evaluation || "-"}</td>

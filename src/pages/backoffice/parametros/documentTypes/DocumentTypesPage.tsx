@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/documentTypes/DocumentTypesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getDocumentTypes,
   deleteDocumentType,
@@ -14,31 +13,47 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function DocumentTypesPage() {
-  const [data, setData] = useState<PaginatedResponse<DocumentType>>({ data: [], total: 0, page: 1, per_page: 25 });
+  const [data, setData] = useState<PaginatedResponse<DocumentType>>({
+    data: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const loadTypes = async (q = "", pg = 1, limit = 25) => {
+  const loadTypes = async (
+    q = search,
+    pg = page,
+    limit = perPage
+  ): Promise<void> => {
     setLoading(true);
     try {
       const response = await getDocumentTypes({ search: q, page: pg, perPage: limit });
       setData(response);
-      setPage(pg);
-      setPerPage(limit);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTypes(search, page, perPage);
-  }, []);
+    loadTypes();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q.trim());
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const doc = data.data.find((d) => d.id === id);
@@ -51,10 +66,18 @@ export default function DocumentTypesPage() {
     if (!selectedId) return;
     try {
       await deleteDocumentType(selectedId);
-      await loadTypes(search, page, perPage);
-      setToast({ open: true, message: `Tipo \"${selectedName}\" excluído com sucesso.`, type: "success" });
+      setToast({
+        open: true,
+        message: `Tipo "${selectedName}" excluído com sucesso.`,
+        type: "success",
+      });
+      await loadTypes();
     } catch {
-      setToast({ open: true, message: `Erro ao excluir tipo \"${selectedName}\".`, type: "error" });
+      setToast({
+        open: true,
+        message: `Erro ao excluir tipo "${selectedName}".`,
+        type: "error",
+      });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -68,8 +91,13 @@ export default function DocumentTypesPage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Tipos de Documento", to: "/backoffice/tipos-documento" }]} />
-      <SearchBar onSearch={(q) => loadTypes(q)} onClear={() => loadTypes("")} />
+      <Breadcrumbs
+        items={[
+          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Tipos de Documento", to: "/backoffice/tipos-documento" },
+        ]}
+      />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (
@@ -82,16 +110,30 @@ export default function DocumentTypesPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => loadTypes(search, p, perPage),
-            onPerPageChange: (pp) => loadTypes(search, 1, pp),
+            onPageChange: setPage,
+            onPerPageChange: (pp) => {
+              setPage(1);
+              setPerPage(pp);
+            },
           }}
           getEditUrl={(id) => `/backoffice/tipos-documento/editar/${id}`}
           onDelete={handleAskDelete}
         />
       )}
 
-      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir tipo de documento" />
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <DeleteModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedName ?? undefined}
+        title="Excluir tipo de documento"
+      />
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </>
   );
 }

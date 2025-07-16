@@ -6,13 +6,24 @@ export interface Epi {
   id: string;
   name: string;
   epi_type_id: string;
+  epi_type_name: string;
   brand_id: string;
+  brand_name: string;
   company_id: string;
+  company_name: string;
   ca: string;
-  ca_expiration: string; // ISO date string
+  ca_expiration: string;
 }
 
-export type EpiPayload = Omit<Epi, "id">;
+
+export interface EpiPayload {
+  name: string;
+  ca: string;
+  ca_expiration: string;
+  brand_id: string;
+  company_id: string;
+  epi_type_id: string;
+}
 
 export interface PaginatedResponse<T> {
   data: T[];

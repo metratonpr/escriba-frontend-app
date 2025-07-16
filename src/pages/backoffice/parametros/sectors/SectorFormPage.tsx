@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -23,7 +23,7 @@ export default function SectorFormPage() {
     if (isEdit) {
       setIsLoading(true);
       getSectorById(id!)
-        .then(setForm)
+         .then((res) => setForm({ name: res.name, description: res.description ?? "" }))
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar setor.", type: "error" });
           navigate("/backoffice/setores");
@@ -79,13 +79,17 @@ export default function SectorFormPage() {
             required
           />
           <FormTextArea
+            id="description"
             label="Descrição"
             name="description"
             value={form.description}
             onChange={handleChange}
             error={errors.description}
           />
-          <FormActions cancelUrl="/backoffice/setores" text={isEdit ? "Atualizar" : "Criar"} />
+          <FormActions
+            onCancel={() => navigate("/backoffice/setores")}
+            text={isEdit ? "Atualizar" : "Criar"}
+          />
         </form>
       )}
 

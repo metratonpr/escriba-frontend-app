@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { deleteEpiDelivery, getEpiDeliveries } from "../../../services/epiDeliveryService";
+import { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import { deleteEpiDelivery, getEpiDeliveries, type PaginatedResponse } from "../../../services/epiDeliveryService";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
 import Spinner from "../../../components/Layout/ui/Spinner";
-import TableTailwind from "../../../components/Layout/ui/TableTailwind";
+import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../components/Layout/Feedback/Toast";
-import dayjs from "dayjs";
-
+import type { EpiDelivery } from "../../../types/epi";
 
 export default function EpiDeliveriesPage() {
   const [data, setData] = useState<PaginatedResponse<EpiDelivery>>({
@@ -29,8 +29,7 @@ export default function EpiDeliveriesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-
-  const load = async (q = "", pg = 1, limit = 25) => {
+  const loadEpiDeliveries = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
     try {
       const response = await getEpiDeliveries({ search: q, page: pg, perPage: limit });
@@ -43,11 +42,16 @@ export default function EpiDeliveriesPage() {
   };
 
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadEpiDeliveries();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: number) => {
-    const item = data.data.find((d) => d.id === id);
+    const item = data.data.find((d: EpiDelivery) => d.id === id);
     setSelectedId(id);
     setSelectedName(item?.document_number ?? null);
     setModalOpen(true);
@@ -57,10 +61,10 @@ export default function EpiDeliveriesPage() {
     if (!selectedId) return;
     try {
       await deleteEpiDelivery(selectedId);
-      await load(search, page, perPage);
-      setToast({ open: true, message: `Entrega \"${selectedName}\" excluída com sucesso.`, type: "success" });
+      await loadEpiDeliveries();
+      setToast({ open: true, message: `Entrega "${selectedName}" excluída com sucesso.`, type: "success" });
     } catch {
-      setToast({ open: true, message: `Erro ao excluir entrega \"${selectedName}\".`, type: "error" });
+      setToast({ open: true, message: `Erro ao excluir entrega "${selectedName}".`, type: "error" });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -87,12 +91,12 @@ export default function EpiDeliveriesPage() {
     },
   ];
 
-
   return (
     <>
       <Breadcrumbs items={[{ label: "Entregas de EPI", to: "/backoffice/entregas-epis" }]} />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load()} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
+
       {!loading && (
         <TableTailwind
           title="Entregas de EPI"
@@ -103,11 +107,14 @@ export default function EpiDeliveriesPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: (p) => setPage(p),
+            onPerPageChange: (pp) => {
+              setPerPage(pp);
+              setPage(1);
+            },
           }}
           getEditUrl={(id) => `/backoffice/entregas-epis/editar/${id}`}
-          onDelete={(id) => handleAskDelete(id)}
+          onDelete={handleAskDelete}
         />
       )}
 

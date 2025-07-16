@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { BASE_URL } from "../../api/apiConfig";
+
 
 interface FileViewerProps {
   fileId: number;
@@ -10,20 +12,29 @@ const FileViewer: React.FC<FileViewerProps> = ({ fileId, fileName }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/view/${fileId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Falha ao carregar");
-        return res.blob();
-      })
-      .then((blob) => {
-        const objUrl = URL.createObjectURL(blob);
+    let objUrl: string;
+
+    const fetchFile = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/view/${fileId}`);
+        if (!response.ok) throw new Error("Falha ao carregar arquivo");
+        const blob = await response.blob();
+        objUrl = URL.createObjectURL(blob);
         setUrl(objUrl);
-      })
-      .catch(() => setError("Erro ao carregar o anexo"));
+      } catch {
+        setError("Erro ao carregar o anexo.");
+      }
+    };
+
+    fetchFile();
+
+    return () => {
+      if (objUrl) URL.revokeObjectURL(objUrl);
+    };
   }, [fileId]);
 
   if (error) return <div className="text-red-600 text-center">{error}</div>;
-  if (!url) return <div className="text-center text-gray-500">Carregando...</div>;
+  if (!url) return <div className="text-center text-gray-500">Carregando anexo...</div>;
 
   const isImage = /\.(jpe?g|png|webp|gif)$/i.test(fileName);
   const isPdf = /\.pdf$/i.test(fileName);
@@ -33,7 +44,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ fileId, fileName }) => {
       {isImage && (
         <img
           src={url}
-          alt={fileName}
+          alt={`Visualização do arquivo ${fileName}`}
           className="max-h-full max-w-full rounded shadow object-contain"
         />
       )}
@@ -41,18 +52,18 @@ const FileViewer: React.FC<FileViewerProps> = ({ fileId, fileName }) => {
         <iframe
           src={url}
           className="w-full h-full border rounded"
-          title="PDF Viewer"
-        ></iframe>
+          title={`Visualização do PDF ${fileName}`}
+        />
       )}
       {!isImage && !isPdf && (
         <a
           href={url}
-          download
-          className="text-blue-600 underline"
+          download={fileName}
+          className="text-blue-600 underline text-sm"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Baixar ou abrir
+          Baixar ou abrir o arquivo
         </a>
       )}
     </div>

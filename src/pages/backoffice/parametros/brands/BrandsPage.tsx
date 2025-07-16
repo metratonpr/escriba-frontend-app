@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/brands/BrandsPage.tsx
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import {
   getBrands,
   deleteBrand,
@@ -24,7 +23,7 @@ export default function BrandsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const load = async (q = "", pg = 1, limit = 25) => {
+  const loadBrands = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
     try {
       const response = await getBrands({ search: q, page: pg, perPage: limit });
@@ -37,8 +36,13 @@ export default function BrandsPage() {
   };
 
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadBrands();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -51,7 +55,7 @@ export default function BrandsPage() {
     if (!selectedId) return;
     try {
       await deleteBrand(selectedId);
-      await load(search, page, perPage);
+      await loadBrands();
       setToast({ open: true, message: `Marca "${selectedName}" excluída com sucesso.`, type: "success" });
     } catch {
       setToast({ open: true, message: `Erro ao excluir marca "${selectedName}".`, type: "error" });
@@ -71,7 +75,7 @@ export default function BrandsPage() {
   return (
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Marcas", to: "/backoffice/marcas" }]} />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load("")} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (
@@ -84,8 +88,11 @@ export default function BrandsPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: (p) => setPage(p),
+            onPerPageChange: (pp) => {
+              setPerPage(pp);
+              setPage(1);
+            },
           }}
           getEditUrl={(id) => `/backoffice/marcas/editar/${id}`}
           onDelete={handleAskDelete}

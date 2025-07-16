@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Spinner from "../../../../components/Layout/ui/Spinner";
@@ -10,6 +10,8 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import EventTypeAutocompleteField from "../../../../components/form/EventTypeAutocompleteField";
 import { createEvent, getEventById, updateEvent } from "../../../../services/eventService";
 import FormParticipantsTable from "../../../../components/form/FormParticipantsTable";
+import type { Participant } from "../../../../types/participant";
+
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -26,10 +28,10 @@ export default function EventFormPage() {
     speakers: "",
     target_audience: "",
     notes: "",
-    participants: [],
+    participants: [] as Participant[],
   });
 
-  const [eventTypeOption, setEventTypeOption] = useState<{ id: string; label: string } | null>(null);
+  const [eventTypeOption, setEventTypeOption] = useState<{ id: string | number; label: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, any>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function EventFormPage() {
         .then((data) => {
           setForm({
             name: data.name || "",
-            event_type_id: String(data.event_type?.id ?? data.event_type_id),
+            event_type_id: String(data.event_type_id),
             start_date: data.start_date || "",
             end_date: data.end_date || "",
             location: data.location || "",
@@ -51,12 +53,12 @@ export default function EventFormPage() {
             notes: data.notes || "",
             participants: (data.participations || []).map((p: any) => ({
               id: p.id,
-              event_id: p.event_id,
-              employee_id: p.employee_id,
+              event_id: Number(p.event_id),
+              employee_id: Number(p.employee_id),
               certificate_number: p.certificate_number,
               presence: !!p.presence,
               evaluation: p.evaluation || "",
-              employee: p.employee ? { id: p.employee.id, name: p.employee.name } : undefined,
+              employee: p.employee ? { id: Number(p.employee.id), name: p.employee.name } : undefined,
             })),
           });
           if (data.event_type) {

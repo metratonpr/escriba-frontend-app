@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
 import { getSectors } from "../../services/sectorService";
@@ -14,6 +14,8 @@ interface SectorAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function SectorAutocompleteField({
@@ -22,10 +24,12 @@ export default function SectorAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: SectorAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = useCallback(
     debounce(async (term: string) => {
@@ -34,8 +38,9 @@ export default function SectorAutocompleteField({
         const list = Array.isArray(response) ? response : response.data;
         const mapped: Option[] = list.map((item: any) => ({ id: item.id, label: item.name }));
         setOptions(mapped);
+        setLoadError(null);
       } catch {
-        setError("Erro ao buscar setores.");
+        setLoadError("Erro ao buscar setores.");
         setOptions([]);
       }
     }, 300),
@@ -54,7 +59,7 @@ export default function SectorAutocompleteField({
   }, [value, options]);
 
   return (
-    <>
+    <div className={className}>
       <FormAutocompleteField
         name="sector_id"
         label={label}
@@ -63,9 +68,14 @@ export default function SectorAutocompleteField({
         onChange={onChange}
         onInputChange={setQuery}
         disabled={disabled}
-        className={className}
+        error={error}
+        required={required}
       />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
+    </div>
   );
 }

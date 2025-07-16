@@ -1,5 +1,5 @@
 // src/pages/backoffice/parametros/jobTitles/JobTitlesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getJobTitles,
   deleteJobTitle,
@@ -37,7 +37,14 @@ export default function JobTitlesPage() {
     }
   };
 
-  useEffect(() => { loadJobTitles(search, page, perPage); }, []);
+  useEffect(() => {
+    loadJobTitles(search, page, perPage);
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1); // Reinicia para a primeira página ao buscar
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((t) => t.id === id);
@@ -69,7 +76,7 @@ export default function JobTitlesPage() {
   return (
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Cargos", to: "/backoffice/cargos" }]} />
-      <SearchBar onSearch={(q) => loadJobTitles(q)} onClear={() => loadJobTitles("")} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (

@@ -24,7 +24,7 @@ export interface EmployeeCompany {
 }
 
 export interface Employee {
-  id?: string;
+  id: string;
   name: string;
   cpf: string;
   rg: string;

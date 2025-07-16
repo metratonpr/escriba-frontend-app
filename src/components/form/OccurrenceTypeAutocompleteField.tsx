@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
 import { getOccurrenceTypes } from "../../services/occurrenceTypeService";
@@ -14,6 +14,8 @@ interface OccurrenceTypeAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function OccurrenceTypeAutocompleteField({
@@ -22,20 +24,23 @@ export default function OccurrenceTypeAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: OccurrenceTypeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const fetchData = useCallback(
+  const fetchOccurrenceTypes = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getOccurrenceTypes({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
         const mapped: Option[] = list.map((item: any) => ({ id: item.id, label: item.name }));
         setOptions(mapped);
+        setLoadError(null);
       } catch {
-        setError("Erro ao buscar tipos de ocorrência.");
+        setLoadError("Erro ao buscar tipos de ocorrência.");
         setOptions([]);
       }
     }, 300),
@@ -43,18 +48,18 @@ export default function OccurrenceTypeAutocompleteField({
   );
 
   useEffect(() => {
-    fetchData(query);
-    return () => fetchData.cancel();
-  }, [query, fetchData]);
+    fetchOccurrenceTypes(query);
+    return () => fetchOccurrenceTypes.cancel();
+  }, [query, fetchOccurrenceTypes]);
 
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
+    if (value && !options.some((opt) => opt.id === value.id)) {
       setOptions((prev) => [...prev, value]);
     }
   }, [value, options]);
 
   return (
-    <>
+    <div className={className}>
       <FormAutocompleteField
         name="occurrence_type_id"
         label={label}
@@ -63,9 +68,14 @@ export default function OccurrenceTypeAutocompleteField({
         onChange={onChange}
         onInputChange={setQuery}
         disabled={disabled}
-        className={className}
+        error={error}
+        required={required}
       />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
+    </div>
   );
 }

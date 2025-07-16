@@ -1,19 +1,28 @@
 // src/services/eventService.ts
 import { request } from "../api/request";
 import { API_EVENTS, API_EVENT_TYPES } from "../api/apiConfig";
+import type { Participant } from "../types/participant";
 
 export interface Event {
   id: string;
   name: string;
   event_type_id: string;
+  event_type?: {
+    id: string | number;
+    nome_tipo_evento: string;
+  };
   start_date: string;
-  end_date?: string;
-  location?: string;
-  responsible?: string;
-  speakers?: string;
-  target_audience?: string;
-  notes?: string;
+  end_date: string;
+  location: string;
+  responsible: string;
+  speakers: string;
+  target_audience: string;
+  notes: string;
+  participations?: Participant[];
 }
+
+
+
 
 export type EventPayload = Omit<Event, "id">;
 

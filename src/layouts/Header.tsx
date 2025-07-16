@@ -2,6 +2,7 @@
 import { Menu } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { logout } from '../services/authService'
 
 type HeaderProps = {
   onToggleSidebar: () => void
@@ -11,10 +12,15 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  const handleLogout = () => {
-    // Aqui você pode limpar autenticação no futuro
-    navigate('/')
-  }
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // falha silenciosa em caso de token expirado
+    }
+    localStorage.removeItem("token");
+    navigate("/");
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between md:px-6 w-full">

@@ -1,10 +1,10 @@
 // src/pages/backoffice/parametros/eventTypes/EventTypesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getEventTypes,
   deleteEventType,
   type EventType,
-  type PaginatedResponse,
+  type PaginatedResponse
 } from "../../../../services/eventTypeService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Spinner from "../../../../components/Layout/ui/Spinner";
@@ -20,6 +20,7 @@ export default function EventTypesPage() {
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -38,7 +39,12 @@ export default function EventTypesPage() {
 
   useEffect(() => {
     loadEventTypes(search, page, perPage);
-  }, []);
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -52,9 +58,9 @@ export default function EventTypesPage() {
     try {
       await deleteEventType(selectedId);
       await loadEventTypes(search, page, perPage);
-      setToast({ open: true, message: `Tipo \"${selectedName}\" excluído com sucesso.`, type: "success" });
+      setToast({ open: true, message: `Tipo "${selectedName}" excluído com sucesso.`, type: "success" });
     } catch {
-      setToast({ open: true, message: `Erro ao excluir tipo \"${selectedName}\".`, type: "error" });
+      setToast({ open: true, message: `Erro ao excluir tipo "${selectedName}".`, type: "error" });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -69,7 +75,7 @@ export default function EventTypesPage() {
   return (
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Tipos de Evento", to: "/backoffice/tipos-evento" }]} />
-      <SearchBar onSearch={(q) => loadEventTypes(q)} onClear={() => loadEventTypes("")} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (

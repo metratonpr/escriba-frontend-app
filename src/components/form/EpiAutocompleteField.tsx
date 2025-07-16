@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getEpis } from "../../services/epiService";
 
 interface Option {
@@ -14,6 +14,8 @@ interface EpiAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function EpiAutocompleteField({
@@ -22,11 +24,14 @@ export default function EpiAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: EpiAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Fetch debounced para evitar múltiplas requisições em digitação
   const fetchEpis = useCallback(
     debounce(async (term: string) => {
       try {
@@ -39,19 +44,22 @@ export default function EpiAutocompleteField({
         }));
 
         setOptions(mapped);
+        setLoadError(null);
       } catch {
-        setError("Erro ao buscar EPIs.");
+        setLoadError("Erro ao buscar EPIs.");
         setOptions([]);
       }
     }, 300),
     []
   );
 
+  // Executa a busca com base na query atual
   useEffect(() => {
     fetchEpis(query);
     return () => fetchEpis.cancel();
   }, [query, fetchEpis]);
 
+  // Garante que o valor selecionado esteja na lista, mesmo se vier de fora
   useEffect(() => {
     if (value && !options.find((o) => o.id === value.id)) {
       setOptions((prev) => [...prev, value]);
@@ -59,7 +67,7 @@ export default function EpiAutocompleteField({
   }, [value, options]);
 
   return (
-    <>
+    <div className={className}>
       <FormAutocompleteField
         name="epi_id"
         label={label}
@@ -68,9 +76,14 @@ export default function EpiAutocompleteField({
         onChange={onChange}
         onInputChange={setQuery}
         disabled={disabled}
-        className={className}
+        error={error}
+        required={required}
       />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
+    </div>
   );
 }

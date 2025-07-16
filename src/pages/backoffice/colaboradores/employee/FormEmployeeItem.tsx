@@ -1,4 +1,3 @@
-import React from "react";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormAutocompleteField from "../../../../components/form/FormAutocompleteField";
@@ -73,7 +72,7 @@ export const FormEmployeeItem = ({
                       <FormAutocompleteField
                         {...baseProps}
                         onChange={(val) => onChange(index, field.name, val)}
-                        options={field.options || []}
+                        options={(field.options || []).map(({ value, label }) => ({ id: value, label }))}
                       />
                     );
                     break;

@@ -1,5 +1,4 @@
-// src/components/form/TechnicianAutocompleteField.tsx
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
 import { getEmployees } from "../../services/employeeService";
@@ -15,6 +14,8 @@ interface TechnicianAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function TechnicianAutocompleteField({
@@ -23,25 +24,24 @@ export default function TechnicianAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: TechnicianAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+
 
   const fetchTechnicians = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getEmployees({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-
         const mapped: Option[] = list.map((emp: any) => ({
           id: emp.id,
           label: emp.name,
         }));
-
-        setOptions(mapped);
-      } catch {
-        setError("Erro ao buscar técnicos.");
+        setOptions(mapped);        
+      } catch {       
         setOptions([]);
       }
     }, 300),
@@ -53,19 +53,25 @@ export default function TechnicianAutocompleteField({
     return () => fetchTechnicians.cancel();
   }, [query, fetchTechnicians]);
 
+  useEffect(() => {
+    if (value && !options.find((o) => o.id === value.id)) {
+      setOptions((prev) => [...prev, value]);
+    }
+  }, [value, options]);
+
   return (
-    <>
-      <FormAutocompleteField
-        name="technician_id"
-        label={label}
-        value={value}
-        options={options}
-        onChange={onChange}
-        onInputChange={setQuery}
-        disabled={disabled}
-        className={className}
-      />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+    <FormAutocompleteField
+      name="technician_id"
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      onInputChange={setQuery}
+      disabled={disabled}
+      className={className}
+      error={error ?? undefined}
+      required={required}
+      placeholder="Digite para buscar..."
+    />
   );
 }

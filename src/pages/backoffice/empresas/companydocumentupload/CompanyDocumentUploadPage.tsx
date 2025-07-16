@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import {
   getCompanyDocumentUploads,
@@ -13,28 +13,35 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Spinner from "../../../../components/Layout/ui/Spinner";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
-export default function CompanyDocumentUploadListPage() {
+type ToastType = "success" | "error";
+
+export default function CompanyDocumentUploadPage() {
   const [data, setData] = useState<PaginatedResponse<CompanyDocumentUpload>>({
     data: [],
     total: 0,
     page: 1,
     per_page: 25,
   });
+
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [sortBy, setSortBy] = useState<string>("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as const });
+  const [toast, setToast] = useState<{ open: boolean; message: string; type: ToastType }>({
+    open: false,
+    message: "",
+    type: "success",
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<string | undefined>("created_at");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const load = async (
-    q = "",
-    pg = 1,
-    limit = 25,
+  const loadCompanyDocuments = async (
+    q = search,
+    pg = page,
+    limit = perPage,
     sort = sortBy,
     order = sortOrder
   ) => {
@@ -56,11 +63,16 @@ export default function CompanyDocumentUploadListPage() {
   };
 
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadCompanyDocuments();
+  }, [search, page, perPage, sortBy, sortOrder]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
-    const item = data.data.find((d) => d.id === id);
+    const item = data.data.find((d: CompanyDocumentUpload) => d.id === id);
     setSelectedId(id);
     setSelectedName(item?.company?.name ?? null);
     setModalOpen(true);
@@ -70,10 +82,18 @@ export default function CompanyDocumentUploadListPage() {
     if (!selectedId) return;
     try {
       await deleteCompanyDocumentUpload(selectedId);
-      await load(search, page, perPage);
-      setToast({ open: true, message: `Documento de "${selectedName}" excluído com sucesso.`, type: "success" });
+      await loadCompanyDocuments();
+      setToast({
+        open: true,
+        message: `Documento de "${selectedName}" excluído com sucesso.`,
+        type: "success",
+      });
     } catch {
-      setToast({ open: true, message: `Erro ao excluir documento de "${selectedName}".`, type: "error" });
+      setToast({
+        open: true,
+        message: `Erro ao excluir documento de "${selectedName}".`,
+        type: "error",
+      });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -84,17 +104,18 @@ export default function CompanyDocumentUploadListPage() {
   const columns: Column<CompanyDocumentUpload>[] = [
     {
       label: "Empresa",
-      field: "company_name",
+      field: "company.name",
       render: (row) => row.company?.name ?? "-",
       sortable: true,
-      sortField: "company.name",
     },
     {
       label: "Versão do Documento",
-      field: "document_version_name",
-      render: (row) => `${row.document_version?.code} - ${row.document_version?.version}`,
+      field: "document_version.code",
+      render: (row) =>
+        row.document_version
+          ? `${row.document_version.code} - ${row.document_version.version}`
+          : "-",
       sortable: true,
-      sortField: "document_version.code",
     },
     {
       label: "Status",
@@ -112,8 +133,9 @@ export default function CompanyDocumentUploadListPage() {
   return (
     <>
       <Breadcrumbs items={[{ label: "Documentos das Empresas", to: "/backoffice/empresas/documentos" }]} />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load()} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
+
       {!loading && (
         <TableTailwind
           title="Documentos de Empresas"
@@ -124,15 +146,18 @@ export default function CompanyDocumentUploadListPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: (p) => setPage(p),
+            onPerPageChange: (pp) => {
+              setPerPage(pp);
+              setPage(1);
+            },
           }}
           getEditUrl={(id) => `/backoffice/empresas/documentos/editar/${id}`}
           onDelete={handleAskDelete}
           onSortChange={(field, order) => {
             setSortBy(field);
             setSortOrder(order);
-            load(search, 1, perPage, field, order);
+            setPage(1);
           }}
         />
       )}

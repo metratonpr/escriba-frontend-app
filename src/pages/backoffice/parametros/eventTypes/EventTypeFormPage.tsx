@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -26,7 +26,10 @@ export default function EventTypeFormPage() {
     if (isEdit) {
       setIsLoading(true);
       getEventTypeById(id!)
-        .then(setForm)
+        .then((data) => setForm({
+          nome_tipo_evento: data.nome_tipo_evento ?? "",
+          descricao: data.descricao ?? "",
+        }))
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar tipo de evento.", type: "error" });
           navigate("/backoffice/tipos-evento");
@@ -91,7 +94,8 @@ export default function EventTypeFormPage() {
             error={errors.descricao}
           />
 
-          <FormActions cancelUrl="/backoffice/tipos-evento" text={isEdit ? "Atualizar" : "Criar"} />
+          <FormActions onCancel={() => navigate("/backoffice/tipos-evento")} text={isEdit ? "Atualizar" : "Criar"} />
+
         </form>
       )}
 

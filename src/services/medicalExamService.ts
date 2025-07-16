@@ -2,6 +2,12 @@ import { request } from "../api/request";
 import { multipartRequest } from "../api/multipartRequest";
 import { API_MEDICAL_EXAMS } from "../api/apiConfig";
 
+export interface Attachment {
+  id: number;
+  nome_arquivo: string;
+  url_arquivo: string;
+}
+
 export interface MedicalExam {
   id: string;
   employee_id: number;
@@ -11,7 +17,14 @@ export interface MedicalExam {
   cid?: string;
   fit: boolean;
   result_attachment_url?: string;
+
+  // ✅ Novos campos necessários para tela
+  uploads?: Attachment[];
+  employee?: {
+    name: string;
+  };
 }
+
 
 export type MedicalExamPayload = Omit<MedicalExam, 'id' | 'employee_name'>;
 

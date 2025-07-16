@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/document/DocumentFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -43,21 +42,21 @@ export default function DocumentFormPage() {
     description: "",
     category: "general" as DocumentCategory,
     is_required: false,
-    validity_days: undefined,
+    validity_days: undefined as number | undefined,
   });
 
   const [type, setType] = useState<Option | null>(null);
   const [issuer, setIssuer] = useState<Option | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [versionErrors, setVersionErrors] = useState<Record<number, Record<string, string>>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit) {
+    if (isEdit && id) {
       setIsLoading(true);
-      getDocumentById(id!)
+      getDocumentById(id)
         .then((doc) => {
           setForm({
             code: doc.code,
@@ -65,16 +64,12 @@ export default function DocumentFormPage() {
             description: doc.description ?? "",
             category: doc.category,
             is_required: doc.is_required,
-            validity_days: doc.validity_days,
+            validity_days: typeof doc.validity_days === "number" ? doc.validity_days : undefined,
           });
-          setType({ id: doc.document_type_id, label: doc.type?.name });
-          setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name });
-          setVersions(doc.versions?.map((v: any) => ({
-            code: v.code,
-            description: v.description,
-            validity_days: v.validity_days,
-            version: v.version
-          })) ?? []);
+
+          setType({ id: doc.document_type_id, label: `Tipo ${doc.document_type_id}` });
+          setIssuer({ id: doc.document_issuer_id, label: `Órgão ${doc.document_issuer_id}` });
+          setVersions([]); // ajuste: backend ainda não retorna versões
         })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });
@@ -84,9 +79,13 @@ export default function DocumentFormPage() {
     }
   }, [id]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
-    const val = type === "checkbox" ? checked : value;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const val = type === "checkbox" && "checked" in e.target
+      ? (e.target as HTMLInputElement).checked
+      : value;
     setForm((prev) => ({ ...prev, [name]: val }));
   };
 
@@ -97,16 +96,19 @@ export default function DocumentFormPage() {
     try {
       const payload = {
         ...form,
-        validity_days: form.validity_days === "" ? null : Number(form.validity_days),
-        document_type_id: Number(type?.id),
-        document_issuer_id: Number(issuer?.id),
+        validity_days: form.validity_days !== undefined ? Number(form.validity_days) : undefined,
+        document_type_id: String(type?.id),
+        document_issuer_id: String(issuer?.id),
         versions,
+        version: 1,
       };
+
       if (isEdit) {
         await updateDocument(id!, payload);
       } else {
         await createDocument(payload);
       }
+
       setToast({ open: true, message: `Documento ${isEdit ? "atualizado" : "criado"} com sucesso.`, type: "success" });
       navigate("/backoffice/documentos");
     } catch (err: any) {
@@ -198,7 +200,7 @@ export default function DocumentFormPage() {
           </div>
 
           <div className="md:col-span-2">
-            <FormActions cancelUrl="/backoffice/documentos" text={isEdit ? "Atualizar" : "Criar"} />
+            <FormActions onCancel={() => navigate("/backoffice/documentos")} text={isEdit ? "Atualizar" : "Criar"} />
           </div>
         </form>
       )}

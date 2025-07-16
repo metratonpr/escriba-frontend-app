@@ -1,4 +1,5 @@
 export const DOMINIO = "http://localhost:8000";
+// export const DOMINIO = "https://www.grupolw.iapotech.com.br";
 export const BASE_URL = `${DOMINIO}/api`;
 
 // Exporta API_URL como alias para BASE_URL para compatibilidade

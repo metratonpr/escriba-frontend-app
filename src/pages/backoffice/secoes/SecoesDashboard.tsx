@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function SecoesDashboard() {
   return (
     <div className="p-4">

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+// src/components/form/CompanyTypeAutocompleteField.tsx
+import { useEffect, useState, useCallback } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import { getCompanyTypes } from "../../services/companyTypeService";
@@ -29,8 +30,8 @@ export default function CompanyTypeAutocompleteField({
 }: CompanyTypeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Função assíncrona com debounce para buscar tipos de empresa
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
@@ -38,33 +39,38 @@ export default function CompanyTypeAutocompleteField({
         const list = Array.isArray(res) ? res : res.data;
         setOptions(list.map((item: any) => ({ id: item.id, label: item.name })));
       } catch {
-        setLoadError("Erro ao carregar tipos de empresa.");
         setOptions([]);
       }
     }, 300),
     []
   );
 
+  // Refaz a busca sempre que a query muda
   useEffect(() => {
     fetchOptions(query);
     return () => fetchOptions.cancel();
   }, [query, fetchOptions]);
 
+  // Garante que o valor atual esteja nas opções
+  useEffect(() => {
+    if (value && !options.find((o) => o.id === value.id)) {
+      setOptions((prev) => [...prev, value]);
+    }
+  }, [value, options]);
+
   return (
-    <>
-      <FormAutocompleteField
-        name="company_type_id"
-        label={label}
-        value={value}
-        onChange={onChange}
-        options={options}
-        disabled={disabled}
-        className={className}
-        error={error}
-        required={required}
-        onInputChange={setQuery}
-      />
-      {loadError && <p className="text-sm text-red-600 mt-1">{loadError}</p>}
-    </>
+    <FormAutocompleteField
+      name="company_type_id"
+      label={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+      disabled={disabled}
+      className={className}
+      error={error}
+      required={required}
+      placeholder="Digite para buscar..."
+      onInputChange={setQuery}
+    />
   );
 }

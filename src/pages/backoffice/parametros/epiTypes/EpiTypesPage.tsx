@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/epiTypes/EpiTypesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getEpiTypes,
   deleteEpiType,
@@ -14,31 +13,47 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function EpiTypesPage() {
-  const [data, setData] = useState<PaginatedResponse<EpiType>>({ data: [], total: 0, page: 1, per_page: 25 });
+  const [data, setData] = useState<PaginatedResponse<EpiType>>({
+    data: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const loadEpiTypes = async (q = "", pg = 1, limit = 25) => {
+  const loadEpiTypes = async (
+    q = search,
+    pg = page,
+    limit = perPage
+  ): Promise<void> => {
     setLoading(true);
     try {
       const response = await getEpiTypes({ search: q, page: pg, perPage: limit });
       setData(response);
-      setPage(pg);
-      setPerPage(limit);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadEpiTypes(search, page, perPage);
-  }, []);
+    loadEpiTypes();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q.trim());
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -51,10 +66,18 @@ export default function EpiTypesPage() {
     if (!selectedId) return;
     try {
       await deleteEpiType(selectedId);
-      await loadEpiTypes(search, page, perPage);
-      setToast({ open: true, message: `Tipo \"${selectedName}\" excluído com sucesso.`, type: "success" });
+      setToast({
+        open: true,
+        message: `Tipo "${selectedName}" excluído com sucesso.`,
+        type: "success",
+      });
+      await loadEpiTypes();
     } catch {
-      setToast({ open: true, message: `Erro ao excluir tipo \"${selectedName}\".`, type: "error" });
+      setToast({
+        open: true,
+        message: `Erro ao excluir tipo "${selectedName}".`,
+        type: "error",
+      });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -68,8 +91,13 @@ export default function EpiTypesPage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Tipos de EPI", to: "/backoffice/tipos-epi" }]} />
-      <SearchBar onSearch={(q) => loadEpiTypes(q)} onClear={() => loadEpiTypes("")} />
+      <Breadcrumbs
+        items={[
+          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Tipos de EPI", to: "/backoffice/tipos-epi" },
+        ]}
+      />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
       {!loading && (
@@ -82,8 +110,11 @@ export default function EpiTypesPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => loadEpiTypes(search, p, perPage),
-            onPerPageChange: (pp) => loadEpiTypes(search, 1, pp),
+            onPageChange: setPage,
+            onPerPageChange: (pp) => {
+              setPage(1);
+              setPerPage(pp);
+            },
           }}
           getEditUrl={(id) => `/backoffice/tipos-epi/editar/${id}`}
           onDelete={handleAskDelete}
@@ -97,7 +128,12 @@ export default function EpiTypesPage() {
         itemName={selectedName ?? undefined}
         title="Excluir tipo de EPI"
       />
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </>
   );
 }

@@ -1,5 +1,5 @@
 // src/pages/backoffice/colaboradores/employee-documents/EmployeeDocumentUploadFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -34,17 +34,19 @@ export default function EmployeeDocumentUploadFormPage() {
     upload_id: "",
   });
 
-  const [deletedUploadIds, setDeletedUploadIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as const });
+  const [toast, setToast] = useState<{ open: boolean; message: string; type: "success" | "error" }>({
+    open: false,
+    message: "",
+    type: "success",
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit && id) {
       setIsLoading(true);
       getEmployeeDocumentUploadById(id)
-        .then((res) => {
-          const data = res.data;
+        .then((data) => {
           setForm({
             employee_id: data.employee ? { id: data.employee.id, label: data.employee.name } : null,
             document: data.document_version
@@ -85,7 +87,6 @@ export default function EmployeeDocumentUploadFormPage() {
   const handleRemoveFile = (index: number, type: "persisted" | "pending") => {
     if (type === "persisted") {
       const doc = form.documents.filter((d) => !(d instanceof File))[index] as any;
-      setDeletedUploadIds((prev) => [...prev, doc.id]);
       setForm((prev) => ({
         ...prev,
         documents: prev.documents.filter((d) => !(d instanceof File) ? d.id !== doc.id : true),
@@ -181,7 +182,6 @@ export default function EmployeeDocumentUploadFormPage() {
             value={form.issue_date}
             onChange={handleChange}
             error={errors.issue_date}
-            required
           />
           <FormDatePickerField
             name="due_date"
@@ -189,7 +189,6 @@ export default function EmployeeDocumentUploadFormPage() {
             value={form.due_date}
             onChange={handleChange}
             error={errors.due_date}
-            required
           />
           <FormSelectField
             name="status"
@@ -198,16 +197,14 @@ export default function EmployeeDocumentUploadFormPage() {
             onChange={handleChange}
             options={["pendente", "enviado", "aprovado", "rejeitado"].map((v) => ({ label: v, value: v }))}
             error={errors.status}
-            required
           />
           <FileUpload
             label="Anexo único (JPG, PNG ou PDF até 50MB)"
             files={form.documents.slice(0, 1)}
             setFiles={(f) => setForm((prev) => ({ ...prev, documents: f.slice(0, 1) }))}
-            accept=".jpg,.jpeg,.png,.pdf"
             maxSizeMB={50}
             multiple={false}
-            showToast={(msg, type) => setToast({ open: true, message: msg, type })}
+            showToast={(msg, type = "success") => setToast({ open: true, message: msg, type })}
           />
           <EmployeeDocumentAttachmentList
             persisted={persisted as any}
@@ -217,7 +214,6 @@ export default function EmployeeDocumentUploadFormPage() {
           <FormActions
             onCancel={() => navigate("/backoffice/colaboradores/documentos")}
             text={isEdit ? "Atualizar" : "Criar"}
-            loading={isLoading}
           />
         </form>
       )}

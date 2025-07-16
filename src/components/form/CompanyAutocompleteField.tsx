@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
-
+// src/components/form/CompanyAutocompleteField.tsx
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getCompanies } from "../../services/companyService";
 
 interface Option {
@@ -15,6 +15,7 @@ interface CompanyAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
 }
 
 export default function CompanyAutocompleteField({
@@ -23,29 +24,18 @@ export default function CompanyAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
 }: CompanyAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const fetchCompanies = useCallback(
     debounce(async (term: string) => {
       try {
-        const response = await getCompanies({
-          search: term,
-          page: 1,
-          perPage: 25,
-        });
-
+        const response = await getCompanies({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        const mapped: Option[] = list.map((company: any) => ({
-          id: company.id,
-          label: company.name,
-        }));
-
-        setOptions(mapped);
-      } catch (e) {
-        setError("Erro ao buscar empresas.");
+        setOptions(list.map((company: any) => ({ id: company.id, label: company.name })));
+      } catch {
         setOptions([]);
       }
     }, 300),
@@ -57,19 +47,25 @@ export default function CompanyAutocompleteField({
     return () => fetchCompanies.cancel();
   }, [query, fetchCompanies]);
 
+  // Garante que o valor atual esteja presente nas opções
+  useEffect(() => {
+    if (value && !options.find((opt) => opt.id === value.id)) {
+      setOptions((prev) => [...prev, value]);
+    }
+  }, [value, options]);
+
   return (
-    <>
-      <FormAutocompleteField
-        name="company_id"
-        label={label}
-        value={value}
-        options={options}
-        onChange={onChange}
-        onInputChange={setQuery}
-        disabled={disabled}
-        className={className}
-      />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+    <FormAutocompleteField
+      name="company_id"
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      onInputChange={setQuery}
+      disabled={disabled}
+      className={className}
+      error={error}
+      placeholder="Digite para buscar..."
+    />
   );
 }

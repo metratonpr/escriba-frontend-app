@@ -1,3 +1,4 @@
+// src/pages/backoffice/colaboradores/employee/EmployeeFormPage.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createEmployee, getEmployeeById, updateEmployee } from "../../../../services/employeeService";
@@ -15,7 +16,7 @@ const LICENSE_TYPES = [
 ].map((v) => ({ value: v, label: v }));
 
 export default function EmployeeFormPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
 
@@ -38,7 +39,7 @@ export default function EmployeeFormPage() {
     if (isEdit && id) {
       setIsLoading(true);
       getEmployeeById(id)
-        .then((data) => {
+        .then((data: any) => {
           setForm({
             name: data.name,
             cpf: data.cpf,
@@ -47,7 +48,7 @@ export default function EmployeeFormPage() {
             birth_date: data.birth_date || "",
             driver_license_type: data.driver_license_type,
             first_license_date: data.first_license_date || "",
-            assignments: data.assignments?.map((a: any) => ({
+            assignments: (data.assignments || []).map((a: any) => ({
               company_sector_id: a.company_sector_id,
               company_name: a.company_sector?.company?.name || `Empresa #${a.company_sector_id}`,
               sector_name: a.company_sector?.sector?.name || `Setor #${a.company_sector_id}`,
@@ -55,7 +56,7 @@ export default function EmployeeFormPage() {
               job_title_name: a.job_title?.name || `Cargo #${a.job_title_id}`,
               start_date: a.start_date,
               end_date: a.end_date,
-            })) || [],
+            })),
           });
         })
         .catch(() => {
@@ -103,8 +104,8 @@ export default function EmployeeFormPage() {
     }
 
     try {
-      if (isEdit) {
-        await updateEmployee(+id!, payload);
+      if (isEdit && id) {
+        await updateEmployee(id, payload);
       } else {
         await createEmployee(payload);
       }
@@ -140,7 +141,6 @@ export default function EmployeeFormPage() {
               value={form.birth_date || ""}
               onChange={(e) => setForm((prev: any) => ({ ...prev, birth_date: e.target.value }))}
               error={errors.birth_date}
-              required
             />
 
             <FormSelectField
@@ -150,7 +150,6 @@ export default function EmployeeFormPage() {
               onChange={handleChange}
               options={LICENSE_TYPES}
               error={errors.driver_license_type}
-              required
             />
 
             <FormDatePickerField
@@ -165,13 +164,13 @@ export default function EmployeeFormPage() {
           <div className="mt-8">
             <CustomAssignmentsTable
               value={form.assignments}
-              onChange={(list) => setForm((prev) => ({ ...prev, assignments: list }))}
+              onChange={(list: any[]) => setForm((prev: any) => ({ ...prev, assignments: list }))}
               error={errors.assignments}
             />
           </div>
 
           <div className="mt-6">
-            <FormActions loading={isLoading} onCancel={() => navigate("/backoffice/colaboradores")} text={isEdit ? "Atualizar" : "Criar"} />
+            <FormActions onCancel={() => navigate("/backoffice/colaboradores")} text={isEdit ? "Atualizar" : "Criar"} />
           </div>
         </form>
       )}

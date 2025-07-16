@@ -1,9 +1,8 @@
-// src/pages/backoffice/empresas/CompaniesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getCompanies,
   deleteCompany,
-  type Company,
+  type CompanyResponse,
   type PaginatedResponse,
 } from "../../../../services/companyService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
@@ -14,7 +13,13 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function CompaniesPage() {
-  const [data, setData] = useState<PaginatedResponse<Company>>({ data: [], total: 0, page: 1, per_page: 25 });
+  const [data, setData] = useState<PaginatedResponse<CompanyResponse>>({
+    data: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
+
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
@@ -24,7 +29,7 @@ export default function CompaniesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const load = async (q = "", pg = 1, limit = 25) => {
+  const loadCompanies = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
     try {
       const response = await getCompanies({ search: q, page: pg, perPage: limit });
@@ -44,10 +49,14 @@ export default function CompaniesPage() {
     }
   };
 
-
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadCompanies();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -60,7 +69,7 @@ export default function CompaniesPage() {
     if (!selectedId) return;
     try {
       await deleteCompany(selectedId);
-      await load(search, page, perPage);
+      await loadCompanies();
       setToast({ open: true, message: `Empresa "${selectedName}" excluída com sucesso.`, type: "success" });
     } catch {
       setToast({ open: true, message: `Erro ao excluir empresa "${selectedName}".`, type: "error" });
@@ -71,7 +80,7 @@ export default function CompaniesPage() {
     }
   };
 
-  const columns: Column<Company>[] = [
+  const columns: Column<CompanyResponse>[] = [
     { label: "Nome", field: "name", sortable: true },
     { label: "Grupo", field: "company_group_name" },
     { label: "Tipo", field: "company_type_name" },
@@ -84,8 +93,9 @@ export default function CompaniesPage() {
   return (
     <>
       <Breadcrumbs items={[{ label: "Empresas", to: "/backoffice/empresas" }]} />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load("")} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
+
       {!loading && (
         <TableTailwind
           title="Empresas"
@@ -96,15 +106,31 @@ export default function CompaniesPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: (p) => setPage(p),
+            onPerPageChange: (pp) => {
+              setPerPage(pp);
+              setPage(1);
+            },
           }}
           getEditUrl={(id) => `/backoffice/empresas/editar/${id}`}
           onDelete={handleAskDelete}
         />
       )}
-      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir Empresa" />
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+
+      <DeleteModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedName ?? undefined}
+        title="Excluir Empresa"
+      />
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </>
   );
 }

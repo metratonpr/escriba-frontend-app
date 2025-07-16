@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/documentIssuers/DocumentIssuerFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -7,13 +6,11 @@ import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
 import Spinner from "../../../../components/Layout/ui/Spinner";
-
 import {
   createDocumentIssuer,
   getDocumentIssuerById,
   updateDocumentIssuer,
 } from "../../../../services/documentIssuerService";
-
 import { estadosBrasileiros } from "../../../../utils/estados";
 
 export default function DocumentIssuerFormPage() {
@@ -41,7 +38,19 @@ export default function DocumentIssuerFormPage() {
     if (isEdit && id) {
       setIsLoading(true);
       getDocumentIssuerById(id)
-        .then(setForm)
+        .then((data) => {
+          setForm({
+            name: data.name || "",
+            phone: data.phone || "",
+            email: data.email || "",
+            address: data.address || "",
+            number: data.number || "",
+            complement: data.complement || "",
+            city: data.city || "",
+            state: data.state || "",
+            postal_code: data.postal_code || "",
+          });
+        })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar órgão emissor.", type: "error" });
           navigate("/backoffice/orgaos-emissores");
@@ -103,10 +112,9 @@ export default function DocumentIssuerFormPage() {
             onChange={handleChange}
             options={estadosBrasileiros}
             error={errors.state}
-            required
+            className=""
           />
           <FormInput id="postal_code" label="CEP" name="postal_code" value={form.postal_code} onChange={handleChange} error={errors.postal_code} />
-
           <div className="md:col-span-2">
             <FormActions onCancel={() => navigate("/backoffice/orgaos-emissores")} text={isEdit ? "Atualizar" : "Criar"} />
           </div>

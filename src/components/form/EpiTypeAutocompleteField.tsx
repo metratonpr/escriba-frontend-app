@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getEpiTypes } from "../../services/epiTypeService";
-import debounce from "lodash/debounce";
 
 interface Option {
   id: string | number;
@@ -15,6 +15,7 @@ interface EpiTypeAutocompleteFieldProps {
   disabled?: boolean;
   className?: string;
   error?: string;
+  required?: boolean;
 }
 
 export default function EpiTypeAutocompleteField({
@@ -24,45 +25,53 @@ export default function EpiTypeAutocompleteField({
   disabled = false,
   className = "",
   error,
+  required = false,
 }: EpiTypeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Busca debounced por tipos de EPI
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
         const res = await getEpiTypes({ search: term, page: 1, perPage: 20 });
         const data = Array.isArray(res) ? res : res.data;
         setOptions(data.map((item: any) => ({ id: item.id, label: item.name })));
+        setLoadError(null);
       } catch {
-        setErrorMsg("Erro ao carregar tipos de EPI.");
+        setLoadError("Erro ao carregar tipos de EPI.");
         setOptions([]);
       }
     }, 300),
     []
   );
 
+  // Atualiza opções ao digitar
   useEffect(() => {
     fetchOptions(query);
     return () => fetchOptions.cancel();
   }, [query, fetchOptions]);
 
   return (
-    <>
+    <div className={className}>
       <FormAutocompleteField
-        label={label}
         name="epi_type_id"
-        options={options}
+        label={label}
         value={value}
+        options={options}
         onChange={onChange}
+        onInputChange={setQuery}
         disabled={disabled}
         placeholder="Digite para buscar..."
-        className={className}
         error={error}
-        onInputChange={(text) => setQuery(text)}
+        required={required}
       />
-      {errorMsg && <p className="text-sm text-red-600 mt-1">{errorMsg}</p>}
-    </>
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
+    </div>
   );
 }

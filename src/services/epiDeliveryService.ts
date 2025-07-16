@@ -1,6 +1,7 @@
 // src/services/epiDeliveryService.ts
 import { request } from "../api/request";
 import { API_EPI_DELIVERIES } from "../api/apiConfig";
+import type { EpiDelivery } from "../types/epi";
 
 export interface Person {
   id: number;
@@ -10,18 +11,9 @@ export interface Person {
   rg_issuer: string;
   birth_date: string;
   driver_license_type: string;
-  first_license_date: string | null;
-}
+  first_license_date: string | null;}
 
-export interface EpiDelivery {
-  id: number;
-  employee_id: number;
-  technician_id: number;
-  document_number: string;
-  delivery_date: string;
-  employee?: Person;
-  technician?: Person;
-}
+
 
 export type EpiDeliveryPayload = Omit<EpiDelivery, "id" | "document_number">;
 

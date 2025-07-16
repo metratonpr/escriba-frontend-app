@@ -1,15 +1,11 @@
 // pages/backoffice/empresas/companies/CompanyAttachmentViewerPage.tsx
-import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import FileViewer from "../../../../components/Layout/FileViewer";
 
 export default function CompanyAttachmentViewerPage() {
   const { companyId, attachmentId } = useParams();
   const navigate = useNavigate();
-
-  const url = `/api/company-attachments/${attachmentId}`; // Endpoint Laravel deve servir o arquivo
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -23,10 +19,17 @@ export default function CompanyAttachmentViewerPage() {
       <h1 className="text-2xl font-bold mb-4">Visualizar Anexo da Empresa</h1>
 
       <FileViewer
-        url={url}
-        onBack={() => navigate(`/backoffice/empresas/editar/${companyId}`)}
-        className="rounded border shadow"
+        fileId={Number(attachmentId)}
+        fileName="anexo.pdf" // Substitua pelo nome real, se disponível
       />
+      <div className="mt-4">
+        <button
+          onClick={() => navigate(`/backoffice/empresas/editar/${companyId}`)}
+          className="text-blue-600 hover:underline text-sm"
+        >
+          ← Voltar para edição da empresa
+        </button>
+      </div>
     </div>
   );
 }

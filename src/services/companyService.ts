@@ -16,6 +16,25 @@ export interface Company {
   email: string;
 }
 
+// ✅ Interface extendida com campos relacionais
+export interface CompanyResponse extends Company {
+  group?: {
+    id: string;
+    name: string;
+  };
+  type?: {
+    id: string;
+    name: string;
+  };
+  company_sectors?: {
+    sector: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
+
 export type CompanyPayload = Omit<Company, "id">;
 
 export interface PaginatedResponse<T> {
@@ -33,17 +52,19 @@ export interface GetCompaniesOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
-export const getCompanies = async (options: GetCompaniesOptions = {}): Promise<PaginatedResponse<Company>> => {
+export const getCompanies = async (
+  options: GetCompaniesOptions = {}
+): Promise<PaginatedResponse<CompanyResponse>> => {
   const {
     page = 1,
     perPage = 25,
-    search = '',
-    sortBy = 'name',
-    sortOrder = 'asc',
+    search = "",
+    sortBy = "name",
+    sortOrder = "asc",
   } = options;
 
-  return request<PaginatedResponse<Company>>(
-    'GET',
+  return request<PaginatedResponse<CompanyResponse>>(
+    "GET",
     API_COMPANIES,
     {},
     {
@@ -56,8 +77,9 @@ export const getCompanies = async (options: GetCompaniesOptions = {}): Promise<P
   );
 };
 
-export const getCompanyById = (id: string): Promise<Company> =>
-  request<Company>('GET', `${API_COMPANIES}/${id}`);
+
+export const getCompanyById = (id: string): Promise<CompanyResponse> =>
+  request<CompanyResponse>('GET', `${API_COMPANIES}/${id}`);
 
 export const createCompany = (data: CompanyPayload): Promise<Company> =>
   request<Company>('POST', API_COMPANIES, data);

@@ -1,5 +1,5 @@
 // src/components/form/DocumentVersionsField.tsx
-import React, { useState, useEffect } from "react";
+import  { useState } from "react";
 import { FormInput } from "./FormInput";
 import { FormTextArea } from "./FormTextArea";
 
@@ -52,7 +52,7 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
           name="validity_days"
           type="number"
           value={draft.validity_days ?? ""}
-          onChange={(e) => setDraft((v) => ({ ...v, validity_days: e.target.value }))}
+          onChange={(e) => setDraft((v) => ({ ...v, validity_days: Number(e.target.value) }))}
         />
         <div className="flex items-end">
           <button
@@ -88,10 +88,22 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
             <tbody>
               {value.map((v, index) => (
                 <tr key={v.id ?? index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                  <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">{v.code}</td>
-                  <td className="px-4 py-2">{v.version}</td>
-                  <td className="px-4 py-2">{v.validity_days}</td>
-                  <td className="px-4 py-2">{v.description}</td>
+                  <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {v.code}
+                    {errors[index]?.code && <p className="text-xs text-red-600">{errors[index].code}</p>}
+                  </td>
+                  <td className="px-4 py-2">
+                    {v.version}
+                    {errors[index]?.version && <p className="text-xs text-red-600">{errors[index].version}</p>}
+                  </td>
+                  <td className="px-4 py-2">
+                    {v.validity_days}
+                    {errors[index]?.validity_days && <p className="text-xs text-red-600">{errors[index].validity_days}</p>}
+                  </td>
+                  <td className="px-4 py-2">
+                    {v.description}
+                    {errors[index]?.description && <p className="text-xs text-red-600">{errors[index].description}</p>}
+                  </td>
                   <td className="px-4 py-2 text-center">
                     <button
                       type="button"

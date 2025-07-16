@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import { getJobTitles } from "../../services/jobTitleService";
 import FormAutocompleteField from "./FormAutocompleteField";
@@ -15,6 +15,8 @@ interface Props {
   disabled?: boolean;
   className?: string;
   label?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function JobTitleAutocompleteField({
@@ -23,29 +25,33 @@ export default function JobTitleAutocompleteField({
   disabled = false,
   className = "",
   label = "Cargo",
+  error,
+  required = false,
 }: Props) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<Option[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchJobTitles = useCallback(
     debounce(async (term: string) => {
-      if (term.length < 2) return;
+      if (term.trim().length < 2) return;
 
       setLoading(true);
       try {
         const response = await getJobTitles({ search: term, page: 1, perPage: 25 });
         const data = Array.isArray(response) ? response : response.data;
-        const mapped: Option[] = data.map((j: any) => ({
-          id: j.id,
-          label: j.name,
-          _original: j,
-        }));
-        setOptions(mapped);
+        setOptions(
+          data.map((j: any) => ({
+            id: j.id,
+            label: j.name,
+            _original: j,
+          }))
+        );
+        setLoadError(null);
       } catch {
-        setError("Erro ao buscar cargos.");
         setOptions([]);
+        setLoadError("Erro ao buscar cargos.");
       } finally {
         setLoading(false);
       }
@@ -58,6 +64,12 @@ export default function JobTitleAutocompleteField({
     return () => fetchJobTitles.cancel();
   }, [query, fetchJobTitles]);
 
+  useEffect(() => {
+    if (value && !options.find((o) => o.id === value.id)) {
+      setOptions((prev) => [...prev, value]);
+    }
+  }, [value, options]);
+
   return (
     <div className={className}>
       <FormAutocompleteField
@@ -68,8 +80,14 @@ export default function JobTitleAutocompleteField({
         onChange={onChange}
         onInputChange={setQuery}
         disabled={disabled || loading}
+        error={error}
+        required={required}
       />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
     </div>
   );
 }

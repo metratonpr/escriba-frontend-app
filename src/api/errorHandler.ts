@@ -1,19 +1,19 @@
-// src/services/errorHandler.ts
 import type { AxiosError } from "axios";
 
 export function handleError(error: AxiosError, action: string): string | object {
   if (error.response) {
-    console.error(`Erro durante a ação "${action}":`, error.response.data);
+    const data = error.response.data;
+    console.error(`Erro durante a ação "${action}":`, data);
 
     if (error.response.status === 422) {
-      return error.response.data;
+      return data as object; // <- Type assertion corrigido
     }
 
-    if (error.response.data && (error.response.data as any).message) {
-      return (error.response.data as any).message;
-    } else {
-      return "Ocorreu um erro ao processar a solicitação.";
+    if (typeof data === "object" && data !== null && "message" in data) {
+      return (data as any).message;
     }
+
+    return "Ocorreu um erro ao processar a solicitação.";
   } else if (error.request) {
     console.error("Erro na requisição:", error.request);
     return "Falha na comunicação com o servidor. Tente novamente.";

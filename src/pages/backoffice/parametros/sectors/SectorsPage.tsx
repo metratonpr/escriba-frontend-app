@@ -1,5 +1,5 @@
 // src/pages/backoffice/parametros/sectors/SectorsPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getSectors,
   deleteSector,

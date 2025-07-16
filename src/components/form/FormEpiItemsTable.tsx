@@ -1,13 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import EpiAutocompleteField from "./EpiAutocompleteField";
 import { FormTextArea } from "./FormTextArea";
-
-interface EpiItem {
-  epi_id: number;
-  epi?: { id: number; name: string };
-  quantity: number;
-  notes?: string;
-}
+import type { EpiItem } from "../../types/epi";
 
 interface Props {
   items: EpiItem[];
@@ -27,7 +21,6 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
     quantity: false,
   });
 
-  // Atualiza opções no autocomplete quando edição for carregada
   useEffect(() => {
     if (items.length === 1 && !current.epi) {
       const item = items[0];
@@ -63,6 +56,7 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
       {
         epi_id: current.epi!.id,
         quantity: current.quantity,
+        validity_days: 0,
         notes: current.notes.trim(),
         epi: { id: current.epi!.id, name: current.epi!.label },
       },
@@ -84,7 +78,14 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
         <div className="md:col-span-2">
           <EpiAutocompleteField
             value={current.epi}
-            onChange={(value) => setCurrent((prev) => ({ ...prev, epi: value }))}
+            onChange={(value) => {
+              if (value) {
+                const id = typeof value.id === "string" ? parseInt(value.id, 10) : value.id;
+                setCurrent((prev) => ({ ...prev, epi: { id, label: value.label } }));
+              } else {
+                setCurrent((prev) => ({ ...prev, epi: null }));
+              }
+            }}
           />
           <div className="min-h-[20px]">
             {fieldErrors.epi && <p className="text-sm text-red-600 mt-1">Selecione um EPI.</p>}

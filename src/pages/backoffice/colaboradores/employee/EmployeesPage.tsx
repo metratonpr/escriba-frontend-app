@@ -1,5 +1,5 @@
 // src/pages/backoffice/colaboradores/EmployeesPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getEmployees,
   deleteEmployee,
@@ -33,7 +33,7 @@ export default function EmployeesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const load = async (q = "", pg = 1, limit = 25) => {
+  const loadEmployees = async (q = "", pg = 1, limit = 25) => {
     setLoading(true);
     try {
       const response = await getEmployees({ search: q, page: pg, perPage: limit });
@@ -46,8 +46,13 @@ export default function EmployeesPage() {
   };
 
   useEffect(() => {
-    load(search, page, perPage);
-  }, []);
+    loadEmployees(search, page, perPage);
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
@@ -60,7 +65,7 @@ export default function EmployeesPage() {
     if (!selectedId) return;
     try {
       await deleteEmployee(selectedId);
-      await load(search, page, perPage);
+      await loadEmployees(search, page, perPage);
       setToast({ open: true, message: `Colaborador "${selectedName}" excluído com sucesso.`, type: "success" });
     } catch {
       setToast({ open: true, message: `Erro ao excluir colaborador "${selectedName}".`, type: "error" });
@@ -81,27 +86,27 @@ export default function EmployeesPage() {
 
   return (
     <>
-      <Breadcrumbs
-        items={[{ label: "Colaboradores", to: "/backoffice/colaboradores" }]}
-      />
-      <SearchBar onSearch={(q) => load(q)} onClear={() => load("")} />
+      <Breadcrumbs items={[{ label: "Colaboradores", to: "/backoffice/colaboradores" }]} />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
+
       {!loading && (
-        <TableTailwind
+        <TableTailwind<Employee>
           title="Colaboradores"
           createUrl="/backoffice/colaboradores/novo"
           columns={columns}
-          data={data.data}
+          data={data.data as Employee[]} // forçando que tenha 'id'
           pagination={{
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => load(search, p, perPage),
-            onPerPageChange: (pp) => load(search, 1, pp),
+            onPageChange: (p) => loadEmployees(search, p, perPage),
+            onPerPageChange: (pp) => loadEmployees(search, 1, pp),
           }}
           getEditUrl={(id) => `/backoffice/colaboradores/editar/${id}`}
           onDelete={handleAskDelete}
         />
+
       )}
 
       <DeleteModal

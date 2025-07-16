@@ -5,7 +5,6 @@ import BackofficeLayout from '../layouts/BackofficeLayout'
 import ColaboradoresDashboard from '../pages/backoffice/colaboradores/ColaboradoresDashboard'
 import EventosDashboard from '../pages/backoffice/eventos/EventosDashboard'
 import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashboard'
-import SecoesDashboard from '../pages/backoffice/secoes/SecoesDashboard'
 import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupsPage'
 import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
 import CompanyTypesPage from '../pages/backoffice/parametros/companyType/CompanyTypesPage'
@@ -49,6 +48,7 @@ import CompanyAttachmentViewerPage from '../pages/backoffice/empresas/companies/
 import EmployeeDocumentUploadPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeDocumentUploadPage'
 import EmployeeDocumentUploadFormPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeDocumentUploadFormPage'
 import EmployeeAttachmentViewerPage from '../pages/backoffice/colaboradores/employeedocuments/EmployeeAttachmentViewerPage'
+import PrivateRoute from '../components/auth/PrivateRoute'
 
 
 export const router = createBrowserRouter([
@@ -58,7 +58,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/backoffice',
-    element: <BackofficeLayout />,
+    element: (
+    <PrivateRoute>
+      <BackofficeLayout />
+    </PrivateRoute>
+  ),
     children: [
       { path: 'entidades', element: <EmpresasDashboard /> },
       { path: 'equipes', element: <ColaboradoresDashboard /> },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import {
   getMedicalExams,
   deleteMedicalExam,
@@ -23,17 +23,12 @@ export default function MedicalExamPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
 
-  const fetchExams = async (q = "", pg = 1, limit = 10) => {
+  const loadMedicalExams = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
     try {
       const response = await getMedicalExams({ search: q, page: pg, perPage: limit });
-      setData({
-        data: response.data,
-        total: response.total,
-        page: response.current_page,
-        per_page: response.per_page,
-      });
-      setPage(response.current_page);
+      setData(response);
+      setPage(response.page);
       setPerPage(response.per_page);
     } finally {
       setLoading(false);
@@ -41,14 +36,18 @@ export default function MedicalExamPage() {
   };
 
   useEffect(() => {
-    fetchExams(search, page, perPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadMedicalExams();
+  }, [search, page, perPage]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
 
   const handleAskDelete = (id: string) => {
     const item = data.data.find((d) => d.id === id);
     setSelectedId(id);
-    setSelectedEmployee(item?.employee?.name ?? null);
+    setSelectedEmployee(item?.employee_name ?? null);
     setModalOpen(true);
   };
 
@@ -57,11 +56,10 @@ export default function MedicalExamPage() {
     try {
       await deleteMedicalExam(selectedId);
 
-      // Recalcula página se apagou o último item da última página
       const isLastItem = data.data.length === 1 && page > 1;
       const newPage = isLastItem ? page - 1 : page;
 
-      await fetchExams(search, newPage, perPage);
+      await loadMedicalExams(search, newPage, perPage);
 
       setToast({ open: true, message: `Exame de "${selectedEmployee}" excluído com sucesso.`, type: "success" });
     } catch {
@@ -74,7 +72,7 @@ export default function MedicalExamPage() {
   };
 
   const columns: Column<MedicalExam>[] = [
-    { label: "Colaborador", field: "employee.name", render: (row) => row.employee?.name || "-" },
+    { label: "Colaborador", field: "employee_name" },
     { label: "Tipo", field: "exam_type" },
     { label: "Data", field: "exam_date" },
     {
@@ -98,16 +96,7 @@ export default function MedicalExamPage() {
         ]}
       />
 
-      <SearchBar
-        onSearch={(q) => {
-          setSearch(q);
-          fetchExams(q, 1, perPage);
-        }}
-        onClear={() => {
-          setSearch("");
-          fetchExams("", 1, perPage);
-        }}
-      />
+      <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
 
       {loading && <Spinner />}
 
@@ -121,8 +110,11 @@ export default function MedicalExamPage() {
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => fetchExams(search, p, perPage),
-            onPerPageChange: (pp) => fetchExams(search, 1, pp),
+            onPageChange: (p) => setPage(p),
+            onPerPageChange: (pp) => {
+              setPerPage(pp);
+              setPage(1);
+            },
           }}
           getEditUrl={(id) => `/backoffice/exames-medicos/editar/${id}`}
           onDelete={handleAskDelete}

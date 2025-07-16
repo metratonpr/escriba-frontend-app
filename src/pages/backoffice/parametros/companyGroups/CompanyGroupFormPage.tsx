@@ -1,5 +1,4 @@
-// src/pages/backoffice/parametros/companyGroups/CompanyGroupFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
@@ -45,8 +44,15 @@ export default function CompanyGroupFormPage() {
   useEffect(() => {
     if (isEdit && id) {
       setIsLoading(true);
-      getCompanyGroupById(Number(id))
-        .then(setForm)
+      getCompanyGroupById(id)
+        .then((data) =>
+          setForm({
+            name: data.name,
+            description: data.description ?? "",
+            responsible: data.responsible,
+            contact_email: data.contact_email,
+          })
+        )
         .catch(() => {
           setToast({
             open: true,
@@ -67,9 +73,12 @@ export default function CompanyGroupFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     try {
-      await saveCompanyGroup(form, isEdit ? Number(id) : undefined);
+      if (isEdit && id) {
+        await updateCompanyGroup(id, form);
+      } else {
+        await createCompanyGroup(form);
+      }
       setToast({
         open: true,
         message: `Grupo ${isEdit ? "atualizado" : "criado"} com sucesso.`,
@@ -88,14 +97,6 @@ export default function CompanyGroupFormPage() {
       }
     }
   };
-
-  async function saveCompanyGroup(data: typeof form, id?: number): Promise<void> {
-    if (id) {
-      await updateCompanyGroup(id, data);
-    } else {
-      await createCompanyGroup(data);
-    }
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -152,7 +153,7 @@ export default function CompanyGroupFormPage() {
           </div>
 
           <FormActions
-            cancelUrl="/backoffice/grupos-empresa"
+            onCancel={() => navigate("/backoffice/grupos-empresa")}
             text={isEdit ? "Atualizar" : "Criar"}
           />
         </form>
@@ -162,7 +163,7 @@ export default function CompanyGroupFormPage() {
         open={toast.open}
         message={toast.message}
         type={toast.type}
-        onClose={() => setToast({ ...toast, open: false })}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -47,7 +47,7 @@ export default function OccurrenceFormPage() {
   useEffect(() => {
     if (isEdit && id) {
       setIsLoading(true);
-      getOccurrenceById(id)
+      getOccurrenceById(Number(id))
         .then((data) => {
           setForm({
             employee_id: data.employee ? { id: data.employee.id, label: data.employee.name } : null,
@@ -107,8 +107,8 @@ export default function OccurrenceFormPage() {
     };
 
     try {
-      if (isEdit) {
-        await updateOccurrence(id!, payload);
+      if (isEdit && id) {
+        await updateOccurrence(Number(id), payload);
       } else {
         await createOccurrence(payload);
       }
@@ -131,49 +131,22 @@ export default function OccurrenceFormPage() {
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CompanyAutocompleteField value={form.company_id} onChange={(v) => setForm((p: any) => ({ ...p, company_id: v }))} error={errors.company_id} required />
+            <CompanyAutocompleteField value={form.company_id} onChange={(v) => setForm((p: any) => ({ ...p, company_id: v }))} error={errors.company_id} />
             <SectorAutocompleteField value={form.sector_id} onChange={(v) => setForm((p: any) => ({ ...p, sector_id: v }))} error={errors.sector_id} />
             <EmployeeAutocompleteField value={form.employee_id} onChange={(v) => setForm((p: any) => ({ ...p, employee_id: v }))} error={errors.employee_id} />
-            <OccurrenceTypeAutocompleteField value={form.occurrence_type_id} onChange={(v) => setForm((p: any) => ({ ...p, occurrence_type_id: v }))} error={errors.occurrence_type_id} required />
-
-            <FormDatePickerField name="occurrence_date" label="Data" value={form.occurrence_date} onChange={handleChange} error={errors.occurrence_date} required />
-            <FormTimePickerField name="occurrence_time" label="Hora" value={form.occurrence_time} onChange={handleChange} error={errors.occurrence_time} required />
-
-            <FormInput name="location" label="Local" value={form.location} onChange={handleChange} error={errors.location} required />
-            <FormTextArea name="description" label="Descrição" value={form.description} onChange={handleChange} error={errors.description} required />
-            <FormTextArea name="probable_cause" label="Causa Provável" value={form.probable_cause} onChange={handleChange} error={errors.probable_cause} required />
-            <FormTextArea name="actual_consequence" label="Consequência Real" value={form.actual_consequence} onChange={handleChange} error={errors.actual_consequence} required />
-            <FormTextArea name="immediate_action" label="Ação Imediata" value={form.immediate_action} onChange={handleChange} error={errors.immediate_action} required />
-            <FormTextArea name="corrective_action" label="Ação Corretiva" value={form.corrective_action} onChange={handleChange} error={errors.corrective_action} required />
+            <OccurrenceTypeAutocompleteField value={form.occurrence_type_id} onChange={(v) => setForm((p: any) => ({ ...p, occurrence_type_id: v }))} error={errors.occurrence_type_id} />
+            <FormDatePickerField name="occurrence_date" label="Data" value={form.occurrence_date} onChange={handleChange} error={errors.occurrence_date} />
+            <FormTimePickerField name="occurrence_time" label="Hora" value={form.occurrence_time} onChange={handleChange} error={errors.occurrence_time} />
+            <FormInput name="location" label="Local" value={form.location} onChange={handleChange} error={errors.location} />
+            <FormTextArea name="description" label="Descrição" value={form.description} onChange={handleChange} error={errors.description} />
+            <FormTextArea name="probable_cause" label="Causa Provável" value={form.probable_cause} onChange={handleChange} error={errors.probable_cause} />
+            <FormTextArea name="actual_consequence" label="Consequência Real" value={form.actual_consequence} onChange={handleChange} error={errors.actual_consequence} />
+            <FormTextArea name="immediate_action" label="Ação Imediata" value={form.immediate_action} onChange={handleChange} error={errors.immediate_action} />
+            <FormTextArea name="corrective_action" label="Ação Corretiva" value={form.corrective_action} onChange={handleChange} error={errors.corrective_action} />
             <FormInput name="witnesses" label="Testemunhas" value={form.witnesses} onChange={handleChange} error={errors.witnesses} />
-
-            <FormSelectField
-              name="classification"
-              label="Classificação"
-              value={form.classification}
-              onChange={handleChange}
-              options={["Com Afastamento", "Sem Afastamento", "Quase Acidente", "Desvio", "Outro"].map((v) => ({ label: v, value: v }))}
-              error={errors.classification}
-              required
-            />
-            <FormSelectField
-              name="severity"
-              label="Gravidade"
-              value={form.severity}
-              onChange={handleChange}
-              options={["Leve", "Moderada", "Grave"].map((v) => ({ label: v, value: v }))}
-              error={errors.severity}
-              required
-            />
-            <FormSelectField
-              name="status"
-              label="Status"
-              value={form.status}
-              onChange={handleChange}
-              options={["Aberta", "Em Análise", "Encerrada"].map((v) => ({ label: v, value: v }))}
-              error={errors.status}
-              required
-            />
+            <FormSelectField name="classification" label="Classificação" value={form.classification} onChange={handleChange} options={["Com Afastamento", "Sem Afastamento", "Quase Acidente", "Desvio", "Outro"].map((v) => ({ label: v, value: v }))} error={errors.classification} />
+            <FormSelectField name="severity" label="Gravidade" value={form.severity} onChange={handleChange} options={["Leve", "Moderada", "Grave"].map((v) => ({ label: v, value: v }))} error={errors.severity} />
+            <FormSelectField name="status" label="Status" value={form.status} onChange={handleChange} options={["Aberta", "Em Análise", "Encerrada"].map((v) => ({ label: v, value: v }))} error={errors.status} />
             <FormInput name="attachment_url" label="URL do Anexo" value={form.attachment_url} onChange={handleChange} error={errors.attachment_url} />
           </div>
 

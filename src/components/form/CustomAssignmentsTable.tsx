@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+// src/components/form/CustomAssignmentsTable.tsx
+import { useCallback, useEffect, useState } from "react";
 import FormDatePickerField from "../../components/form/FormDatePickerField";
 import { convertToBrazilianDateTimeFormat } from "../../utils/formatUtils";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
@@ -7,10 +8,10 @@ import { getCompanies } from "../../services/companyService";
 import { getJobTitles } from "../../services/jobTitleService";
 import FormSelectField from "./FormSelectField";
 
-interface Option {
+interface Option<T = any> {
   id: string | number;
   label: string;
-  _original?: any;
+  _original?: T;
 }
 
 interface CustomAssignment {
@@ -44,7 +45,7 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
 
   const fetchCompanies = useCallback(debounce(async (term: string) => {
     try {
-      const response = await getCompanies({ search: term, page: 1, perPage: 25, has_sector: 1 });
+      const response = await getCompanies({ search: term, page: 1, perPage: 25 });
       const data = Array.isArray(response) ? response : response.data;
       setCompanyOptions(data.map((c: any) => ({ id: c.id, label: c.name, _original: c })));
     } catch {
@@ -93,9 +94,11 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     }
 
     const companySectorId = Number(selectedSector._original?.id ?? selectedSector.id);
+    const jobTitleId = Number(selectedJobTitle.id);
+
     const duplicate = value.some(item =>
       item.company_sector_id === companySectorId &&
-      item.job_title_id === selectedJobTitle.id &&
+      item.job_title_id === jobTitleId &&
       item.start_date === startDate
     );
     if (duplicate) {
@@ -109,7 +112,7 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
         company_sector_id: companySectorId,
         company_name: selectedCompany.label,
         sector_name: selectedSector.label,
-        job_title_id: selectedJobTitle.id,
+        job_title_id: jobTitleId,
         job_title_name: selectedJobTitle.label,
         start_date: startDate,
         end_date: endDate,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import FormSelectField from "./FormSelectField";
 import debounce from "lodash/debounce";
@@ -82,29 +82,25 @@ export default function CompanySectorAutocompleteField({
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
-      <div>
-        <FormAutocompleteField
-          name="company_id"
-          label="Empresa"
-          value={company}
-          options={options}
-          onChange={handleCompanyChange}
-          onInputChange={setQuery}
-          disabled={disabled}
-        />
-        {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-      </div>
+      <FormAutocompleteField
+        name="company_id"
+        label="Empresa"
+        value={company}
+        options={options}
+        onChange={handleCompanyChange}
+        onInputChange={setQuery}
+        disabled={disabled}
+         error={error ?? undefined}
+      />
 
-      <div>
-        <FormSelectField
-          label="Setor"
-          name="company_sector_id"
-          value={sector?.id || ""}
-          onChange={handleSectorChange}
-          options={sectors.map((s) => ({ value: s.id, label: s.label }))}
-          disabled={disabled || sectors.length === 0}
-        />
-      </div>
+      <FormSelectField
+        label="Setor"
+        name="company_sector_id"
+        value={sector?.id || ""}
+        onChange={handleSectorChange}
+        options={sectors.map((s) => ({ value: s.id, label: s.label }))}
+        disabled={disabled || sectors.length === 0}
+      />
     </div>
   );
 }

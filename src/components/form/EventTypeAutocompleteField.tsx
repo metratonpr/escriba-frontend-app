@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getEventTypes } from "../../services/eventTypeService";
 
 interface Option {
@@ -14,6 +14,8 @@ interface EventTypeAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
+  required?: boolean;
 }
 
 export default function EventTypeAutocompleteField({
@@ -22,11 +24,14 @@ export default function EventTypeAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
+  required = false,
 }: EventTypeAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Função assíncrona para buscar tipos de eventos com debounce
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
@@ -37,21 +42,23 @@ export default function EventTypeAutocompleteField({
           label: item.nome_tipo_evento,
         }));
         setOptions(mapped);
+        setLoadError(null);
       } catch {
-        setError("Erro ao carregar tipos de evento.");
+        setLoadError("Erro ao carregar tipos de evento.");
         setOptions([]);
       }
     }, 300),
     []
   );
 
+  // Atualiza opções quando a query muda
   useEffect(() => {
     fetchOptions(query);
     return () => fetchOptions.cancel();
   }, [query, fetchOptions]);
 
   return (
-    <>
+    <div className={className}>
       <FormAutocompleteField
         name="event_type_id"
         label={label}
@@ -60,9 +67,14 @@ export default function EventTypeAutocompleteField({
         onChange={onChange}
         onInputChange={setQuery}
         disabled={disabled}
-        className={className}
+        error={error}
+        required={required}
       />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+      {loadError && (
+        <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+          {loadError}
+        </p>
+      )}
+    </div>
   );
 }

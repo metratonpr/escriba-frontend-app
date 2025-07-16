@@ -1,23 +1,36 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createEpiDelivery, getEpiDeliveryById, updateEpiDelivery } from "../../../services/epiDeliveryService";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import FormDatePickerField from "../../../components/form/FormDatePickerField";
 import { FormActions } from "../../../components/form/FormActions";
 import Toast from "../../../components/Layout/Feedback/Toast";
-
 import EmployeeAutocompleteField from "../../../components/form/EmployeeAutocompleteField";
 import TechnicianAutocompleteField from "../../../components/form/TechnicianAutocompleteField";
-import { FormTextArea } from "../../../components/form/FormTextArea";
-import FormEpiItemsTable from "../../../components/form/FormEpiItemsTable";
 import { FormInput } from "../../../components/form/FormInput";
+import FormEpiItemsTable from "../../../components/form/FormEpiItemsTable";
+import type { EpiItem } from "../../../types/epi";
+
+// Definindo o tipo localmente para ser mais flexível com o que os componentes filhos retornam
+interface AutocompleteOption {
+  id: number | string;
+  label: string;
+}
+
+interface EpiDeliveryForm {
+  employee_id: AutocompleteOption | null;
+  technician_id: AutocompleteOption | null;
+  document_number: string;
+  delivery_date: string;
+  items: EpiItem[];
+}
 
 export default function EpiDeliveryFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<EpiDeliveryForm>({
     employee_id: null,
     technician_id: null,
     document_number: "",
@@ -25,19 +38,19 @@ export default function EpiDeliveryFormPage() {
     items: [],
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, any>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
 
   useEffect(() => {
     if (isEdit && id) {
       getEpiDeliveryById(+id)
-        .then((data) => {
+        .then((data) => {          
           setForm({
-            employee_id: { id: data.employee_id, label: data.employee?.name },
-            technician_id: { id: data.technician_id, label: data.technician?.name },
+            employee_id: data.employee_id ? { id: data.employee_id, label: data.employee?.name ?? "" } : null,
+            technician_id: data.technician_id ? { id: data.technician_id, label: data.technician?.name ?? "" } : null,
             document_number: data.document_number,
             delivery_date: data.delivery_date,
-            items: data.items || [],
+            items: data.items ?? [],
           });
         })
         .catch(() => {
@@ -45,18 +58,19 @@ export default function EpiDeliveryFormPage() {
           navigate("/backoffice/entregas-epis");
         });
     }
-  }, [id]);
+    // Adicionamos 'navigate' para seguir as boas práticas, já que é uma dependência externa
+  }, [id, isEdit, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAutocompleteChange = (name: string, value: any) => {
+  const handleAutocompleteChange = (name: keyof Pick<EpiDeliveryForm, 'employee_id' | 'technician_id'>, value: AutocompleteOption | null) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleItemsChange = (items: any[]) => {
+  const handleItemsChange = (items: EpiItem[]) => {
     setForm((prev) => ({ ...prev, items }));
   };
 
@@ -64,10 +78,11 @@ export default function EpiDeliveryFormPage() {
     e.preventDefault();
     setErrors({});
     try {
+      // CORREÇÃO: Garante que os IDs sejam convertidos para NÚMERO antes de enviar para a API
       const payload = {
         ...form,
-        employee_id: form.employee_id?.id,
-        technician_id: form.technician_id?.id,
+        employee_id: Number(form.employee_id?.id) || 0,
+        technician_id: Number(form.technician_id?.id) || 0,
       };
 
       if (isEdit) {
@@ -99,11 +114,13 @@ export default function EpiDeliveryFormPage() {
         <EmployeeAutocompleteField
           value={form.employee_id}
           onChange={(value) => handleAutocompleteChange("employee_id", value)}
+          error={errors.employee_id}
         />
 
         <TechnicianAutocompleteField
           value={form.technician_id}
           onChange={(value) => handleAutocompleteChange("technician_id", value)}
+          error={errors.technician_id}
         />
 
         <FormInput

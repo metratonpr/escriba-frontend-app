@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createMedicalExam,
   getMedicalExamById,
   updateMedicalExam,
 } from "../../../../services/medicalExamService";
-import { getEmployees } from "../../../../services/employeeService";
 
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import FormSelectField from "../../../../components/form/FormSelectField";
@@ -21,10 +20,10 @@ import ExamAttachmentList from "./ExamAttachmentList";
 export type UploadFile =
   | File
   | {
-      id: number;
-      nome_arquivo: string;
-      url_arquivo: string;
-    };
+    id: number;
+    nome_arquivo: string;
+    url_arquivo: string;
+  };
 
 export default function MedicalExamFormPage() {
   const { id } = useParams();
@@ -44,7 +43,7 @@ export default function MedicalExamFormPage() {
   const [deletedUploadIds, setDeletedUploadIds] = useState<number[]>([]);
   const [employeeSelected, setEmployeeSelected] = useState<{ id: string | number; label: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as const });
+  const [toast, setToast] = useState<{ open: boolean; message: string; type: "success" | "error" }>({ open: false, message: "", type: "success" });
 
   useEffect(() => {
     if (isEdit && id) {
@@ -71,10 +70,7 @@ export default function MedicalExamFormPage() {
     }
   }, [id, isEdit]);
 
-  const handleSearchEmployee = async (term: string) => {
-    const res = await getEmployees({ search: term });
-    return res.data.map((emp: any) => ({ id: emp.id, label: emp.name }));
-  };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -87,7 +83,6 @@ export default function MedicalExamFormPage() {
     setErrors({});
 
     const formData = new FormData();
-
     formData.append("employee_id", form.employee_id);
     formData.append("exam_type", form.exam_type);
     formData.append("exam_date", form.exam_date);
@@ -148,8 +143,8 @@ export default function MedicalExamFormPage() {
     }
   };
 
-  const persisted = form.documents.filter((d) => !(d instanceof File));
-  const pending = form.documents.filter((d) => d instanceof File);
+  const persisted = form.documents.filter((d): d is Exclude<UploadFile, File> => !(d instanceof File));
+  const pending = form.documents.filter((d): d is File => d instanceof File);
 
   return (
     <div className="max-w-3xl mx-auto p-4">
@@ -170,8 +165,8 @@ export default function MedicalExamFormPage() {
             setEmployeeSelected(opt);
             setForm((prev) => ({ ...prev, employee_id: String(opt?.id || "") }));
           }}
-          onSearch={handleSearchEmployee}
         />
+
 
         <FormSelectField
           label="Tipo de Exame"
@@ -213,7 +208,7 @@ export default function MedicalExamFormPage() {
           label="Anexos do Exame"
           files={form.documents}
           setFiles={(files) => setForm((prev) => ({ ...prev, documents: files }))}
-          showToast={(msg, type) => setToast({ open: true, message: msg, type: type || "error" })}
+          showToast={(msg, type) => setToast({ open: true, message: msg, type: type === "error" ? "error" : "success" })}
         />
 
         <ExamAttachmentList

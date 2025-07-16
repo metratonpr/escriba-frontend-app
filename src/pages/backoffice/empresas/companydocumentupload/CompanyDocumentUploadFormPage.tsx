@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -17,6 +17,7 @@ import {
 } from "../../../../services/companyDocumentService";
 
 type UploadFile = File | { id: number; nome_arquivo: string; url_arquivo: string };
+type ToastType = "success" | "error";
 
 export default function CompanyDocumentVersionUploadFormPage() {
   const { id } = useParams();
@@ -31,21 +32,22 @@ export default function CompanyDocumentVersionUploadFormPage() {
     due_date: "",
     documents: [] as UploadFile[],
     status: "pendente",
-    upload_id: "", // ✅ incluído
+    upload_id: "",
   });
 
-  const [deletedUploadIds, setDeletedUploadIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as const });
+  const [toast, setToast] = useState<{ open: boolean; message: string; type: ToastType }>({
+    open: false,
+    message: "",
+    type: "success",
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit && id) {
       setIsLoading(true);
       getCompanyDocumentUploadById(id)
-        .then((res) => {
-          const data = res.data;
-
+        .then((data) => {
           setForm({
             company_id: data.company ? { id: data.company.id, label: data.company.name } : null,
             document: data.document_version
@@ -58,16 +60,14 @@ export default function CompanyDocumentVersionUploadFormPage() {
             issue_date: data.emission_date || "",
             due_date: data.due_date || "",
             documents: data.upload
-              ? [
-                  {
-                    id: data.upload.id,
-                    nome_arquivo: data.upload.nome_arquivo,
-                    url_arquivo: data.upload.url_arquivo,
-                  },
-                ]
+              ? [{
+                  id: data.upload.id,
+                  nome_arquivo: data.upload.nome_arquivo,
+                  url_arquivo: data.upload.url_arquivo,
+                }]
               : [],
             status: data.status,
-            upload_id: data.upload_id ? String(data.upload_id) : "", // ✅ novo
+            upload_id: data.upload_id ? String(data.upload_id) : "",
           });
         })
         .catch(() => {
@@ -87,23 +87,11 @@ export default function CompanyDocumentVersionUploadFormPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRemoveFile = (index: number, type: "persisted" | "pending") => {
-    if (type === "persisted") {
-      const doc = form.documents.filter((d) => !(d instanceof File))[index] as any;
-      setDeletedUploadIds((prev) => [...prev, doc.id]);
-      setForm((prev) => ({
-        ...prev,
-        documents: prev.documents.filter((d) => !(d instanceof File) ? d.id !== doc.id : true),
-      }));
-    } else {
-      const pending = form.documents.filter((d) => d instanceof File);
-      const toRemove = pending[index];
-      setForm((prev) => ({
-        ...prev,
-        documents: prev.documents.filter((d) => d !== toRemove),
-      }));
-    }
-  };
+ const handleRemoveFile = (index: number) => {
+  const updatedDocs = [...form.documents];
+  updatedDocs.splice(index, 1);
+  setForm((prev) => ({ ...prev, documents: updatedDocs }));
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,16 +99,12 @@ export default function CompanyDocumentVersionUploadFormPage() {
     setIsLoading(true);
 
     const formData = new FormData();
-
     if (form.company_id?.id) formData.append("company_id", String(form.company_id.id));
     formData.append("document_version_id", form.document_version_id);
     formData.append("emission_date", form.issue_date);
     formData.append("due_date", form.due_date);
     formData.append("status", form.status);
-
-    if (form.upload_id) {
-      formData.append("upload_id", form.upload_id); // ✅ adiciona o upload_id
-    }
+    if (form.upload_id) formData.append("upload_id", form.upload_id);
 
     const file = form.documents[0];
     if (file instanceof File) {
@@ -140,7 +124,6 @@ export default function CompanyDocumentVersionUploadFormPage() {
         message: `Registro ${isEdit ? "atualizado" : "criado"} com sucesso.`,
         type: "success",
       });
-
       navigate("/backoffice/empresas/documentos");
     } catch (err: any) {
       setErrors(err.response?.data?.errors ?? {});
@@ -161,7 +144,6 @@ export default function CompanyDocumentVersionUploadFormPage() {
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
       />
-
       {isEdit && isLoading ? (
         <div className="h-96 flex items-center justify-center">
           <Spinner />
@@ -172,7 +154,6 @@ export default function CompanyDocumentVersionUploadFormPage() {
             value={form.company_id}
             onChange={(v) => setForm((p) => ({ ...p, company_id: v }))}
             error={errors.company_id}
-            required
           />
           <DocumentWithVersionField
             document={form.document}
@@ -186,7 +167,6 @@ export default function CompanyDocumentVersionUploadFormPage() {
             value={form.issue_date}
             onChange={handleChange}
             error={errors.issue_date}
-            required
           />
           <FormDatePickerField
             name="due_date"
@@ -194,7 +174,6 @@ export default function CompanyDocumentVersionUploadFormPage() {
             value={form.due_date}
             onChange={handleChange}
             error={errors.due_date}
-            required
           />
           <FormSelectField
             name="status"
@@ -203,16 +182,14 @@ export default function CompanyDocumentVersionUploadFormPage() {
             onChange={handleChange}
             options={["pendente", "enviado", "aprovado", "rejeitado"].map((v) => ({ label: v, value: v }))}
             error={errors.status}
-            required
           />
           <FileUpload
             label="Anexo único (JPG, PNG ou PDF até 50MB)"
             files={form.documents.slice(0, 1)}
             setFiles={(f) => setForm((prev) => ({ ...prev, documents: f.slice(0, 1) }))}
-            accept=".jpg,.jpeg,.png,.pdf"
             maxSizeMB={50}
             multiple={false}
-            showToast={(msg, type) => setToast({ open: true, message: msg, type })}
+            showToast={(msg, type = "success") => setToast({ open: true, message: msg, type })}
           />
           <CompanyDocumentAttachmentList
             persisted={persisted as any}
@@ -222,11 +199,9 @@ export default function CompanyDocumentVersionUploadFormPage() {
           <FormActions
             onCancel={() => navigate("/backoffice/empresas/documentos")}
             text={isEdit ? "Atualizar" : "Criar"}
-            loading={isLoading}
           />
         </form>
       )}
-
       <Toast
         open={toast.open}
         message={toast.message}

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+// src/components/form/BrandAutocompleteField.tsx
+import { useCallback, useEffect, useState } from "react";
+import debounce from "lodash.debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
-
-import debounce from "lodash/debounce";
 import { getBrands } from "../../services/brandService";
 
 interface Option {
@@ -15,6 +15,7 @@ interface BrandAutocompleteFieldProps {
   onChange: (value: Option | null) => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
 }
 
 export default function BrandAutocompleteField({
@@ -23,10 +24,10 @@ export default function BrandAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  error,
 }: BrandAutocompleteFieldProps) {
   const [options, setOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
@@ -39,7 +40,6 @@ export default function BrandAutocompleteField({
         }));
         setOptions(mapped);
       } catch {
-        setError("Erro ao carregar marcas.");
         setOptions([]);
       }
     }, 300),
@@ -51,19 +51,24 @@ export default function BrandAutocompleteField({
     return () => fetchOptions.cancel();
   }, [query, fetchOptions]);
 
+  useEffect(() => {
+    if (value && !options.find((opt) => opt.id === value.id)) {
+      setOptions((prev) => [...prev, value]);
+    }
+  }, [value, options]);
+
   return (
-    <>
-      <FormAutocompleteField
-        name="brand_id"
-        label={label}
-        value={value}
-        options={options}
-        onChange={onChange}
-        onInputChange={setQuery}
-        disabled={disabled}
-        className={className}
-      />
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-    </>
+    <FormAutocompleteField
+      name="brand_id"
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      onInputChange={setQuery}
+      disabled={disabled}
+      className={className}
+      error={error}
+      placeholder="Digite para buscar..."
+    />
   );
 }

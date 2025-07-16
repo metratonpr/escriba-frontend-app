@@ -28,15 +28,24 @@ export default function CompanyAttachmentViewerPage() {
         ]}
       />
 
-      <h1 className="text-xl font-semibold mb-4 truncate">{attachment.nome_arquivo}</h1>
+      <h1 className="text-xl font-semibold mb-4 truncate">
+        {attachment.nome_arquivo}
+      </h1>
 
       <div className="flex-1 border rounded overflow-hidden">
-        <FileViewer fileId={attachmentId ? Number(attachmentId) : attachment.id} fileName={attachment.nome_arquivo} />
+        <FileViewer
+          fileId={Number(attachmentId) || attachment.id}
+          fileName={attachment.nome_arquivo}
+        />
       </div>
 
       <div className="mt-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() =>
+            companyId
+              ? navigate(`/backoffice/empresas/editar/${companyId}`)
+              : navigate(-1)
+          }
           className="text-sm text-blue-600 hover:underline"
         >
           ← Voltar

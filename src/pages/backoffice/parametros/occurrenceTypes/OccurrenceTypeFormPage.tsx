@@ -1,5 +1,5 @@
 // src/pages/backoffice/parametros/occurrenceTypes/OccurrenceTypeFormPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -12,6 +12,8 @@ import {
   createOccurrenceType,
   getOccurrenceTypeById,
   updateOccurrenceType,
+  type OccurrenceType,
+  type OccurrenceTypePayload
 } from "../../../../services/occurrenceTypeService";
 
 export default function OccurrenceTypeFormPage() {
@@ -19,11 +21,11 @@ export default function OccurrenceTypeFormPage() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<OccurrenceTypePayload>({
     name: "",
     description: "",
-    category: "",
-    severity_level: "",
+    category: "Acidente",
+    severity_level: "Baixo",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,7 +36,14 @@ export default function OccurrenceTypeFormPage() {
     if (isEdit && id) {
       setIsLoading(true);
       getOccurrenceTypeById(id)
-        .then(setForm)
+        .then((res: OccurrenceType) => {
+          setForm({
+            name: res.name,
+            description: res.description || "",
+            category: res.category,
+            severity_level: res.severity_level,
+          });
+        })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar tipo de ocorrência.", type: "error" });
           navigate("/backoffice/tipos-ocorrencia");
@@ -106,12 +115,12 @@ export default function OccurrenceTypeFormPage() {
           />
 
           <FormSelectField
+            id="category"
             label="Categoria"
             name="category"
             value={form.category}
             onChange={handleChange}
             error={errors.category}
-            required
             options={[
               { value: "Acidente", label: "Acidente" },
               { value: "Quase Acidente", label: "Quase Acidente" },
@@ -122,12 +131,12 @@ export default function OccurrenceTypeFormPage() {
           />
 
           <FormSelectField
+            id="severity_level"
             label="Grau de Severidade"
             name="severity_level"
             value={form.severity_level}
             onChange={handleChange}
             error={errors.severity_level}
-            required
             options={[
               { value: "Baixo", label: "Baixo" },
               { value: "Médio", label: "Médio" },
@@ -137,9 +146,8 @@ export default function OccurrenceTypeFormPage() {
           />
 
           <FormActions
-            loading={isLoading}
             onCancel={() => navigate("/backoffice/tipos-ocorrencia")}
-            text={isEdit ? "Atualizar" : "Criar"}
+            text={isEdit ? "Atualizar" : "Criar"}         
           />
         </form>
       )}
