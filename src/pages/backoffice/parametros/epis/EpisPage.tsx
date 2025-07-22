@@ -56,7 +56,8 @@ export default function EpisPage() {
   };
 
   const handleAskDelete = (id: string) => {
-    const item = data.data.find((d) => d.id === id);
+    const item = data.data.find((d) => d.id === Number(id));
+
     setSelectedId(id);
     setSelectedName(item?.name ?? null);
     setModalOpen(true);
@@ -65,7 +66,7 @@ export default function EpisPage() {
   const handleConfirmDelete = async () => {
     if (!selectedId) return;
     try {
-      await deleteEpi(selectedId);
+      await deleteEpi(Number(selectedId));
       setToast({
         open: true,
         message: `EPI "${selectedName}" excluído com sucesso.`,
@@ -86,13 +87,26 @@ export default function EpisPage() {
   };
 
   const columns: Column<Epi>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Tipo de EPI", field: "epi_type_name" },
-    { label: "Marca", field: "brand_name" },
-    { label: "Empresa", field: "company_name" },
-    { label: "CA", field: "ca" },
-    { label: "Validade CA", field: "ca_expiration" },
-  ];
+  { label: "Nome", field: "name", sortable: true },
+  {
+    label: "Tipo de EPI",
+    field: "type.name",
+    render: (row) => row.type?.name ?? "",
+  },
+  {
+    label: "Marca",
+    field: "brand.name",
+    render: (row) => row.brand?.name ?? "",
+  },
+  {
+    label: "Empresa",
+    field: "company.name",
+    render: (row) => row.company?.name ?? "",
+  },
+  { label: "CA", field: "ca" },
+  { label: "Validade CA", field: "ca_expiration" },
+];
+
 
   return (
     <>

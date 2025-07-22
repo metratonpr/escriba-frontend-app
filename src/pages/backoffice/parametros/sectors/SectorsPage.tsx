@@ -95,9 +95,13 @@ export default function SectorsPage() {
 
   const columns: Column<Sector>[] = [
     { label: "Nome", field: "name", sortable: true },
-    { label: "Descrição", field: "description", sortable: false },
+    {
+      label: "Descrição",
+      field: "description",
+      sortable: false,
+      render: (row) => row.description ?? ""
+    },
   ];
-
   const breadcrumbs = [
     { label: "Parâmetros", to: "/backoffice/parametros" },
     { label: "Setores", to: "/backoffice/setores" },

@@ -33,15 +33,7 @@ export default function CompaniesPage() {
     setLoading(true);
     try {
       const response = await getCompanies({ search: q, page: pg, perPage: limit });
-      const transformed = {
-        ...response,
-        data: response.data.map((c) => ({
-          ...c,
-          company_group_name: c.group?.name ?? "-",
-          company_type_name: c.type?.name ?? "-",
-        })),
-      };
-      setData(transformed);
+      setData(response);
       setPage(pg);
       setPerPage(limit);
     } finally {
@@ -92,7 +84,7 @@ export default function CompaniesPage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Empresas", to: "/backoffice/empresas" }]} />
+      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Empresas", to: "/backoffice/empresas" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 

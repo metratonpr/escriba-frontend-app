@@ -4,6 +4,28 @@ import { API_DOCUMENTS } from "../api/apiConfig";
 
 export type DocumentCategory = "employee" | "company" | "general";
 
+// Versões retornadas pelo backend (leitura)
+export interface DocumentVersionResponse {
+  id: number;
+  document_id: number;
+  code: string;
+  description?: string | null;
+  version: string;
+  validity_days?: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+// Versões manipuladas pelo formulário (envio)
+export interface Version {
+  code?: string;
+  description?: string;
+  validity_days?: number | "";
+  version?: string;
+}
+
+// Documento retornado pelo backend (leitura)
 export interface Document {
   id: string;
   code: string;
@@ -15,9 +37,23 @@ export interface Document {
   version: number;
   document_type_id: string;
   document_issuer_id: string;
+
+  type?: {
+    id: number;
+    name: string;
+  };
+  issuer?: {
+    id: number;
+    name: string;
+  };
+  versions?: DocumentVersionResponse[];
 }
 
-export type DocumentPayload = Omit<Document, "id">;
+// Payload usado para criação/edição (envio)
+export type DocumentPayload = Omit<Document, "id" | "type" | "issuer" | "versions" | "version"> & {
+  versions?: Version[];
+  version: number; // manter o número da versão que está sendo criado ou atualizado
+};
 
 export interface PaginatedResponse<T> {
   data: T[];

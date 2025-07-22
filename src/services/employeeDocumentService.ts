@@ -84,8 +84,11 @@ export const getEmployeeDocumentUploads = async (
   );
 };
 
-export const getEmployeeDocumentUploadById = (id: string): Promise<EmployeeDocumentUpload> =>
-  request<EmployeeDocumentUpload>("GET", `${API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS}/${id}`);
+export const getEmployeeDocumentUploadById = async (id: string): Promise<EmployeeDocumentUpload> => {
+  const response = await request<{ data: EmployeeDocumentUpload }>("GET", `${API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS}/${id}`);
+  return response.data; // 👈 extrai do wrapper "data"
+};
+
 
 export const createEmployeeDocumentUpload = (data: FormData): Promise<EmployeeDocumentUpload> =>
   multipartRequest<EmployeeDocumentUpload>("POST", API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS, data);

@@ -10,13 +10,13 @@ import DocumentWithVersionField from "../../../../components/form/DocumentWithVe
 import FormSelectField from "../../../../components/form/FormSelectField";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import FileUpload from "../../../../components/form/FileUpload";
+import EmployeeDocumentAttachmentList from "./EmployeeDocumentAttachmentList";
 
 import {
   createEmployeeDocumentUpload,
   getEmployeeDocumentUploadById,
   updateEmployeeDocumentUpload,
 } from "../../../../services/employeeDocumentService";
-import EmployeeDocumentAttachmentList from "./EmployeeDocumentAttachmentList";
 
 export default function EmployeeDocumentUploadFormPage() {
   const { id } = useParams();
@@ -55,9 +55,9 @@ export default function EmployeeDocumentUploadFormPage() {
                   label: `${data.document_version.code} (${data.document_version.version})`,
                 }
               : null,
-            document_version_id: String(data.document_version_id),
-            issue_date: data.emission_date || "",
-            due_date: data.due_date || "",
+            document_version_id: String(data.document_version_id ?? ""),
+            issue_date: data.emission_date ?? "",
+            due_date: data.due_date ?? "",
             documents: data.upload
               ? [
                   {
@@ -67,7 +67,7 @@ export default function EmployeeDocumentUploadFormPage() {
                   },
                 ]
               : [],
-            status: data.status,
+            status: data.status ?? "pendente",
             upload_id: data.upload_id ? String(data.upload_id) : "",
           });
         })
@@ -77,7 +77,7 @@ export default function EmployeeDocumentUploadFormPage() {
         })
         .finally(() => setIsLoading(false));
     }
-  }, [id]);
+  }, [id, isEdit, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

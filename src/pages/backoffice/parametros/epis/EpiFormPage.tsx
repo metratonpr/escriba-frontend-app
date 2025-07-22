@@ -1,4 +1,3 @@
-// src/pages/backoffice/parametros/epis/EpiFormPage.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
@@ -54,15 +53,15 @@ export default function EpiFormPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit && id) {
+    if (isEdit && numericId) {
       setIsLoading(true);
-      getEpiById(id)
+      getEpiById(numericId)
         .then((data) => {
           setForm({
             name: data.name,
-            epi_type: { id: data.epi_type_id, label: data.epi_type_name },
-            brand: { id: data.brand_id, label: data.brand_name },
-            company: { id: data.company_id, label: data.company_name },
+            epi_type: { id: data.epi_type_id, label: data.type?.name ?? "" },
+            brand: { id: data.brand_id, label: data.brand?.name ?? "" },
+            company: { id: data.company_id, label: data.company?.name ?? "" },
             ca: data.ca,
             ca_expiration: data.ca_expiration.slice(0, 10),
           });
@@ -94,15 +93,14 @@ export default function EpiFormPage() {
       name: form.name,
       ca: form.ca,
       ca_expiration: form.ca_expiration,
-      brand_id: String(form.brand?.id ?? ""),
-      company_id: String(form.company?.id ?? ""),
-      epi_type_id: String(form.epi_type?.id ?? ""),
+      brand_id: Number(form.brand?.id ?? 0),
+      company_id: Number(form.company?.id ?? 0),
+      epi_type_id: Number(form.epi_type?.id ?? 0),
     };
 
     try {
       if (isEdit && numericId) {
-        await updateEpi(id!, payload);
-
+        await updateEpi(numericId, payload);
       } else {
         await createEpi(payload);
       }

@@ -1,11 +1,13 @@
 import axios from "axios";
 import { API_URL } from "./apiConfig";
-import type { InternalAxiosRequestConfig } from "axios"; // ajuste aqui
+import type { InternalAxiosRequestConfig } from "axios";
 
+// Instância base com URL da API
 const http = axios.create({
   baseURL: API_URL,
 });
 
+// Interceptador para anexar token JWT automaticamente
 http.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("token");
@@ -17,6 +19,7 @@ http.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Interceptador de resposta para capturar erro 401 e redirecionar
 http.interceptors.response.use(
   (response) => response,
   (error) => {

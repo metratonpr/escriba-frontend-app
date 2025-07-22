@@ -11,21 +11,6 @@ import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTyp
 import SectorFormWithTable from "../../../../components/form/SectorFormWithTable";
 import Spinner from "../../../../components/Layout/ui/Spinner";
 
-// Interface corrigida com campos relacionais
-interface CompanyResponse {
-  id: string;
-  name: string;
-  cnpj: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state: string;
-  responsible: string;
-  email: string;
-  group?: { id: string; name: string };
-  type?: { id: string; name: string };
-  company_sectors?: { sector: { id: string; name: string } }[];
-}
 
 const STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
@@ -57,38 +42,41 @@ export default function CompanyFormPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-  if (isEdit && id) {
-    setIsLoading(true);
-    getCompanyById(id)
-      .then((data: CompanyResponse) => {
-        setForm({
-          company_group_id: data.group ? { id: data.group.id, label: data.group.name } : null,
-          company_type_id: data.type ? { id: data.type.id, label: data.type.name } : null,
-          name: data.name ?? "",
-          cnpj: data.cnpj ?? "",
-          phone: data.phone ?? "",
-          address: data.address ?? "",
-          city: data.city ?? "",
-          state: data.state ?? "",
-          responsible: data.responsible ?? "",
-          email: data.email ?? "",
-          sectors: Array.isArray(data.company_sectors)
-            ? data.company_sectors
-                .map((s) => s.sector && { id: s.sector.id, label: s.sector.name })
+    if (isEdit && id) {
+      setIsLoading(true);
+      getCompanyById(id)
+        .then((data) => {
+          setForm({
+            company_group_id: data.group ? { id: data.group.id.toString(), label: data.group.name } : null,
+            company_type_id: data.type ? { id: data.type.id.toString(), label: data.type.name } : null,
+            name: data.name ?? "",
+            cnpj: data.cnpj ?? "",
+            phone: data.phone ?? "",
+            address: data.address ?? "",
+            city: data.city ?? "",
+            state: data.state ?? "",
+            responsible: data.responsible ?? "",
+            email: data.email ?? "",
+            sectors: Array.isArray(data.company_sectors)
+              ? data.company_sectors
+                .map((s) =>
+                  s?.sector?.id && s?.sector?.name
+                    ? { id: s.sector.id.toString(), label: s.sector.name }
+                    : null
+                )
                 .filter(Boolean)
-            : [],
+              : [],
+          });
+        })
+        .catch(() => {
+          setToast({ open: true, message: "Erro ao carregar empresa.", type: "error" });
+          navigate("/backoffice/empresas");
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
-      })
-      .catch(() => {
-        setToast({ open: true, message: "Erro ao carregar empresa.", type: "error" });
-        navigate("/backoffice/empresas");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }
-}, [id, isEdit, navigate]);
-
+    }
+  }, [id, isEdit, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

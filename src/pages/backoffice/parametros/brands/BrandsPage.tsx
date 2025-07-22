@@ -68,8 +68,10 @@ export default function BrandsPage() {
 
   const columns: Column<Brand>[] = [
     { label: "Nome", field: "name", sortable: true },
-    { label: "Site", field: "website" },
-    { label: "E-mail Suporte", field: "support_email" },
+    { label: "Site", field: "website",
+      render: (row) => row.website ?? "" },
+    { label: "E-mail Suporte", field: "support_email",
+      render: (row) => row.support_email ?? ""  },
   ];
 
   return (

@@ -67,9 +67,18 @@ export default function DocumentFormPage() {
             validity_days: typeof doc.validity_days === "number" ? doc.validity_days : undefined,
           });
 
-          setType({ id: doc.document_type_id, label: `Tipo ${doc.document_type_id}` });
-          setIssuer({ id: doc.document_issuer_id, label: `Órgão ${doc.document_issuer_id}` });
-          setVersions([]); // ajuste: backend ainda não retorna versões
+          setType({ id: doc.document_type_id, label: doc.type?.name ?? `Tipo ${doc.document_type_id}` });
+          setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name ?? `Órgão ${doc.document_issuer_id}` })
+          // ajuste no useEffect
+          setVersions(
+            (doc.versions ?? []).map((v) => ({
+              code: v.code,
+              description: v.description ?? "",
+              version: v.version,
+              validity_days: v.validity_days,
+            }))
+          );
+
         })
         .catch(() => {
           setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });

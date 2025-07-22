@@ -44,43 +44,49 @@ export default function CompanyDocumentVersionUploadFormPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit && id) {
-      setIsLoading(true);
-      getCompanyDocumentUploadById(id)
-        .then((data) => {
-          setForm({
-            company_id: data.company ? { id: data.company.id, label: data.company.name } : null,
-            document: data.document_version
-              ? {
-                  id: data.document_version.id,
-                  label: `${data.document_version.code} (${data.document_version.version})`,
-                }
-              : null,
-            document_version_id: String(data.document_version_id),
-            issue_date: data.emission_date || "",
-            due_date: data.due_date || "",
-            documents: data.upload
-              ? [{
-                  id: data.upload.id,
-                  nome_arquivo: data.upload.nome_arquivo,
-                  url_arquivo: data.upload.url_arquivo,
-                }]
-              : [],
-            status: data.status,
-            upload_id: data.upload_id ? String(data.upload_id) : "",
-          });
-        })
-        .catch(() => {
-          setToast({
-            open: true,
-            message: "Erro ao carregar registro.",
-            type: "error",
-          });
-          navigate("/backoffice/empresas/documentos");
-        })
-        .finally(() => setIsLoading(false));
-    }
-  }, [id]);
+  if (isEdit && id) {
+    setIsLoading(true);
+    getCompanyDocumentUploadById(id)
+      .then((res) => {
+        const data = res; // ❌ ANTES: const data = res.data;
+
+        setForm({
+          company_id: data.company
+            ? { id: data.company.id, label: data.company.name }
+            : null,
+          document: data.document_version
+            ? {
+                id: data.document_version.id,
+                label: `${data.document_version.code} (${data.document_version.version})`,
+              }
+            : null,
+          document_version_id: String(data.document_version_id ?? ""),
+          issue_date: data.emission_date ?? "",
+          due_date: data.due_date ?? "",
+          documents: data.upload
+            ? [{
+                id: data.upload.id,
+                nome_arquivo: data.upload.nome_arquivo,
+                url_arquivo: data.upload.url_arquivo,
+              }]
+            : [],
+          status: data.status ?? "pendente",
+          upload_id: data.upload_id ? String(data.upload_id) : "",
+        });
+      })
+      .catch(() => {
+        setToast({
+          open: true,
+          message: "Erro ao carregar registro.",
+          type: "error",
+        });
+        navigate("/backoffice/empresas/documentos");
+      })
+      .finally(() => setIsLoading(false));
+  }
+}, [id, isEdit, navigate]);
+
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

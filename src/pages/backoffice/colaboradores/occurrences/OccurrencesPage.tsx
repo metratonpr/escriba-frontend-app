@@ -13,12 +13,21 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function OccurrencesPage() {
-  const [data, setData] = useState<PaginatedResponse<Occurrence>>({ data: [], total: 0, page: 1, per_page: 25 });
+  const [data, setData] = useState<PaginatedResponse<Occurrence>>({
+    data: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -47,7 +56,7 @@ export default function OccurrencesPage() {
   const handleAskDelete = (id: number) => {
     const item = data.data.find((o) => o.id === id);
     setSelectedId(id);
-    setSelectedName(item?.employee?.name ?? null);
+    setSelectedName(item?.employee_name ?? null);
     setModalOpen(true);
   };
 
@@ -56,9 +65,17 @@ export default function OccurrencesPage() {
     try {
       await deleteOccurrence(selectedId);
       await loadOccurrences(search, page, perPage);
-      setToast({ open: true, message: `Ocorrência de "${selectedName}" excluída com sucesso.`, type: "success" });
+      setToast({
+        open: true,
+        message: `Ocorrência de "${selectedName}" excluída com sucesso.`,
+        type: "success",
+      });
     } catch {
-      setToast({ open: true, message: `Erro ao excluir ocorrência de "${selectedName}".`, type: "error" });
+      setToast({
+        open: true,
+        message: `Erro ao excluir ocorrência de "${selectedName}".`,
+        type: "error",
+      });
     } finally {
       setModalOpen(false);
       setSelectedId(null);
@@ -67,15 +84,21 @@ export default function OccurrencesPage() {
   };
 
   const columns: Column<Occurrence>[] = [
-    { label: "Colaborador", field: "employee", render: (row) => row.employee?.name ?? "-" },
-    { label: "Empresa", field: "company", render: (row) => row.company?.name ?? "-" },
-    { label: "Tipo", field: "type", sortable: true },
-    { label: "Data", field: "date", sortable: true },
+    { label: "Colaborador", field: "employee_name", render: (row) => row.employee_name ?? "-" },
+    { label: "Empresa", field: "company_name", render: (row) => row.company_name ?? "-" },
+    { label: "Tipo", field: "type_name", render: (row) => row.type_name ?? "-" },
+    { label: "Data", field: "occurrence_date", render: (row) => new Date(row.occurrence_date).toLocaleDateString("pt-BR") },
+    { label: "Descrição", field: "description", render: (row) => row.description ?? "-" },
   ];
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Ocorrências", to: "/backoffice/ocorrencias" }]} />
+      <Breadcrumbs
+        items={[
+          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Ocorrências", to: "/backoffice/ocorrencias" },
+        ]}
+      />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
       {loading && <Spinner />}
 
@@ -100,8 +123,19 @@ export default function OccurrencesPage() {
         />
       )}
 
-      <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir Ocorrência" />
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <DeleteModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedName ?? undefined}
+        title="Excluir Ocorrência"
+      />
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </>
   );
 }
