@@ -68,12 +68,18 @@ export default function JobTitlesPage() {
     }
   };
 
-  const columns: Column<JobTitle>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Descrição", field: "description", sortable: false },
-  ];
+    const columns: Column<JobTitle>[] = [
+        { label: "Nome", field: "name", sortable: true },
+        {
+            label: "Descrição",
+            field: "description",
+            sortable: false,
+            render: (row) => row.description ?? "", // garante string vazia se null/undefined
+        },
+    ];
 
-  return (
+
+    return (
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Cargos", to: "/backoffice/cargos" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />

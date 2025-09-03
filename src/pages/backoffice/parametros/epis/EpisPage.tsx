@@ -86,29 +86,42 @@ export default function EpisPage() {
     }
   };
 
-  const columns: Column<Epi>[] = [
-  { label: "Nome", field: "name", sortable: true },
-  {
-    label: "Tipo de EPI",
-    field: "type.name",
-    render: (row) => row.type?.name ?? "",
-  },
-  {
-    label: "Marca",
-    field: "brand.name",
-    render: (row) => row.brand?.name ?? "",
-  },
-  {
-    label: "Empresa",
-    field: "company.name",
-    render: (row) => row.company?.name ?? "",
-  },
-  { label: "CA", field: "ca" },
-  { label: "Validade CA", field: "ca_expiration" },
-];
+    const columns: Column<Epi>[] = [
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "Tipo de EPI",
+            field: "type.name",
+            render: (row) => row.type?.name ?? "",
+        },
+        {
+            label: "Marca",
+            field: "brand.name",
+            render: (row) => row.brand?.name ?? "",
+        },
+        {
+            label: "Empresa",
+            field: "company.name",
+            render: (row) => row.company?.name ?? "",
+        },
+        {
+            label: "CA",
+            field: "ca",
+            render: (row) => row.ca ?? "",
+        },
+        {
+            label: "Validade CA",
+            field: "ca_expiration",
+            render: (row) => row.ca_expiration ?? "",
+        },
+    ];
 
 
-  return (
+    return (
     <>
       <Breadcrumbs
         items={[

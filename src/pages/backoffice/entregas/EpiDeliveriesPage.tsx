@@ -72,26 +72,31 @@ export default function EpiDeliveriesPage() {
     }
   };
 
-  const columns: Column<EpiDelivery>[] = [
-    {
-      label: "Nº Documento",
-      field: "document_number",
-      sortable: true,
-    },
-    {
-      label: "Data de Entrega",
-      field: "delivery_date",
-      sortable: true,
-      render: (row) => dayjs(row.delivery_date).format("DD/MM/YYYY"),
-    },
-    {
-      label: "Colaborador",
-      field: "employee.name",
-      render: (row) => row.employee?.name,
-    },
-  ];
+    const columns: Column<EpiDelivery>[] = [
+        {
+            label: "Nº Documento",
+            field: "document_number",
+            sortable: true,
+            render: (row) => row.document_number?.trim() || "-",
+        },
+        {
+            label: "Data de Entrega",
+            field: "delivery_date",
+            sortable: true,
+            render: (row) =>
+                row.delivery_date && dayjs(row.delivery_date).isValid()
+                    ? dayjs(row.delivery_date).format("DD/MM/YYYY")
+                    : "-",
+        },
+        {
+            label: "Colaborador",
+            field: "employee.name",
+            render: (row) => row.employee?.name?.trim() || "-",
+        },
+    ];
 
-  return (
+
+    return (
     <>
       <Breadcrumbs items={[{ label: "Entregas de EPI", to: "/backoffice/entregas-epis" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />

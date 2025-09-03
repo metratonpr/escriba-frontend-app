@@ -66,15 +66,27 @@ export default function BrandsPage() {
     }
   };
 
-  const columns: Column<Brand>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Site", field: "website",
-      render: (row) => row.website ?? "" },
-    { label: "E-mail Suporte", field: "support_email",
-      render: (row) => row.support_email ?? ""  },
-  ];
+    const columns: Column<Brand>[] = [
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "Site",
+            field: "website",
+            render: (row) => row.website ?? "",
+        },
+        {
+            label: "E-mail Suporte",
+            field: "support_email",
+            render: (row) => row.support_email ?? "",
+        },
+    ];
 
-  return (
+
+    return (
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Marcas", to: "/backoffice/marcas" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />

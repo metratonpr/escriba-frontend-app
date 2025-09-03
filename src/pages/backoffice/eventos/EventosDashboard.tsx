@@ -5,7 +5,7 @@ import Breadcrumbs from '../../../components/Layout/Breadcrumbs';
 
 export default function EventosDashboard() {
   const cards = [
-    { title: 'Eventos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/eventos' },
+    { title: 'Eventos', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/eventos' },
 
   ]
 

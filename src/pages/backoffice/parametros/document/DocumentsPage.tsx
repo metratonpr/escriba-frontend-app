@@ -87,14 +87,43 @@ export default function DocumentsPage() {
     }
   };
 
-  const columns: Column<Document>[] = [
-    { label: "Código", field: "code", sortable: true },
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Categoria", field: "category" },
-    { label: "Versão", field: "version" },
-  ];
+    // Mapeia categoria para PT-BR
+    const CATEGORY_LABELS: Record<string, string> = {
+        company: "Empresa",
+        general: "Geral",
+        employee: "Colaborador",
+    };
 
-  return (
+    const columns: Column<Document>[] = [
+        {
+            label: "Código",
+            field: "code",
+            sortable: true,
+            render: (row) => row.code ?? "",
+        },
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "Categoria",
+            field: "category",
+            render: (row) => {
+                const cat = row.category?.toLowerCase?.();
+                return cat ? (CATEGORY_LABELS[cat] ?? row.category) : "";
+            },
+        },
+        {
+            label: "Versão",
+            field: "version",
+            render: (row) => row.version ?? "",
+        },
+    ];
+
+
+    return (
     <>
       <Breadcrumbs
         items={[

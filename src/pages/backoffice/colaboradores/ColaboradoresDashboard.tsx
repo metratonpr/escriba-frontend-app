@@ -4,14 +4,27 @@ import type { BreadcrumbItem } from '../../../components/Layout/Breadcrumbs';
 import Breadcrumbs from '../../../components/Layout/Breadcrumbs';
 
 export default function ColaboradoresDashboard() {
-  const cards = [
-    { title: 'Funcionários', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/colaboradores' },
-    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/colaboradores/documentos' },
-    // { title: 'Exames Médicos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/exames-medicos' },
-    { title: 'Entrega de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/entregas-epis' },
-    // { title: 'Eventos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/eventos' },
-    // { title: 'Ocorrências', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/ocorrencias' },
-  ]
+    const cards = [
+        {
+            title: "Funcionários",
+            imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`,
+            href: "/backoffice/colaboradores",
+        },
+        {
+            title: "Documentos",
+            imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`,
+            href: "/backoffice/colaboradores/documentos",
+        },
+        {
+            title: "Entrega de EPI",
+            imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`,
+            href: "/backoffice/entregas-epis",
+        },
+        // futuramente:
+        // { title: "Exames Médicos", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/exames-medicos" },
+        // { title: "Eventos", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/eventos" },
+        // { title: "Ocorrências", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/ocorrencias" },
+    ];
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: 'Colaboradores', to: '/backoffice/colaboradores' },

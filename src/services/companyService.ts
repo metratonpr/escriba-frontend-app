@@ -1,4 +1,3 @@
-// src/services/companyService.ts
 import { request } from "../api/request";
 import { API_COMPANIES } from "../api/apiConfig";
 
@@ -17,10 +16,17 @@ export interface Company {
   email: string;
 }
 
-// Representa o payload de criação/atualização
-export type CompanyPayload = Omit<Company, "id">;
+// Novo tipo para os setores associados
+export interface CompanySectorPayload {
+  sector_id: string;
+}
 
-// Representa os dados da empresa com relacionamentos (usado nas páginas de edição)
+// Payload atualizado com os setores
+export interface CompanyPayload extends Omit<Company, "id"> {
+  company_sectors: CompanySectorPayload[];
+}
+
+// Dados da empresa com relacionamentos (usado nas páginas de edição)
 export interface CompanyResponse {
   id: string;
   name: string;
@@ -80,8 +86,9 @@ export const getCompanies = async (
 };
 
 // Busca empresa por ID
-export const getCompanyById = (id: string): Promise<CompanyResponse> =>
-  request<CompanyResponse>('GET', `${API_COMPANIES}/${id}`);
+export const getCompanyById = (id: string): Promise<{ data: CompanyResponse }> =>
+  request<{ data: CompanyResponse }>('GET', `${API_COMPANIES}/${id}`);
+
 
 // Criação
 export const createCompany = (data: CompanyPayload): Promise<Company> =>

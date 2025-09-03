@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 
+
 export default function Login() {
   const navigate = useNavigate();
 
@@ -25,12 +26,16 @@ export default function Login() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 px-4">
       <div className="bg-white shadow-xl rounded-2xl p-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Escriba</h1>
-          <p className="text-sm text-gray-500 mt-1">Acesse o sistema administrativo</p>
-        </div>
+          <div className="flex justify-center mb-8">
+              <img
+                  src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
+                  alt="Logwood - Sistema de Controle de Documentos"
+                  className="h-16 w-auto"
+              />
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               E-mail

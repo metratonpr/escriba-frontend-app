@@ -11,6 +11,7 @@ import Spinner from "../../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import dayjs from "dayjs";
 
 export default function EventPage() {
   const [data, setData] = useState<PaginatedResponse<Event>>({
@@ -77,16 +78,49 @@ export default function EventPage() {
     }
   };
 
-  const columns: Column<Event>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Tipo", field: "event_type_id" },
-    { label: "Início", field: "start_date" },
-    { label: "Término", field: "end_date" },
-    { label: "Local", field: "location" },
-    { label: "Responsável", field: "responsible" },
-  ];
+    const columns: Column<Event>[] = [
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "Tipo",
+            field: "event_type_id",
+            render: (row) => (row.event_type_id ?? "").toString(),
+        },
+        {
+            label: "Início",
+            field: "start_date",
+            render: (row) =>
+                row.start_date && dayjs(row.start_date).isValid()
+                    ? dayjs(row.start_date).format("DD/MM/YYYY")
+                    : "",
+        },
+        {
+            label: "Término",
+            field: "end_date",
+            render: (row) =>
+                row.end_date && dayjs(row.end_date).isValid()
+                    ? dayjs(row.end_date).format("DD/MM/YYYY")
+                    : "",
+        },
+        {
+            label: "Local",
+            field: "location",
+            render: (row) => row.location ?? "",
+        },
+        {
+            label: "Responsável",
+            field: "responsible",
+            render: (row) => row.responsible ?? "",
+        },
+    ];
 
-  return (
+
+
+    return (
     <>
       <Breadcrumbs
         items={[

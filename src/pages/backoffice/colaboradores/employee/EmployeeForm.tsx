@@ -1,4 +1,4 @@
-// src/pages/backoffice/colaboradores/employee/EmployeeFormPage.tsx
+// src/pages/backoffice/colaboradores/employee/EmployeeForm.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createEmployee, getEmployeeById, updateEmployee } from "../../../../services/employeeService";
@@ -15,7 +15,7 @@ const LICENSE_TYPES = [
   "A", "B", "C", "D", "E", "AB", "AC", "AD", "AE", "Não Possui"
 ].map((v) => ({ value: v, label: v }));
 
-export default function EmployeeFormPage() {
+export default function EmployeeForm() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();

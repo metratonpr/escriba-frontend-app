@@ -32,7 +32,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-lg font-semibold text-gray-800">Escriba APP</h1>
+          <img
+              src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
+              alt="Grupo LOG"
+              className="h-8 w-auto"
+          />
         <nav className="hidden md:flex gap-6 ml-10">
           <Link to="/backoffice/entidades" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Empresas

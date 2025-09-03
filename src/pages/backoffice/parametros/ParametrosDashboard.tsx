@@ -4,18 +4,18 @@ import ItemMenuCard from '../../../components/Layout/ItemMenuCard'
 
 export default function ParametrosDashboard() {
   const cards = [
-    { title: 'Grupos de Empresas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/grupos-empresa' },
-    { title: 'Tipos de Empresa', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-empresa' },
-    { title: 'Setores', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/setores' },
-    { title: 'Cargos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/cargos' },
-    { title: 'Emissores de Documento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/orgaos-emissores' },
-    { title: 'Tipos de Documento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-documento' },
-    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/documentos' },
-    { title: 'Tipos de Evento', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-evento' },
-    { title: 'Tipos de EPI', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-epi' },
-    { title: 'Marcas', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/marcas' },
-    { title: 'EPIs', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/epis' },
-    { title: 'Tipos de Ocorrência', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/tipos-ocorrencia' },
+    { title: 'Grupos de Empresas', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/grupos-empresa' },
+    { title: 'Tipos de Empresa', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/tipos-empresa' },
+    { title: 'Setores', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/setores' },
+    { title: 'Cargos', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/cargos' },
+    { title: 'Emissores de Documento', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/orgaos-emissores' },
+    { title: 'Tipos de Documento', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/tipos-documento' },
+    { title: 'Documentos', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/documentos' },
+    { title: 'Tipos de Evento', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/tipos-evento' },
+    { title: 'Tipos de EPI', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/tipos-epi' },
+    { title: 'Marcas', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/marcas' },
+    { title: 'EPIs', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/epis' },
+    { title: 'Tipos de Ocorrência', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/tipos-ocorrencia' },
   ]
 
   const breadcrumbs: BreadcrumbItem[] = [

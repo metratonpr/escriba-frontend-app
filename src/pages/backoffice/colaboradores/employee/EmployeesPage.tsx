@@ -12,6 +12,7 @@ import TableTailwind, { type Column } from "../../../../components/Layout/ui/Tab
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Spinner from "../../../../components/Layout/ui/Spinner";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import dayjs from "dayjs";
 
 export default function EmployeesPage() {
   const [data, setData] = useState<PaginatedResponse<Employee>>({
@@ -76,13 +77,36 @@ export default function EmployeesPage() {
     }
   };
 
-  const columns: Column<Employee>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "CPF", field: "cpf" },
-    { label: "RG", field: "rg" },
-    { label: "Nascimento", field: "birth_date" },
-    { label: "CNH", field: "driver_license_type" },
-  ];
+    const columns: Column<Employee>[] = [
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "CPF",
+            field: "cpf",
+            render: (row) => row.cpf ?? "",
+        },
+        {
+            label: "RG",
+            field: "rg",
+            render: (row) => row.rg ?? "",
+        },
+        {
+            label: "Nascimento",
+            field: "birth_date",
+            render: (row) =>
+                row.birth_date ? dayjs(row.birth_date).format("DD/MM/YYYY") : "",
+        },
+        {
+            label: "CNH",
+            field: "driver_license_type",
+            render: (row) => row.driver_license_type ?? "",
+        },
+    ];
+
 
   return (
     <>

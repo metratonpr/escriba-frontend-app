@@ -87,12 +87,13 @@ export default function DocumentIssuersPage() {
     }
   };
 
-  const columns: Column<DocumentIssuer>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Cidade", field: "city" },
-    { label: "Estado", field: "state" },
-    { label: "Telefone", field: "phone" },
-  ];
+    const columns: Column<DocumentIssuer>[] = [
+        { label: "Nome", field: "name", sortable: true },
+        { label: "Cidade", field: "city", render: (row) => row.city ?? "" },
+        { label: "Estado", field: "state", render: (row) => row.state ?? "" },
+        { label: "Telefone", field: "phone", render: (row) => row.phone ?? "" },
+    ];
+
 
   return (
     <>

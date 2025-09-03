@@ -5,10 +5,10 @@ import Breadcrumbs from '../../../components/Layout/Breadcrumbs';
 
 export default function EmpresasDashboard() {
   const cards = [
-    { title: 'Cadastros', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/empresas' },
-    { title: 'Documentos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/empresas/documentos' },
-    { title: 'Gerenciar Eventos', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/eventos' },
-    { title: 'Gerenciar Ocorrências', imageSrc: "/images/logo_iapotech.png", href: '/backoffice/ocorrencias' },
+    { title: 'Cadastros', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/empresas' },
+    { title: 'Documentos', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/empresas/documentos' },
+    { title: 'Gerenciar Eventos', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/eventos' },
+    { title: 'Gerenciar Ocorrências', imageSrc: `${import.meta.env.BASE_URL}images/logo_iapotech.jpg`, href: '/backoffice/ocorrencias' },
   ]
 
   const breadcrumbs: BreadcrumbItem[] = [

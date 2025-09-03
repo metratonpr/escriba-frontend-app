@@ -95,12 +95,17 @@ const handleConfirmDelete = async () => {
 };
 
 
-  const columns: Column<CompanyType>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Descrição", field: "description" },
-  ];
+    const columns: Column<CompanyType>[] = [
+        { label: "Nome", field: "name", sortable: true },
+        {
+            label: "Descrição",
+            field: "description",
+            render: (row) => row.description ?? "", // garante vazio se for null/undefined
+        },
+    ];
 
-  return (
+
+    return (
     <>
       <Breadcrumbs
         items={[

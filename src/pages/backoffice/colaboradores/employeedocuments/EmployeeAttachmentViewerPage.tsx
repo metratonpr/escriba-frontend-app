@@ -1,33 +1,80 @@
 // src/pages/backoffice/colaboradores/employeedocuments/EmployeeAttachmentViewerPage.tsx
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import FileViewer from "../../../../components/Layout/FileViewer";
 
+interface DocumentFile {
+    id: number;
+    nome_arquivo: string;
+    url_arquivo: string;
+}
+
+interface LocationState {
+    attachment?: DocumentFile;
+}
+
 export default function EmployeeAttachmentViewerPage() {
-  const { attachmentId } = useParams<{ attachmentId: string }>();
-  const navigate = useNavigate();
+    const { employeeId, attachmentId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-  const fileId = Number(attachmentId);
-  const fileName = attachmentId ? `attachment-${attachmentId}` : "";
+    const state = location.state as LocationState;
+    const attachment = state?.attachment;
 
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      <Breadcrumbs
-        items={[
-          { label: "Colaboradores", to: "/backoffice/colaboradores" },
-          { label: "Visualizar Anexo", to: "#" },
-        ]}
-      />
-      <h1 className="text-2xl font-bold mb-4">Visualizar Anexo do Colaborador</h1>
-      <div className="rounded border shadow">
-        <FileViewer fileId={fileId} fileName={fileName} />
-      </div>
-      <button
-        onClick={() => navigate(-1)}
-        className="mt-4 text-sm text-blue-600 hover:underline"
-      >
-        ← Voltar
-      </button>
-    </div>
-  );
+    // Se não tiver attachment no state, tenta usar só o attachmentId
+    if (!attachment && !attachmentId) {
+        return (
+            <div className="p-4 text-center text-red-600">
+                Anexo não encontrado ou inválido. Volte e tente novamente.
+            </div>
+        );
+    }
+
+    const fileId = attachment?.id || Number(attachmentId);
+    const fileName = attachment?.nome_arquivo || `attachment-${attachmentId}`;
+
+    if (!fileId) {
+        return (
+            <div className="p-4 text-center text-red-600">
+                ID do anexo inválido. Volte e tente novamente.
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-[90vh] p-4 flex flex-col">
+            <Breadcrumbs
+                items={[
+                    { label: "Backoffice", to: "/backoffice" },
+                    { label: "Colaboradores", to: "/backoffice/colaboradores" },
+                    { label: "Documentos", to: "/backoffice/colaboradores/documentos" },
+                    { label: "Visualizar Anexo", to: "#" },
+                ]}
+            />
+
+            <h1 className="text-xl font-semibold mb-4 truncate">
+                {fileName}
+            </h1>
+
+            <div className="flex-1 border rounded overflow-hidden">
+                <FileViewer
+                    fileId={fileId}
+                    fileName={fileName}
+                />
+            </div>
+
+            <div className="mt-4">
+                <button
+                    onClick={() =>
+                        employeeId
+                            ? navigate(`/backoffice/colaboradores/editar/${employeeId}`)
+                            : navigate("/backoffice/colaboradores/documentos")
+                    }
+                    className="text-sm text-blue-600 hover:underline"
+                >
+                    ← Voltar
+                </button>
+            </div>
+        </div>
+    );
 }

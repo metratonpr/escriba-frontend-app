@@ -75,13 +75,29 @@ export default function OccurrenceTypesListPage() {
     }
   };
 
-  const columns: Column<OccurrenceType>[] = [
-    { label: "Nome", field: "name", sortable: true },
-    { label: "Categoria", field: "category", sortable: true },
-    { label: "Gravidade", field: "severity_level", sortable: true },
-  ];
+    const columns: Column<OccurrenceType>[] = [
+        {
+            label: "Nome",
+            field: "name",
+            sortable: true,
+            render: (row) => row.name ?? "",
+        },
+        {
+            label: "Categoria",
+            field: "category",
+            sortable: true,
+            render: (row) => row.category ?? "",
+        },
+        {
+            label: "Gravidade",
+            field: "severity_level",
+            sortable: true,
+            render: (row) => (row.severity_level ?? "").toString(),
+        },
+    ];
 
-  return (
+
+    return (
     <>
       <Breadcrumbs
         items={[
