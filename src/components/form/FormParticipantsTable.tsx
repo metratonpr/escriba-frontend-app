@@ -1,18 +1,19 @@
 import { useState } from "react";
-import md5 from "md5"; // instale com: npm i md5 && npm i -D @types/md5
+import md5 from "md5";
 import EmployeeAutocompleteField from "./EmployeeAutocompleteField";
 import { FormInput } from "./FormInput";
 import FormSwitchField from "./FormSwitchField";
 import { FormTextArea } from "./FormTextArea";
 import type { Participant } from "../../types/participant";
-
-
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Props {
   eventId: number;
   participants: Participant[];
   onChange: (participants: Participant[]) => void;
-  error?: string;
+  error?: FieldErrorValue;
 }
 
 export default function FormParticipantsTable({
@@ -38,6 +39,17 @@ export default function FormParticipantsTable({
     certificate_number: false,
   });
 
+  const errorMessage = normalizeFieldError(error);
+  const {
+    currentPage,
+    perPage,
+    total,
+    totalPages,
+    paginatedItems,
+    setCurrentPage,
+    setPerPage,
+  } = useClientPagination(participants, { initialPerPage: 5 });
+
   const generateCertNumber = (employeeName: string) => {
     const hash = md5(employeeName + Date.now().toString());
     return `${hash.slice(0, 4)}-${hash.slice(4, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}`;
@@ -50,11 +62,8 @@ export default function FormParticipantsTable({
     }
 
     const cert = current.certificate_number.trim();
-
     const duplicate = participants.some(
-      (p) =>
-        p.employee_id === current.employee!.id ||
-        p.certificate_number === cert
+      (p) => p.employee_id === current.employee!.id || p.certificate_number === cert
     );
 
     if (duplicate) {
@@ -80,21 +89,21 @@ export default function FormParticipantsTable({
       presence: true,
       evaluation: "",
     });
-
     setFieldErrors({ employee: false, certificate_number: false });
   };
 
   const handleEmployeeChange = (value: { id: string | number; label: string } | null) => {
     if (value) {
       const numericId = typeof value.id === "string" ? parseInt(value.id, 10) : value.id;
-      setCurrent({
-        ...current,
+      setCurrent((prev) => ({
+        ...prev,
         employee: { id: numericId, label: value.label },
         certificate_number: generateCertNumber(value.label),
-      });
-    } else {
-      setCurrent({ ...current, employee: null, certificate_number: "" });
+      }));
+      return;
     }
+
+    setCurrent((prev) => ({ ...prev, employee: null, certificate_number: "" }));
   };
 
   const handleRemove = (index: number) => {
@@ -105,92 +114,101 @@ export default function FormParticipantsTable({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
         <EmployeeAutocompleteField
           value={current.employee}
           onChange={handleEmployeeChange}
           className="md:col-span-2"
         />
-        {fieldErrors.employee && (
-          <p className="text-sm text-red-600">Colaborador é obrigatório</p>
-        )}
+        {fieldErrors.employee && <p className="text-sm text-red-600">Colaborador eh obrigatorio</p>}
 
         <FormInput
           id="certificate_number"
           name="certificate_number"
-          label="Número do certificado"
+          label="Numero do certificado"
           value={current.certificate_number}
           onChange={() => {}}
-          error={
-            fieldErrors.certificate_number ? "Número obrigatório e único" : ""
-          }
+          error={fieldErrors.certificate_number ? "Numero obrigatorio e unico" : ""}
           disabled
         />
       </div>
 
       <FormSwitchField
-        label="Presença"
+        label="Presenca"
         name="presence"
         checked={current.presence}
-        onChange={(e) =>
-          setCurrent((prev) => ({ ...prev, presence: e.target.checked }))
-        }
+        onChange={(e) => setCurrent((prev) => ({ ...prev, presence: e.target.checked }))}
       />
 
       <FormTextArea
         id="evaluation"
         name="evaluation"
-        label="Avaliação"
+        label="Avaliacao"
         value={current.evaluation}
-        onChange={(e) =>
-          setCurrent((prev) => ({ ...prev, evaluation: e.target.value }))
-        }
+        onChange={(e) => setCurrent((prev) => ({ ...prev, evaluation: e.target.value }))}
       />
 
       <button
         type="button"
         onClick={handleAdd}
-        className="h-10 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        className="h-10 rounded bg-blue-600 px-4 text-white transition hover:bg-blue-700"
       >
         Adicionar Participante
       </button>
 
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+      {errorMessage && <p className="mt-1 text-sm text-red-600">{errorMessage}</p>}
 
       {participants.length > 0 && (
-        <div className="overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left text-gray-700">
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-700">
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-4 py-2">Colaborador</th>
                 <th className="px-4 py-2">Certificado</th>
-                <th className="px-4 py-2">Presença</th>
-                <th className="px-4 py-2">Avaliação</th>
-                <th className="px-4 py-2 text-center">Ação</th>
+                <th className="px-4 py-2">Presenca</th>
+                <th className="px-4 py-2">Avaliacao</th>
+                <th className="px-4 py-2 text-center">Acao</th>
               </tr>
             </thead>
             <tbody>
-              {participants.map((p, index) => (
-                <tr key={`${p.employee_id}-${index}`} className="border-b">
-                  <td className="px-4 py-2">{p.employee?.name}</td>
-                  <td className="px-4 py-2">{p.certificate_number}</td>
-                  <td className="px-4 py-2">{p.presence ? "Sim" : "Não"}</td>
-                  <td className="px-4 py-2">{p.evaluation || "-"}</td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(index)}
-                      className="text-red-600 hover:underline text-xs"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedItems.map((participant, index) => {
+                const absoluteIndex = (currentPage - 1) * perPage + index;
+
+                return (
+                  <tr key={`${participant.employee_id}-${absoluteIndex}`} className="border-b">
+                    <td className="px-4 py-2">{participant.employee?.name}</td>
+                    <td className="px-4 py-2">{participant.certificate_number}</td>
+                    <td className="px-4 py-2">{participant.presence ? "Sim" : "Nao"}</td>
+                    <td className="px-4 py-2">{participant.evaluation || ""}</td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(absoluteIndex)}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+
+          <InlinePagination
+            className="mt-3"
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            perPage={perPage}
+            onPageChange={setCurrentPage}
+            onPerPageChange={setPerPage}
+          />
         </div>
       )}
     </div>
   );
 }
+
+
+

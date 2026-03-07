@@ -18,6 +18,7 @@ import {
   type DocumentCategory,
 } from "../../../../services/documentService";
 import DocumentVersionsField from "../../../../components/form/DocumentVersionsField";
+import { getFieldError } from "../../../../utils/errorUtils";
 
 interface Option {
   id: string | number;
@@ -184,6 +185,7 @@ export default function DocumentFormPage() {
             label="Obrigatório"
             name="is_required"
             checked={form.is_required}
+            error={getFieldError(errors, "is_required")}
             onChange={(e) =>
               setForm((prev) => ({
                 ...prev,
@@ -201,8 +203,16 @@ export default function DocumentFormPage() {
             type="number"
           />
 
-          <DocumentTypeAutocompleteField value={type} onChange={setType} />
-          <DocumentIssuerAutocompleteField value={issuer} onChange={setIssuer} />
+          <DocumentTypeAutocompleteField
+            value={type}
+            onChange={setType}
+            error={getFieldError(errors, "document_type_id")}
+          />
+          <DocumentIssuerAutocompleteField
+            value={issuer}
+            onChange={setIssuer}
+            error={getFieldError(errors, "document_issuer_id")}
+          />
 
           <div className="md:col-span-2">
             <DocumentVersionsField value={versions} onChange={setVersions} errors={versionErrors} />

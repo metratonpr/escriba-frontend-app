@@ -1,6 +1,7 @@
 import  { useState, useEffect } from "react";
 import { Combobox } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 
 interface Option {
   id: string | number;
@@ -16,7 +17,7 @@ interface AutocompleteFieldProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  error?: string;
+  error?: FieldErrorValue;
   required?: boolean;
   onInputChange?: (value: string) => void;
 }
@@ -36,6 +37,8 @@ export default function FormAutocompleteField({
 }: AutocompleteFieldProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const errorMessage = normalizeFieldError(error);
+  const hasError = Boolean(errorMessage);
 
   useEffect(() => {
     setQuery(value?.label || "");
@@ -65,13 +68,15 @@ export default function FormAutocompleteField({
             name={name}
             className={`h-10 w-full rounded-lg border px-3 py-2 text-sm text-gray-900 bg-gray-50 shadow-sm
               focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white
-              ${error ? "border-red-500" : "border-gray-300"}`}
+              ${hasError ? "border-red-500" : "border-gray-300"}`}
             displayValue={(opt: Option) => opt?.label || ""}
             onChange={handleInputChange}
             onFocus={() => setIsOpen(true)}
             onBlur={() => setTimeout(() => setIsOpen(false), 150)}
             placeholder={placeholder}
             autoComplete="off"
+            aria-invalid={hasError}
+            aria-describedby={hasError ? `${name}-error` : undefined}
           />
 
           <Combobox.Button
@@ -124,7 +129,11 @@ export default function FormAutocompleteField({
         </div>
       </Combobox>
 
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {hasError && (
+        <p id={`${name}-error`} className="mt-1 text-sm text-red-600">
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 }

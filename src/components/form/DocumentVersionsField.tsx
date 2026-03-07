@@ -2,6 +2,9 @@
 import  { useState } from "react";
 import { FormInput } from "./FormInput";
 import { FormTextArea } from "./FormTextArea";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Version {
   id?: number;
@@ -14,11 +17,20 @@ interface Version {
 interface Props {
   value?: Version[];
   onChange: (versions: Version[]) => void;
-  errors?: Record<number, Record<string, string>>;
+  errors?: Record<number, Record<string, FieldErrorValue>>;
 }
 
 export default function DocumentVersionsField({ value = [], onChange, errors = {} }: Props) {
   const [draft, setDraft] = useState<Version>({ code: "", description: "", validity_days: "", version: "" });
+  const {
+    currentPage,
+    perPage,
+    total,
+    totalPages,
+    paginatedItems,
+    setCurrentPage,
+    setPerPage,
+  } = useClientPagination(value, { initialPerPage: 5 });
 
   const handleAdd = () => {
     if (!draft.version?.trim()) return;
@@ -86,37 +98,56 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
               </tr>
             </thead>
             <tbody>
-              {value.map((v, index) => (
-                <tr key={v.id ?? index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                  <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    {v.code}
-                    {errors[index]?.code && <p className="text-xs text-red-600">{errors[index].code}</p>}
-                  </td>
-                  <td className="px-4 py-2">
-                    {v.version}
-                    {errors[index]?.version && <p className="text-xs text-red-600">{errors[index].version}</p>}
-                  </td>
-                  <td className="px-4 py-2">
-                    {v.validity_days}
-                    {errors[index]?.validity_days && <p className="text-xs text-red-600">{errors[index].validity_days}</p>}
-                  </td>
-                  <td className="px-4 py-2">
-                    {v.description}
-                    {errors[index]?.description && <p className="text-xs text-red-600">{errors[index].description}</p>}
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(index)}
-                      className="text-red-600 hover:underline text-xs"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedItems.map((v, index) => {
+                const absoluteIndex = (currentPage - 1) * perPage + index;
+                const rowErrors = errors[absoluteIndex] ?? {};
+                const codeError = normalizeFieldError(rowErrors.code);
+                const versionError = normalizeFieldError(rowErrors.version);
+                const validityError = normalizeFieldError(rowErrors.validity_days);
+                const descriptionError = normalizeFieldError(rowErrors.description);
+
+                return (
+                  <tr key={v.id ?? absoluteIndex} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                      {v.code}
+                      {codeError && <p className="text-xs text-red-600">{codeError}</p>}
+                    </td>
+                    <td className="px-4 py-2">
+                      {v.version}
+                      {versionError && <p className="text-xs text-red-600">{versionError}</p>}
+                    </td>
+                    <td className="px-4 py-2">
+                      {v.validity_days}
+                      {validityError && <p className="text-xs text-red-600">{validityError}</p>}
+                    </td>
+                    <td className="px-4 py-2">
+                      {v.description}
+                      {descriptionError && <p className="text-xs text-red-600">{descriptionError}</p>}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(absoluteIndex)}
+                        className="text-red-600 hover:underline text-xs"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+
+          <InlinePagination
+            className="mt-3"
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            perPage={perPage}
+            onPageChange={setCurrentPage}
+            onPerPageChange={setPerPage}
+          />
         </div>
       )}
     </div>

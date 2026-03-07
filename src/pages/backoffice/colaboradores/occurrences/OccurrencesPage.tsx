@@ -84,11 +84,11 @@ export default function OccurrencesPage() {
   };
 
   const columns: Column<Occurrence>[] = [
-    { label: "Colaborador", field: "employee_name", render: (row) => row.employee_name ?? "-" },
-    { label: "Empresa", field: "company_name", render: (row) => row.company_name ?? "-" },
-    { label: "Tipo", field: "type_name", render: (row) => row.type_name ?? "-" },
+    { label: "Colaborador", field: "employee_name", render: (row) => row.employee_name ?? "" },
+    { label: "Empresa", field: "company_name", render: (row) => row.company_name ?? "" },
+    { label: "Tipo", field: "type_name", render: (row) => row.type_name ?? "" },
     { label: "Data", field: "occurrence_date", render: (row) => new Date(row.occurrence_date).toLocaleDateString("pt-BR") },
-    { label: "Descrição", field: "description", render: (row) => row.description ?? "-" },
+    { label: "Descrição", field: "description", render: (row) => row.description ?? "" },
   ];
 
   return (
@@ -139,3 +139,5 @@ export default function OccurrencesPage() {
     </>
   );
 }
+
+

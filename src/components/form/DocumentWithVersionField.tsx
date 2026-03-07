@@ -2,6 +2,7 @@ import  { useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import FormSelectField from "./FormSelectField";
 import { getDocuments } from "../../services/documentService";
+import type { FieldErrorValue } from "../../utils/errorUtils";
 
 
 interface Option {
@@ -20,6 +21,8 @@ interface DocumentWithVersionFieldProps {
   versionId: string;
   onVersionChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   className?: string;
+  documentError?: FieldErrorValue;
+  versionError?: FieldErrorValue;
 }
 
 export default function DocumentWithVersionField({
@@ -28,6 +31,8 @@ export default function DocumentWithVersionField({
   versionId,
   onVersionChange,
   className = "",
+  documentError,
+  versionError,
 }: DocumentWithVersionFieldProps) {
   const [documents, setDocuments] = useState<any[]>([]);
   const [documentOptions, setDocumentOptions] = useState<Option[]>([]);
@@ -63,6 +68,7 @@ export default function DocumentWithVersionField({
         value={document}
         onChange={onDocumentChange}
         options={documentOptions}
+        error={documentError}
       />
       {versions.length > 0 && (
         <FormSelectField
@@ -71,6 +77,7 @@ export default function DocumentWithVersionField({
           value={versionId}
           onChange={onVersionChange}
           options={versions.map((v) => ({ value: v.id, label: v.version }))}
+          error={versionError}
         />
       )}
     </div>

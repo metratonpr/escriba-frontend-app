@@ -1,5 +1,5 @@
-// export const DOMINIO = "http://localhost:8000";
-export const DOMINIO = "https://www.grupolw.iapotech.com.br";
+export const DOMINIO = "http://localhost:8000";
+// export const DOMINIO = "https://www.grupolw.iapotech.com.br";
 export const BASE_URL = `${DOMINIO}/api`;
 
 // Exporta API_URL como alias para BASE_URL para compatibilidade
@@ -36,8 +36,13 @@ export const API_EVENT_DOCUMENT_VERSION_UPLOADS = `${BASE_URL}/event-document-ve
 export const API_EPI_DELIVERY_DOCUMENT_UPLOADS = `${BASE_URL}/epi-delivery-document-uploads`;
 export const API_MEDICAL_EXAM_DOCUMENT_VERSION_UPLOADS = `${BASE_URL}/medical-exam-document-version-uploads`;
 export const API_OCCURRENCE_DOCUMENT_VERSION_UPLOADS = `${BASE_URL}/occurrence-document-version-uploads`;
+export const API_DOCUMENTS_EXPIRING_SOON = `${BASE_URL}/documents/expiring-soon`;
+export const API_DOCUMENTS_EXPIRED = `${BASE_URL}/documents/expired`;
+export const API_KPIS_SYSTEM = `${BASE_URL}/kpis/system`;
 
 // Autenticação (exemplo, ajuste conforme backend)
 export const API_LOGIN = `${BASE_URL}/login`;
 export const API_LOGOUT = `${BASE_URL}/logout`;
-export const API_CHECK_TOKEN = `${BASE_URL}/check-token`;
+export const API_ME = `${BASE_URL}/me`;
+export const API_PROFILE = `${BASE_URL}/profile`;
+export const API_CHECK_TOKEN = API_ME;

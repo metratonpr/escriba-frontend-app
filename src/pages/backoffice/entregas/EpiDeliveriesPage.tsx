@@ -77,7 +77,7 @@ export default function EpiDeliveriesPage() {
             label: "Nº Documento",
             field: "document_number",
             sortable: true,
-            render: (row) => row.document_number?.trim() || "-",
+            render: (row) => row.document_number?.trim() || "",
         },
         {
             label: "Data de Entrega",
@@ -86,12 +86,12 @@ export default function EpiDeliveriesPage() {
             render: (row) =>
                 row.delivery_date && dayjs(row.delivery_date).isValid()
                     ? dayjs(row.delivery_date).format("DD/MM/YYYY")
-                    : "-",
+                    : "",
         },
         {
             label: "Colaborador",
             field: "employee.name",
-            render: (row) => row.employee?.name?.trim() || "-",
+            render: (row) => row.employee?.name?.trim() || "",
         },
     ];
 
@@ -140,3 +140,5 @@ export default function EpiDeliveriesPage() {
     </>
   );
 }
+
+

@@ -117,7 +117,7 @@ export default function EventFormPage() {
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
-            <EventTypeAutocompleteField value={eventTypeOption} onChange={setEventTypeOption} />
+            <EventTypeAutocompleteField value={eventTypeOption} onChange={setEventTypeOption} error={errors.event_type_id} />
             <FormDatePickerField label="Data de Início" name="start_date" value={form.start_date} onChange={handleChange} error={errors.start_date} />
             <FormDatePickerField label="Data de Término" name="end_date" value={form.end_date} onChange={handleChange} error={errors.end_date} />
             <FormInput label="Local" name="location" value={form.location} onChange={handleChange} error={errors.location} />

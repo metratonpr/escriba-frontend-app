@@ -1,11 +1,11 @@
-
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 
 interface FormDateTimePickerFieldProps {
   label: string;
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  error?: string;
+  error?: FieldErrorValue;
   disabled?: boolean;
   className?: string;
 }
@@ -19,6 +19,9 @@ const FormDateTimePickerField: React.FC<FormDateTimePickerFieldProps> = ({
   disabled = false,
   className = "",
 }) => {
+  const errorMessage = normalizeFieldError(error);
+  const hasError = Boolean(errorMessage);
+
   return (
     <div className={`w-full ${className}`}>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
@@ -32,10 +35,16 @@ const FormDateTimePickerField: React.FC<FormDateTimePickerFieldProps> = ({
         onChange={onChange}
         disabled={disabled}
         className={`block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm ${
-          error ? "border-red-500" : "border-gray-300"
+          hasError ? "border-red-500" : "border-gray-300"
         }`}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? `${name}-error` : undefined}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {hasError && (
+        <p id={`${name}-error`} className="mt-1 text-sm text-red-600">
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 };

@@ -5,6 +5,9 @@ import BackofficeLayout from '../layouts/BackofficeLayout'
 import ColaboradoresDashboard from '../pages/backoffice/colaboradores/ColaboradoresDashboard'
 import EventosDashboard from '../pages/backoffice/eventos/EventosDashboard'
 import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashboard'
+import UserProfilePage from '../pages/backoffice/profile/UserProfilePage'
+import DashboardPage from '../pages/backoffice/dashboard/DashboardPage'
+import VencimentosPage from '../pages/backoffice/dashboard/VencimentosPage'
 import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupsPage'
 import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
 import CompanyTypesPage from '../pages/backoffice/parametros/companyType/CompanyTypesPage'
@@ -65,10 +68,15 @@ export const router = createBrowserRouter([
             </PrivateRoute>
         ),
         children: [
+            { path: 'dashboard', element: <DashboardPage /> },
+            { path: 'dashboard/vencimentos', element: <VencimentosPage /> },
+            { path: 'dashboard/documentos-a-vencer', element: <VencimentosPage /> },
+            { path: 'dashboard/documentos-vencidos', element: <VencimentosPage /> },
             { path: 'entidades', element: <EmpresasDashboard /> },
             { path: 'equipes', element: <ColaboradoresDashboard /> },
             { path: 'eventos-acoes', element: <EventosDashboard /> },
             { path: 'parametros', element: <ParametrosDashboard /> },
+            { path: 'perfil', element: <UserProfilePage /> },
             { path: 'grupos-empresa', element: <CompanyGroupsPage /> },
             { path: 'grupos-empresa/novo', element: <CompanyGroupFormPage /> },
             { path: 'grupos-empresa/editar/:id', element: <CompanyGroupFormPage /> },

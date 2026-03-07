@@ -14,8 +14,7 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await login({ email: form.email, password: form.password, device_name: form.device_name });
-      localStorage.setItem("token", res.token);
+      await login({ email: form.email, password: form.password, device_name: form.device_name });
       // Redireciona para o dashboard principal
       navigate("/backoffice/empresas");
     } catch {

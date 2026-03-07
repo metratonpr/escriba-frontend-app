@@ -26,7 +26,7 @@ http.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error("Token expirado ou inválido. Redirecionando para o login...");
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.href = "/";
     }
     return Promise.reject(error);
   }

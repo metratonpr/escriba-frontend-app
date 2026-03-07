@@ -1,10 +1,12 @@
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   id?: string;
   label: string;
   name: string;
     value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  error?: string;
+  error?: FieldErrorValue;
   className?: string;
 }
 
@@ -24,6 +26,8 @@ export const FormInput = ({
   ...rest
 }: FormInputProps) => {
   const inputId = id || name;
+  const errorMessage = normalizeFieldError(error);
+  const hasError = Boolean(errorMessage);
 
   return (
     <div className={`w-full ${className}`}>
@@ -43,17 +47,17 @@ export const FormInput = ({
         disabled={disabled}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${inputId}-error` : undefined}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? `${inputId}-error` : undefined}
         className={`bg-gray-50 border text-sm rounded-lg block w-full p-2.5 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
           dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50
-          ${error ? "border-red-500" : "border-gray-300"}`}
+          ${hasError ? "border-red-500" : "border-gray-300"}`}
         {...rest}
       />
-      {error && (
+      {hasError && (
         <p id={`${inputId}-error`} className="text-red-600 text-sm mt-1">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

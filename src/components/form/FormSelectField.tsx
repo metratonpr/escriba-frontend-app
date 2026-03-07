@@ -1,3 +1,5 @@
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+
 interface Option {
   value: string | number;
   label: string;
@@ -11,7 +13,7 @@ interface FormSelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectElem
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: Option[];
   placeholder?: string;
-  error?: string;
+  error?: FieldErrorValue;
   className?: string;
 }
 
@@ -30,6 +32,8 @@ const FormSelectField = ({
   ...rest
 }: FormSelectFieldProps) => {
   const finalId = id || name;
+  const errorMessage = normalizeFieldError(error);
+  const hasError = Boolean(errorMessage);
 
   return (
     <div className={`w-full ${className}`}>
@@ -43,11 +47,11 @@ const FormSelectField = ({
         onChange={onChange}
         required={required}
         disabled={disabled}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${finalId}-error` : undefined}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? `${finalId}-error` : undefined}
         className={`block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm
           dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50
-          ${error ? "border-red-500" : "border-gray-300"}`}
+          ${hasError ? "border-red-500" : "border-gray-300"}`}
         {...rest}
       >
         <option value="" disabled hidden>
@@ -59,9 +63,9 @@ const FormSelectField = ({
           </option>
         ))}
       </select>
-      {error && (
+      {hasError && (
         <p id={`${finalId}-error`} className="mt-1 text-sm text-red-600">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

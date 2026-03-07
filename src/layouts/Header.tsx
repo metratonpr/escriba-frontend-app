@@ -1,26 +1,102 @@
 // src/components/layout/Header.tsx
-import { Menu } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
-import { logout } from '../services/authService'
+import { Menu } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  fetchCurrentUser,
+  getStoredToken,
+  getStoredUser,
+  logout,
+  type AuthUser,
+} from "../services/authService";
 
 type HeaderProps = {
-  onToggleSidebar: () => void
-}
+  onToggleSidebar: () => void;
+};
+
+const resolveUserLabel = (user: AuthUser | null): string => {
+  const name = typeof user?.name === "string" ? user.name.trim() : "";
+  if (name) {
+    return name;
+  }
+
+  const email = typeof user?.email === "string" ? user.email.trim() : "";
+  if (email) {
+    return email;
+  }
+
+  return "Usuario";
+};
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
-  const navigate = useNavigate()
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const navigate = useNavigate();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!getStoredToken()) {
+      setUser(null);
+      return;
+    }
+
+    const loadUser = async () => {
+      try {
+        const currentUser = await fetchCurrentUser();
+        setUser(currentUser);
+      } catch {
+        setUser(getStoredUser());
+      }
+    };
+
+    void loadUser();
+  }, []);
+
+  useEffect(() => {
+    if (!dropdownOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [dropdownOpen]);
+
+  useEffect(() => {
+    if (dropdownOpen) {
+      setUser(getStoredUser());
+    }
+  }, [dropdownOpen]);
 
   const handleLogout = async () => {
+    setDropdownOpen(false);
     try {
       await logout();
     } catch {
-      // falha silenciosa em caso de token expirado
+      // silent failure when token is expired
     }
-    localStorage.removeItem("token");
+
     navigate("/");
   };
+
+  const userLabel = useMemo(() => resolveUserLabel(user), [user]);
+  const userEmail = typeof user?.email === "string" ? user.email : "";
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between md:px-6 w-full">
@@ -32,12 +108,18 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         >
           <Menu size={24} />
         </button>
-          <img
-              src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
-              alt="Grupo LOG"
-              className="h-8 w-auto"
-          />
+        <img
+          src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
+          alt="Grupo LOG"
+          className="h-8 w-auto"
+        />
         <nav className="hidden md:flex gap-6 ml-10">
+          <Link to="/backoffice/dashboard" className="text-sm font-medium text-gray-600 hover:text-blue-600">
+            Dashboard
+          </Link>
+          <Link to="/backoffice/dashboard/vencimentos" className="text-sm font-medium text-gray-600 hover:text-blue-600">
+            Vencimentos
+          </Link>
           <Link to="/backoffice/entidades" className="text-sm font-medium text-gray-600 hover:text-blue-600">
             Empresas
           </Link>
@@ -48,37 +130,43 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             Eventos
           </Link>
           <Link to="/backoffice/parametros" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Parâmetros
+            Parametros
           </Link>
         </nav>
       </div>
-      <div className="relative">
+
+      <div className="relative" ref={menuRef}>
         <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-3 focus:outline-none"
-          aria-label="Abrir menu do usuário"
+          onClick={() => setDropdownOpen((open) => !open)}
+          className="flex items-center focus:outline-none"
+          aria-label="Abrir menu do usuario"
         >
-          <span className="text-sm text-gray-500">Usuário</span>
-          <img src="https://i.pravatar.cc/32" alt="Avatar" className="rounded-full w-8 h-8 border border-gray-300" />
+          <span className="text-sm text-gray-600 font-medium">{userLabel}</span>
         </button>
+
         {dropdownOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50">
+          <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-md z-50">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-800 truncate">{userLabel}</p>
+              <p className="text-xs text-gray-500 truncate">{userEmail || "Sem email"}</p>
+            </div>
             <Link
-              to="/backoffice/secoes"
+              to="/backoffice/perfil"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={() => setDropdownOpen(false)}
             >
-              Seções
+              Meu perfil
             </Link>
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
-              Logout
+              Sair
             </button>
           </div>
         )}
       </div>
     </header>
-  )
+  );
 }
+

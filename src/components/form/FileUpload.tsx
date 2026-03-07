@@ -1,5 +1,6 @@
 import  { useRef } from "react";
 import { UploadCloud } from "lucide-react";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 
 export type UploadFile =
   | File
@@ -16,6 +17,7 @@ interface FileUploadProps {
   showToast: (msg: string, type?: "error" | "success") => void;
   multiple?: boolean;
   maxSizeMB?: number;
+  error?: FieldErrorValue;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -25,8 +27,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
   showToast,
   multiple = true,
   maxSizeMB = 50,
+  error,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const errorMessage = normalizeFieldError(error);
+  const hasError = Boolean(errorMessage);
 
   const ACCEPT = [
     ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif",
@@ -59,7 +64,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       <div
         onClick={() => inputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+        className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed p-6 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition ${
+          hasError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+        }`}
       >
         <UploadCloud className="w-6 h-6 text-gray-500 dark:text-gray-300" />
         <p className="text-sm text-gray-600 dark:text-gray-300 text-center">
@@ -74,6 +81,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onChange={handleFileChange}
         />
       </div>
+
+      {hasError && <p className="text-sm text-red-600">{errorMessage}</p>}
     </div>
   );
 };

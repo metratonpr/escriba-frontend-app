@@ -16,6 +16,7 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import EmployeeAutocompleteField from "../../../../components/form/EmployeeAutocompleteField";
 import FileUpload from "../../../../components/form/FileUpload";
 import ExamAttachmentList from "./ExamAttachmentList";
+import { getFieldError } from "../../../../utils/errorUtils";
 
 export type UploadFile =
   | File
@@ -161,6 +162,7 @@ export default function MedicalExamFormPage() {
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
         <EmployeeAutocompleteField
           value={employeeSelected}
+          error={getFieldError(errors, "employee_id")}
           onChange={(opt) => {
             setEmployeeSelected(opt);
             setForm((prev) => ({ ...prev, employee_id: String(opt?.id || "") }));
@@ -193,7 +195,13 @@ export default function MedicalExamFormPage() {
 
         <FormInput id="cid" name="cid" label="CID" value={form.cid} onChange={handleChange} error={errors.cid} />
 
-        <FormSwitchField label="Apto" name="fit" checked={form.fit} onChange={handleChange} />
+        <FormSwitchField
+          label="Apto"
+          name="fit"
+          checked={form.fit}
+          onChange={handleChange}
+          error={getFieldError(errors, "fit")}
+        />
 
         <FormInput
           id="result_attachment_url"
@@ -209,6 +217,7 @@ export default function MedicalExamFormPage() {
           files={form.documents}
           setFiles={(files) => setForm((prev) => ({ ...prev, documents: files }))}
           showToast={(msg, type) => setToast({ open: true, message: msg, type: type === "error" ? "error" : "success" })}
+          error={getFieldError(errors, "documents", "upload", "result_attachment")}
         />
 
         <ExamAttachmentList

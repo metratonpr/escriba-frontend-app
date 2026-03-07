@@ -11,6 +11,7 @@ import FormSelectField from "../../../../components/form/FormSelectField";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import FileUpload from "../../../../components/form/FileUpload";
 import CompanyDocumentAttachmentList from "./CompanyDocumentAttachmentList";
+import { getFieldError } from "../../../../utils/errorUtils";
 
 import {
     createCompanyDocumentUpload,
@@ -224,13 +225,15 @@ export default function CompanyDocumentUploadFormPage() {
                         onDocumentChange={(doc: Option | null) => setForm((p) => ({ ...p, document: doc }))}
                         versionId={form.document_version_id}
                         onVersionChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm((p) => ({ ...p, document_version_id: e.target.value }))}
+                        documentError={getFieldError(errors, "document_id", "document")}
+                        versionError={getFieldError(errors, "document_version_id")}
                     />
                     <FormDatePickerField
                         name="issue_date"
                         label="Data de Emissão"
                         value={form.issue_date}
                         onChange={handleChange}
-                        error={errors.issue_date}
+                        error={getFieldError(errors, "emission_date", "issue_date")}
                     />
                     <FormDatePickerField
                         name="due_date"
@@ -254,6 +257,7 @@ export default function CompanyDocumentUploadFormPage() {
                         maxSizeMB={50}
                         multiple={false}
                         showToast={(msg: string, type: "success" | "error" = "success") => setToast({ open: true, message: msg, type })}
+                        error={getFieldError(errors, "upload", "documents")}
                     />
                     <CompanyDocumentAttachmentList
                         persisted={persisted}

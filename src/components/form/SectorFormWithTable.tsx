@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import debounce from "lodash/debounce";
 import { getSectors } from "../../services/sectorService";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Option {
   id: string | number; // Corrigido para compatibilidade com FormAutocompleteField
@@ -11,7 +14,7 @@ interface Option {
 interface Props {
   value: Option[];
   onChange: (sectors: Option[]) => void;
-  error?: string;
+  error?: FieldErrorValue;
   required?: boolean;
 }
 
@@ -25,6 +28,16 @@ export default function SectorFormWithAutocompleteTable({
   const [query, setQuery] = useState("");
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [errorLoad, setErrorLoad] = useState<string | null>(null);
+  const errorMessage = normalizeFieldError(error);
+  const {
+    currentPage,
+    perPage,
+    total,
+    totalPages,
+    paginatedItems,
+    setCurrentPage,
+    setPerPage,
+  } = useClientPagination(value, { initialPerPage: 5 });
 
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
@@ -67,7 +80,7 @@ export default function SectorFormWithAutocompleteTable({
             options={options}
             onChange={setSelectedOption}
             onInputChange={setQuery}
-            error={error}
+            error={errorMessage}
             required={required}
           />
         </div>
@@ -92,7 +105,7 @@ export default function SectorFormWithAutocompleteTable({
               </tr>
             </thead>
             <tbody>
-              {value.map((sector) => (
+              {paginatedItems.map((sector) => (
                 <tr key={sector.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                   <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                     {sector.label}
@@ -110,6 +123,16 @@ export default function SectorFormWithAutocompleteTable({
               ))}
             </tbody>
           </table>
+
+          <InlinePagination
+            className="mt-3"
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            perPage={perPage}
+            onPageChange={setCurrentPage}
+            onPerPageChange={setPerPage}
+          />
         </div>
       )}
     </div>

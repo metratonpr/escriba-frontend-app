@@ -84,7 +84,7 @@ export default function MedicalExamPage() {
         </span>
       ),
     },
-    { label: "CID", field: "cid", render: (row) => row.cid || "-" },
+    { label: "CID", field: "cid", render: (row) => row.cid || "" },
   ];
 
   return (
@@ -138,3 +138,4 @@ export default function MedicalExamPage() {
     </>
   );
 }
+

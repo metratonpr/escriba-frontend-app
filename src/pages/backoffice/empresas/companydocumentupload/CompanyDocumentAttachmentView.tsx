@@ -106,11 +106,11 @@ const CompanyDocumentAttachmentView: React.FC<Props> = ({
                             Criado em:{" "}
                             {data.created_at && dayjs(data.created_at).isValid()
                                 ? dayjs(data.created_at).format("DD/MM/YYYY HH:mm")
-                                : "-"}
+                                : ""}
                             {" • "}Atualizado em:{" "}
                             {data.updated_at && dayjs(data.updated_at).isValid()
                                 ? dayjs(data.updated_at).format("DD/MM/YYYY HH:mm")
-                                : "-"}
+                                : ""}
                         </p>
                     )}
                     {showMeta && data?.descricao && (
@@ -198,3 +198,4 @@ const CompanyDocumentAttachmentView: React.FC<Props> = ({
 };
 
 export default CompanyDocumentAttachmentView;
+

@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import EpiAutocompleteField from "./EpiAutocompleteField";
 import { FormTextArea } from "./FormTextArea";
 import type { EpiItem } from "../../types/epi";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Props {
   items: EpiItem[];
   onChange: (items: EpiItem[]) => void;
-  error?: string;
+  error?: FieldErrorValue;
 }
 
 export default function FormEpiItemsTable({ items, onChange, error }: Props) {
@@ -20,6 +23,16 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
     epi: false,
     quantity: false,
   });
+  const errorMessage = normalizeFieldError(error);
+  const {
+    currentPage,
+    perPage,
+    total,
+    totalPages,
+    paginatedItems,
+    setCurrentPage,
+    setPerPage,
+  } = useClientPagination(items, { initialPerPage: 5 });
 
   useEffect(() => {
     if (items.length === 1 && !current.epi) {
@@ -129,7 +142,7 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
         Adicionar
       </button>
 
-      {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+      {errorMessage && <p className="text-sm text-red-600 mt-1">{errorMessage}</p>}
 
       {items.length > 0 && (
         <div className="overflow-x-auto mt-4">
@@ -143,24 +156,38 @@ export default function FormEpiItemsTable({ items, onChange, error }: Props) {
               </tr>
             </thead>
             <tbody>
-              {items.map((item, index) => (
-                <tr key={`${item.epi_id}-${index}`} className="border-b dark:border-gray-600">
-                  <td className="px-4 py-2">{item.epi?.name || `#${item.epi_id}`}</td>
-                  <td className="px-4 py-2 text-center">{item.quantity}</td>
-                  <td className="px-4 py-2">{item.notes}</td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(index)}
-                      className="text-red-600 hover:underline text-xs"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedItems.map((item, index) => {
+                const absoluteIndex = (currentPage - 1) * perPage + index;
+
+                return (
+                  <tr key={`${item.epi_id}-${absoluteIndex}`} className="border-b dark:border-gray-600">
+                    <td className="px-4 py-2">{item.epi?.name || `#${item.epi_id}`}</td>
+                    <td className="px-4 py-2 text-center">{item.quantity}</td>
+                    <td className="px-4 py-2">{item.notes}</td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(absoluteIndex)}
+                        className="text-red-600 hover:underline text-xs"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+
+          <InlinePagination
+            className="mt-3"
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            perPage={perPage}
+            onPageChange={setCurrentPage}
+            onPerPageChange={setPerPage}
+          />
         </div>
       )}
     </div>

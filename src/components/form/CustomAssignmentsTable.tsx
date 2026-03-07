@@ -7,6 +7,9 @@ import debounce from "lodash/debounce";
 import { getCompanies } from "../../services/companyService";
 import { getJobTitles } from "../../services/jobTitleService";
 import FormSelectField from "./FormSelectField";
+import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Option<T = any> {
   id: string | number;
@@ -27,7 +30,7 @@ interface CustomAssignment {
 interface Props {
   value: CustomAssignment[];
   onChange: (assignments: CustomAssignment[]) => void;
-  error?: string;
+  error?: FieldErrorValue;
 }
 
 export default function CustomAssignmentsTable({ value, onChange, error }: Props) {
@@ -42,6 +45,16 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [sectorOptions, setSectorOptions] = useState<Option[]>([]);
   const [jobTitleOptions, setJobTitleOptions] = useState<Option[]>([]);
+  const errorMessage = normalizeFieldError(error);
+  const {
+    currentPage,
+    perPage,
+    total,
+    totalPages,
+    paginatedItems,
+    setCurrentPage,
+    setPerPage,
+  } = useClientPagination(value, { initialPerPage: 5 });
 
   const fetchCompanies = useCallback(debounce(async (term: string) => {
     try {
@@ -210,30 +223,44 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
               </tr>
             </thead>
             <tbody>
-              {value.map((item, idx) => (
-                <tr key={idx} className="bg-white border-b dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.company_name}</td>
-                  <td className="px-4 py-2">{item.sector_name}</td>
-                  <td className="px-4 py-2">{item.job_title_name}</td>
-                  <td className="px-4 py-2">{convertToBrazilianDateTimeFormat(item.start_date)}</td>
-                  <td className="px-4 py-2">{item.end_date ? convertToBrazilianDateTimeFormat(item.end_date) : ""}</td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(idx)}
-                      className="text-red-600 hover:underline text-xs"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedItems.map((item, idx) => {
+                const absoluteIndex = (currentPage - 1) * perPage + idx;
+
+                return (
+                  <tr key={absoluteIndex} className="bg-white border-b dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.company_name}</td>
+                    <td className="px-4 py-2">{item.sector_name}</td>
+                    <td className="px-4 py-2">{item.job_title_name}</td>
+                    <td className="px-4 py-2">{convertToBrazilianDateTimeFormat(item.start_date)}</td>
+                    <td className="px-4 py-2">{item.end_date ? convertToBrazilianDateTimeFormat(item.end_date) : ""}</td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(absoluteIndex)}
+                        className="text-red-600 hover:underline text-xs"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+
+          <InlinePagination
+            className="mt-3"
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            perPage={perPage}
+            onPageChange={setCurrentPage}
+            onPerPageChange={setPerPage}
+          />
         </div>
       )}
 
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+      {errorMessage && <p className="text-red-600 text-sm mt-2">{errorMessage}</p>}
     </div>
   );
 }

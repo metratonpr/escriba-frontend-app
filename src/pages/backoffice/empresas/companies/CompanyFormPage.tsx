@@ -192,8 +192,8 @@ export default function CompanyFormPage() {
             <SectorFormWithTable
               value={form.sectors}
               onChange={handleSectorsChange}
+              error={errors.company_sectors}
             />
-            {errors.company_sectors && <p className="text-sm text-red-600 mt-1">{errors.company_sectors}</p>}
           </div>
         </div>
 

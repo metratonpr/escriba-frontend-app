@@ -105,7 +105,7 @@ export default function CompanyDocumentUploadPage() {
     {
       label: "Empresa",
       field: "company.name",
-      render: (row) => row.company?.name ?? "-",
+      render: (row) => row.company?.name ?? "",
       sortable: true,
     },
     {
@@ -114,7 +114,7 @@ export default function CompanyDocumentUploadPage() {
       render: (row) =>
         row.document_version
           ? `${row.document_version.code} - ${row.document_version.version}`
-          : "-",
+          : "",
       sortable: true,
     },
     {
@@ -179,3 +179,5 @@ export default function CompanyDocumentUploadPage() {
     </>
   );
 }
+
+
