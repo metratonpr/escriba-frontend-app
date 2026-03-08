@@ -10,9 +10,10 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import EventTypeAutocompleteField from "../../../../components/form/EventTypeAutocompleteField";
 import { createEvent, getEventById, updateEvent } from "../../../../services/eventService";
 import FormParticipantsTable from "../../../../components/form/FormParticipantsTable";
+import EventAttendanceByDay from "../../../../components/form/EventAttendanceByDay";
 import type { Participant } from "../../../../types/participant";
 
-type EventFormTab = "details" | "participants";
+type EventFormTab = "details" | "participants" | "attendance";
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -70,8 +71,10 @@ export default function EventFormPage() {
             event_id: Number(p.event_id),
             employee_id: Number(p.employee_id),
             certificate_number: p.certificate_number,
-            presence: !!p.presence,
+            presence: Number(p.presence ?? 0),
             evaluation: p.evaluation || "",
+            emitir_certificado:
+              p.emitir_certificado === undefined ? true : Boolean(p.emitir_certificado),
             employee: p.employee ? { id: Number(p.employee.id), name: p.employee.name } : undefined,
           })),
         });
@@ -101,10 +104,15 @@ export default function EventFormPage() {
 
     try {
       const parsedTotalHours =
-        form.total_hours.trim() === "" ? null : Number.parseInt(form.total_hours, 10);
+        form.total_hours.trim() === "" ? null : Number.parseFloat(form.total_hours);
+      const participantsPayload = form.participants.map((participant) => ({
+        ...participant,
+        emitir_certificado: participant.emitir_certificado !== false,
+      }));
 
       const payload = {
         ...form,
+        participants: participantsPayload,
         total_hours: Number.isNaN(parsedTotalHours) ? null : parsedTotalHours,
         event_type_id: String(eventTypeOption?.id || form.event_type_id),
       };
@@ -125,13 +133,16 @@ export default function EventFormPage() {
       const backendErrors = err.response?.data?.errors ?? {};
       setErrors(backendErrors);
 
+      const hasParticipantErrors = Object.keys(backendErrors).some(
+        (field) => field === "participants" || field.startsWith("participants.")
+      );
       const hasEventFieldErrors = Object.keys(backendErrors).some(
-        (field) => field !== "participants"
+        (field) => !field.startsWith("participants")
       );
 
       if (hasEventFieldErrors) {
         setActiveTab("details");
-      } else if (backendErrors.participants) {
+      } else if (hasParticipantErrors) {
         setActiveTab("participants");
       }
 
@@ -181,6 +192,17 @@ export default function EventFormPage() {
               >
                 Participantes
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("attendance")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "attendance"
+                    ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                }`}
+              >
+                Lista de presença
+              </button>
             </nav>
           </div>
 
@@ -202,7 +224,7 @@ export default function EventFormPage() {
                       name="total_hours"
                       type="number"
                       min={0}
-                      step={1}
+                      step={0.01}
                       value={form.total_hours}
                       onChange={handleChange}
                       error={errors.total_hours}
@@ -272,7 +294,7 @@ export default function EventFormPage() {
                 error={errors.notes}
               />
             </>
-          ) : (
+          ) : activeTab === "participants" ? (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Participantes</h2>
               <FormParticipantsTable
@@ -280,6 +302,16 @@ export default function EventFormPage() {
                 participants={form.participants}
                 onChange={(list) => setForm((prev) => ({ ...prev, participants: list }))}
                 error={errors.participants}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Lista de presença por dia</h2>
+              <EventAttendanceByDay
+                eventId={isEdit ? Number(id) : undefined}
+                startDate={form.start_date}
+                endDate={form.end_date}
+                participants={form.participants}
               />
             </div>
           )}

@@ -10,4 +10,5 @@ export interface Participant {
   certificate_number: string;
   presence: number;
   evaluation?: string;
+  emitir_certificado?: boolean;
 }

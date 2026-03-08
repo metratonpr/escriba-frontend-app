@@ -1,6 +1,6 @@
 // src/services/eventService.ts
 import { request } from "../api/request";
-import { API_EVENTS, API_EVENT_TYPES } from "../api/apiConfig";
+import { API_EVENTS, API_EVENTS_COMPLETE, API_EVENT_TYPES } from "../api/apiConfig";
 import type { Participant } from "../types/participant";
 import type { EventAttendanceListItem } from "../types/eventAttendance";
 
@@ -33,6 +33,51 @@ export interface Event {
   participations?: Participant[];
   attendance_list?: EventAttendanceListItem[];
   media?: EventMedia[];
+}
+
+export interface EventAttendancePayloadItem {
+  id?: number;
+  employee_id: number;
+  event_participation_id?: number;
+  attendance_date: string;
+  present: boolean;
+}
+
+export interface EventCertificateGenerationPayload {
+  generate?: boolean;
+  organization_company_id?: number;
+  issued_at?: string;
+  include_total_hours?: boolean;
+  total_hours?: number;
+  include_presence_percent?: boolean;
+  presence_percent?: number;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  signer_left?: string;
+  signer_right?: string;
+  location?: string;
+}
+
+export interface EventCompletePayload {
+  name: string;
+  event_type_id: string | number;
+  start_date: string;
+  end_date?: string;
+  total_hours?: number | null;
+  location?: string;
+  responsible?: string;
+  speakers?: string;
+  target_audience?: string;
+  notes?: string;
+  participants: Participant[];
+  attendance_list?: EventAttendancePayloadItem[];
+  certificate_generation?: EventCertificateGenerationPayload;
+}
+
+export interface EventCompleteResponse {
+  event: Event;
+  certificates?: unknown;
 }
 
 
@@ -83,6 +128,9 @@ export const getEventById = (id: string): Promise<Event> =>
 
 export const createEvent = (data: EventPayload): Promise<Event> =>
   request<Event>("POST", API_EVENTS, data);
+
+export const createCompleteEvent = (data: EventCompletePayload): Promise<EventCompleteResponse> =>
+  request<EventCompleteResponse>("POST", API_EVENTS_COMPLETE, data);
 
 export const updateEvent = (id: string, data: EventPayload): Promise<Event> =>
   request<Event>("PUT", `${API_EVENTS}/${id}`, data);

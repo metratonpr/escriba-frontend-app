@@ -2,8 +2,8 @@ import { useState } from "react";
 import md5 from "md5";
 import EmployeeAutocompleteField from "./EmployeeAutocompleteField";
 import { FormInput } from "./FormInput";
-import FormSwitchField from "./FormSwitchField";
 import { FormTextArea } from "./FormTextArea";
+import FormSwitchField from "./FormSwitchField";
 import type { Participant } from "../../types/participant";
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 import { useClientPagination } from "../../hooks/useClientPagination";
@@ -22,22 +22,27 @@ export default function FormParticipantsTable({
   onChange,
   error,
 }: Props) {
+  const formatPresence = (value: number) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return "0%";
+    return `${parsed.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}%`;
+  };
+
   const [current, setCurrent] = useState<{
     employee: { id: number; label: string } | null;
     certificate_number: string;
-    presence: boolean;
+    presence: string;
     evaluation: string;
+    emitir_certificado: boolean;
   }>({
     employee: null,
     certificate_number: "",
-    presence: true,
+    presence: "100",
     evaluation: "",
+    emitir_certificado: true,
   });
 
-  const [fieldErrors, setFieldErrors] = useState({
-    employee: false,
-    certificate_number: false,
-  });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const errorMessage = normalizeFieldError(error);
   const {
@@ -57,17 +62,26 @@ export default function FormParticipantsTable({
 
   const handleAdd = () => {
     if (!current.employee) {
-      setFieldErrors({ employee: true, certificate_number: false });
+      setFieldErrors({ employee: "Colaborador é obrigatório." });
       return;
     }
 
     const cert = current.certificate_number.trim();
+    const parsedPresence = Number(current.presence.toString().replace(",", "."));
+    if (current.presence.trim() === "" || Number.isNaN(parsedPresence) || parsedPresence < 0 || parsedPresence > 100) {
+      setFieldErrors({ presence: "A presença deve estar entre 0 e 100." });
+      return;
+    }
+
     const duplicate = participants.some(
       (p) => p.employee_id === current.employee!.id || p.certificate_number === cert
     );
 
     if (duplicate) {
-      setFieldErrors({ employee: true, certificate_number: true });
+      setFieldErrors({
+        employee: "Colaborador e certificado devem ser únicos.",
+        certificate_number: "Número obrigatório e único.",
+      });
       return;
     }
 
@@ -78,18 +92,20 @@ export default function FormParticipantsTable({
         employee_id: current.employee.id,
         employee: { id: current.employee.id, name: current.employee.label },
         certificate_number: cert,
-        presence: current.presence,
+        presence: parsedPresence,
         evaluation: current.evaluation.trim(),
+        emitir_certificado: current.emitir_certificado,
       },
     ]);
 
     setCurrent({
       employee: null,
       certificate_number: "",
-      presence: true,
+      presence: "100",
       evaluation: "",
+      emitir_certificado: true,
     });
-    setFieldErrors({ employee: false, certificate_number: false });
+    setFieldErrors({});
   };
 
   const handleEmployeeChange = (value: { id: string | number; label: string } | null) => {
@@ -120,24 +136,34 @@ export default function FormParticipantsTable({
           onChange={handleEmployeeChange}
           className="md:col-span-2"
         />
-        {fieldErrors.employee && <p className="text-sm text-red-600">Colaborador é obrigatório.</p>}
 
         <FormInput
           id="certificate_number"
           name="certificate_number"
           label="Número do certificado"
           value={current.certificate_number}
-          onChange={() => {}}
-          error={fieldErrors.certificate_number ? "Número obrigatório e único." : ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCurrent((prev) => ({ ...prev, certificate_number: value }));
+          }}
+          error={fieldErrors.certificate_number}
           disabled
         />
       </div>
 
-      <FormSwitchField
-        label="Presença"
+      {fieldErrors.employee && <p className="text-sm text-red-600">{fieldErrors.employee}</p>}
+
+      <FormInput
+        id="presence"
         name="presence"
-        checked={current.presence}
-        onChange={(e) => setCurrent((prev) => ({ ...prev, presence: e.target.checked }))}
+        label="Presença (%)"
+        type="number"
+        min={0}
+        max={100}
+        step="0.01"
+        value={current.presence}
+        onChange={(e) => setCurrent((prev) => ({ ...prev, presence: e.target.value }))}
+        error={fieldErrors.presence}
       />
 
       <FormTextArea
@@ -146,6 +172,18 @@ export default function FormParticipantsTable({
         label="Avaliação"
         value={current.evaluation}
         onChange={(e) => setCurrent((prev) => ({ ...prev, evaluation: e.target.value }))}
+      />
+
+      <FormSwitchField
+        label="Emitir certificado"
+        name="emitir_certificado"
+        checked={current.emitir_certificado}
+        onChange={(e) =>
+          setCurrent((prev) => ({
+            ...prev,
+            emitir_certificado: e.target.checked,
+          }))
+        }
       />
 
       <button
@@ -164,9 +202,10 @@ export default function FormParticipantsTable({
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-4 py-2">Colaborador</th>
-                <th className="px-4 py-2">Certificado</th>
+                <th className="px-4 py-2">Emitir</th>
                 <th className="px-4 py-2">Presença</th>
                 <th className="px-4 py-2">Avaliação</th>
+                <th className="px-4 py-2">Certificado</th>
                 <th className="px-4 py-2 text-center">Ação</th>
               </tr>
             </thead>
@@ -178,8 +217,9 @@ export default function FormParticipantsTable({
                   <tr key={`${participant.employee_id}-${absoluteIndex}`} className="border-b">
                     <td className="px-4 py-2">{participant.employee?.name}</td>
                     <td className="px-4 py-2">{participant.certificate_number}</td>
-                    <td className="px-4 py-2">{participant.presence ? "Sim" : "Não"}</td>
+                    <td className="px-4 py-2">{formatPresence(Number(participant.presence ?? 0))}</td>
                     <td className="px-4 py-2">{participant.evaluation || ""}</td>
+                    <td className="px-4 py-2">{participant.emitir_certificado ? "Sim" : "Não"}</td>
                     <td className="px-4 py-2 text-center">
                       <button
                         type="button"

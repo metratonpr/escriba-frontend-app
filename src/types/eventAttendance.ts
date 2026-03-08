@@ -17,7 +17,6 @@ export interface EventAttendanceListItem {
   event_participation_id: number;
   employee_id: number;
   attendance_date: string;
-  attendance_hour: number;
   present: boolean;
   employee?: EventAttendanceEmployee;
   participation?: EventAttendanceParticipation;
