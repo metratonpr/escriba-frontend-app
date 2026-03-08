@@ -95,7 +95,7 @@ const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListPro
 
               return (
                 <li key={`${file.name}-${absoluteIndex}`} className="flex items-center justify-between py-2 text-sm text-gray-700 dark:text-gray-200">
-                  <span className="max-w-xs truncate italic text-gray-500">{file.name} (nao salvo)</span>
+                  <span className="max-w-xs truncate italic text-gray-500">{file.name} (não salvo)</span>
                   <button
                     type="button"
                     onClick={() => onRemove(absoluteIndex, "pending")}
@@ -132,4 +132,3 @@ const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListPro
 };
 
 export default EmployeeDocumentAttachmentList;
-

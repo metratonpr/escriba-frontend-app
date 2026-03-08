@@ -69,9 +69,7 @@ export default function CompanyFormPage() {
   useEffect(() => {
   if (isEdit && id) {
     getCompanyById(id)
-      .then((response) => {
-        const companyData: CompanyResponse = response.data;
-
+      .then((companyData: CompanyResponse) => {
         setForm({
           name: companyData.name ?? "",
           cnpj: companyData.cnpj ?? "",

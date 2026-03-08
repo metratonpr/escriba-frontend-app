@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import get from "lodash.get";
+import { Pencil, Trash2 } from "lucide-react";
 
 export type Column<T> = {
   label: string;
@@ -117,7 +118,7 @@ export default function TableTailwind<T extends { id: any }>({
         isActive ? "bg-blue-100 text-blue-600" : "text-gray-700 hover:bg-gray-100"
       } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
-      {label === "prev" ? "Anterior" : label === "next" ? "Proxima" : page}
+      {label === "prev" ? "Anterior" : label === "next" ? "Próxima" : page}
     </button>
   );
 
@@ -171,7 +172,7 @@ export default function TableTailwind<T extends { id: any }>({
             ))}
             {(getEditUrl || onDelete) && (
               <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wider sm:px-6 sm:py-3">
-                Acoes
+                Ações
               </th>
             )}
           </tr>
@@ -201,16 +202,28 @@ export default function TableTailwind<T extends { id: any }>({
                 })}
                 {(getEditUrl || onDelete) && (
                   <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">
-                    {getEditUrl && (
-                      <Link to={getEditUrl(row.id)} className="mr-3 font-medium text-blue-600 hover:underline dark:text-blue-500">
-                        Editar
-                      </Link>
-                    )}
-                    {onDelete && (
-                      <button onClick={() => onDelete(row.id)} className="font-medium text-red-600 hover:underline">
-                        Excluir
-                      </button>
-                    )}
+                    <div className="inline-flex items-center gap-2">
+                      {getEditUrl && (
+                        <Link
+                          to={getEditUrl(row.id)}
+                          aria-label="Editar registro"
+                          title="Editar"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                        >
+                          <Pencil size={16} />
+                        </Link>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(row.id)}
+                          aria-label="Excluir registro"
+                          title="Excluir"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>
@@ -235,7 +248,7 @@ export default function TableTailwind<T extends { id: any }>({
           >
             {[10, 25, 50, 100].map((num) => (
               <option key={num} value={num}>
-                {num} / pagina
+                {num} / página
               </option>
             ))}
           </select>

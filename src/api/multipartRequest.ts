@@ -1,6 +1,7 @@
 // src/api/multipartRequest.ts
 import http from "./http";
 import type { AxiosResponse, Method } from "axios";
+import { normalizeApiResponse } from "./responseNormalizer";
 
 export async function multipartRequest<T = any>(
   method: Method,
@@ -13,7 +14,7 @@ export async function multipartRequest<T = any>(
       throw new Error("O corpo da requisição deve ser uma instância de FormData.");
     }
 
-    const response: AxiosResponse<T> = await http.request({
+    const response: AxiosResponse<unknown> = await http.request({
       url,
       method,
       params,
@@ -24,7 +25,7 @@ export async function multipartRequest<T = any>(
       },
     });
 
-    return response.data;
+    return normalizeApiResponse<T>(response.data);
   } catch (error) {
     console.error(`❌ Erro multipart ${method.toUpperCase()} ${url}:`, error);
     throw error;

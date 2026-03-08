@@ -1,6 +1,4 @@
-import  { useState, useEffect } from "react";
-import { Combobox } from "@headlessui/react";
-import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 
 interface Option {
@@ -36,7 +34,7 @@ export default function FormAutocompleteField({
   onInputChange,
 }: AutocompleteFieldProps) {
   const [query, setQuery] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLSelectElement | null>(null);
   const errorMessage = normalizeFieldError(error);
   const hasError = Boolean(errorMessage);
 
@@ -44,90 +42,90 @@ export default function FormAutocompleteField({
     setQuery(value?.label || "");
   }, [value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
+  const selectedValue = value ? String(value.id) : "";
+
+  const optionsById = useMemo(() => {
+    const map = new Map<string, Option>();
+    options.forEach((option) => map.set(String(option.id), option));
+    return map;
+  }, [options]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const text = event.target.value;
     setQuery(text);
-    setIsOpen(true);
     onInputChange?.(text);
   };
 
-  const handleButtonClick = () => {
-    setIsOpen((prev) => !prev);
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      selectRef.current?.focus();
+    }
+
+    if (event.key === "Enter" && !selectedValue && options.length > 0) {
+      event.preventDefault();
+      onChange(options[0]);
+    }
+  };
+
+  const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = event.currentTarget.value;
+    const option = selectedId ? optionsById.get(selectedId) ?? null : null;
+    onChange(option);
   };
 
   return (
     <div className={`w-full ${className}`}>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-white mb-1">
+      <label htmlFor={name} className="mb-1 block text-sm font-medium text-gray-700 dark:text-white">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
 
-      <Combobox value={value} onChange={onChange} disabled={disabled}>
-        <div className="relative">
-          <Combobox.Input
-            id={name}
-            name={name}
-            className={`h-10 w-full rounded-lg border px-3 py-2 text-sm text-gray-900 bg-gray-50 shadow-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white
-              ${hasError ? "border-red-500" : "border-gray-300"}`}
-            displayValue={(opt: Option) => opt?.label || ""}
-            onChange={handleInputChange}
-            onFocus={() => setIsOpen(true)}
-            onBlur={() => setTimeout(() => setIsOpen(false), 150)}
-            placeholder={placeholder}
-            autoComplete="off"
-            aria-invalid={hasError}
-            aria-describedby={hasError ? `${name}-error` : undefined}
-          />
+      <input
+        id={name}
+        name={name}
+        type="search"
+        value={query}
+        onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="off"
+        aria-invalid={hasError}
+        aria-describedby={`${name}-status ${hasError ? `${name}-error` : ""}`.trim()}
+        className={`mb-2 h-10 w-full rounded-lg border bg-gray-50 px-3 py-2 text-sm text-gray-900 shadow-sm
+          focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white
+          disabled:cursor-not-allowed disabled:opacity-60 ${hasError ? "border-red-500" : "border-gray-300"}`}
+      />
 
-          <Combobox.Button
-            type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-2"
-            onClick={handleButtonClick}
-          >
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </Combobox.Button>
+      <select
+        ref={selectRef}
+        id={`${name}-select`}
+        size={5}
+        value={selectedValue}
+        onChange={handleSelectChange}
+        disabled={disabled}
+        aria-invalid={hasError}
+        className={`block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
+          focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white
+          disabled:cursor-not-allowed disabled:opacity-60 ${hasError ? "border-red-500" : "border-gray-300"}`}
+      >
+        {options.length > 0 ? (
+          options.map((option) => (
+            <option key={String(option.id)} value={String(option.id)}>
+              {option.label}
+            </option>
+          ))
+        ) : (
+          <option value="" disabled>
+            Selecione...
+          </option>
+        )}
+      </select>
 
-          {isOpen && (
-            options.length > 0 ? (
-              <Combobox.Options
-                className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 sm:text-sm dark:bg-gray-800"
-                aria-label={`Sugestões para ${label}`}
-              >
-                {options.map((option) => (
-                  <Combobox.Option
-                    key={option.id}
-                    value={option}
-                    className={({ active }) =>
-                      `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                        active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-white"
-                      }`
-                    }
-                  >
-                    {({ selected }) => (
-                      <>
-                        <span className={`block truncate ${selected ? "font-medium" : "font-normal"}`}>
-                          {option.label}
-                        </span>
-                        {selected && (
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <Check className="h-5 w-5" aria-hidden="true" />
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </Combobox.Option>
-                ))}
-              </Combobox.Options>
-            ) : (
-              query && (
-                <div className="absolute z-10 mt-1 w-full rounded-md bg-white py-2 px-3 text-sm text-gray-500 shadow ring-1 ring-black/5 dark:bg-gray-800 dark:text-gray-400">
-                  Nenhum resultado encontrado.
-                </div>
-              )
-            )
-          )}
-        </div>
-      </Combobox>
+      <div id={`${name}-status`} aria-live="polite" className="mt-2">
+        {!options.length && query.trim().length > 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum resultado encontrado.</p>
+        ) : null}
+      </div>
 
       {hasError && (
         <p id={`${name}-error`} className="mt-1 text-sm text-red-600">

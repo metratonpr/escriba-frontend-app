@@ -120,21 +120,21 @@ export default function FormParticipantsTable({
           onChange={handleEmployeeChange}
           className="md:col-span-2"
         />
-        {fieldErrors.employee && <p className="text-sm text-red-600">Colaborador eh obrigatorio</p>}
+        {fieldErrors.employee && <p className="text-sm text-red-600">Colaborador é obrigatório.</p>}
 
         <FormInput
           id="certificate_number"
           name="certificate_number"
-          label="Numero do certificado"
+          label="Número do certificado"
           value={current.certificate_number}
           onChange={() => {}}
-          error={fieldErrors.certificate_number ? "Numero obrigatorio e unico" : ""}
+          error={fieldErrors.certificate_number ? "Número obrigatório e único." : ""}
           disabled
         />
       </div>
 
       <FormSwitchField
-        label="Presenca"
+        label="Presença"
         name="presence"
         checked={current.presence}
         onChange={(e) => setCurrent((prev) => ({ ...prev, presence: e.target.checked }))}
@@ -143,7 +143,7 @@ export default function FormParticipantsTable({
       <FormTextArea
         id="evaluation"
         name="evaluation"
-        label="Avaliacao"
+        label="Avaliação"
         value={current.evaluation}
         onChange={(e) => setCurrent((prev) => ({ ...prev, evaluation: e.target.value }))}
       />
@@ -165,9 +165,9 @@ export default function FormParticipantsTable({
               <tr>
                 <th className="px-4 py-2">Colaborador</th>
                 <th className="px-4 py-2">Certificado</th>
-                <th className="px-4 py-2">Presenca</th>
-                <th className="px-4 py-2">Avaliacao</th>
-                <th className="px-4 py-2 text-center">Acao</th>
+                <th className="px-4 py-2">Presença</th>
+                <th className="px-4 py-2">Avaliação</th>
+                <th className="px-4 py-2 text-center">Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -178,7 +178,7 @@ export default function FormParticipantsTable({
                   <tr key={`${participant.employee_id}-${absoluteIndex}`} className="border-b">
                     <td className="px-4 py-2">{participant.employee?.name}</td>
                     <td className="px-4 py-2">{participant.certificate_number}</td>
-                    <td className="px-4 py-2">{participant.presence ? "Sim" : "Nao"}</td>
+                    <td className="px-4 py-2">{participant.presence ? "Sim" : "Não"}</td>
                     <td className="px-4 py-2">{participant.evaluation || ""}</td>
                     <td className="px-4 py-2 text-center">
                       <button

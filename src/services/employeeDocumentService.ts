@@ -8,10 +8,12 @@ export interface Employee {
   name: string;
 }
 
-export interface DocumentVersion {
+export interface DocumentRef {
   id: number;
   code: string;
-  version: string;
+  name?: string;
+  version?: string;
+  validity_days?: number | null;
 }
 
 export interface UploadFile {
@@ -23,7 +25,7 @@ export interface UploadFile {
 export interface EmployeeDocumentUpload {
   id: string;
   employee_id: string;
-  document_version_id: string;
+  document_id: string;
   status: "pendente" | "enviado" | "aprovado" | "rejeitado";
   emission_date: string | null;
   due_date: string | null;
@@ -31,13 +33,15 @@ export interface EmployeeDocumentUpload {
   created_at: string;
   updated_at: string;
   employee?: Employee;
-  document_version?: DocumentVersion;
+  document?: DocumentRef;
+  // fallback para contrato antigo
+  document_version?: DocumentRef;
   upload?: UploadFile;
 }
 
 export type EmployeeDocumentUploadPayload = {
   employee_id: string;
-  document_version_id: string;
+  document_id: string;
   status: "pendente" | "enviado" | "aprovado" | "rejeitado";
   emission_date: string;
   due_date?: string;
@@ -85,10 +89,8 @@ export const getEmployeeDocumentUploads = async (
 };
 
 export const getEmployeeDocumentUploadById = async (id: string): Promise<EmployeeDocumentUpload> => {
-  const response = await request<{ data: EmployeeDocumentUpload }>("GET", `${API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS}/${id}`);
-  return response.data; // 👈 extrai do wrapper "data"
+  return request<EmployeeDocumentUpload>("GET", `${API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS}/${id}`);
 };
-
 
 export const createEmployeeDocumentUpload = (data: FormData): Promise<EmployeeDocumentUpload> =>
   multipartRequest<EmployeeDocumentUpload>("POST", API_EMPLOYEE_DOCUMENT_VERSION_UPLOADS, data);

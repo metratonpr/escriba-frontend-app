@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 
 
@@ -77,6 +77,12 @@ export default function Login() {
           >
             Entrar
           </button>
+
+          <p className="text-center text-sm text-gray-600">
+            <Link to="/reset-password" className="font-medium text-blue-700 hover:underline">
+              Esqueci minha senha
+            </Link>
+          </p>
         </form>
       </div>
     </div>

@@ -1,14 +1,19 @@
 // src/components/layout/Header.tsx
 import { Menu } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCurrentUser,
   getStoredToken,
   getStoredUser,
+  isAdminUser,
   logout,
   type AuthUser,
 } from "../services/authService";
+import {
+  BACKOFFICE_MAIN_SECTIONS,
+  resolveBackofficeSectionByPath,
+} from "./drawer/navigation";
 
 type HeaderProps = {
   onToggleSidebar: () => void;
@@ -25,11 +30,12 @@ const resolveUserLabel = (user: AuthUser | null): string => {
     return email;
   }
 
-  return "Usuario";
+  return "Usuário";
 };
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +103,15 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   const userLabel = useMemo(() => resolveUserLabel(user), [user]);
   const userEmail = typeof user?.email === "string" ? user.email : "";
+  const canManageUsers = isAdminUser(user);
+  const activeSection = useMemo(
+    () => resolveBackofficeSectionByPath(location.pathname),
+    [location.pathname]
+  );
+  const mainNavItems = useMemo(
+    () => BACKOFFICE_MAIN_SECTIONS.filter((section) => section.key !== "perfil"),
+    []
+  );
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between md:px-6 w-full">
@@ -108,30 +123,32 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         >
           <Menu size={24} />
         </button>
-        <img
-          src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
-          alt="Grupo LOG"
-          className="h-8 w-auto"
-        />
-        <nav className="hidden md:flex gap-6 ml-10">
-          <Link to="/backoffice/dashboard" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Dashboard
-          </Link>
-          <Link to="/backoffice/dashboard/vencimentos" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Vencimentos
-          </Link>
-          <Link to="/backoffice/entidades" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Empresas
-          </Link>
-          <Link to="/backoffice/equipes" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Equipes
-          </Link>
-          <Link to="/backoffice/eventos-acoes" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Eventos
-          </Link>
-          <Link to="/backoffice/parametros" className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Parametros
-          </Link>
+        <Link to="/backoffice/dashboard" className="inline-flex items-center gap-2">
+          <img
+            src={`${import.meta.env.BASE_URL}images/logo_iapotech.jpg`}
+            alt="Grupo LOG"
+            className="h-8 w-auto"
+          />
+          <span className="hidden text-sm font-semibold text-gray-700 sm:inline">Backoffice</span>
+        </Link>
+        <nav className="hidden items-center gap-2 lg:flex">
+          {mainNavItems.map((item) => {
+            const isCurrent = activeSection.key === item.key;
+            const target = item.items[0]?.to ?? item.to;
+            return (
+              <NavLink
+                key={item.key}
+                to={target}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  isCurrent
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 
@@ -139,7 +156,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         <button
           onClick={() => setDropdownOpen((open) => !open)}
           className="flex items-center focus:outline-none"
-          aria-label="Abrir menu do usuario"
+          aria-label="Abrir menu do usuário"
         >
           <span className="text-sm text-gray-600 font-medium">{userLabel}</span>
         </button>
@@ -148,7 +165,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-md z-50">
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-semibold text-gray-800 truncate">{userLabel}</p>
-              <p className="text-xs text-gray-500 truncate">{userEmail || "Sem email"}</p>
+              <p className="text-xs text-gray-500 truncate">{userEmail || "Sem e-mail"}</p>
             </div>
             <Link
               to="/backoffice/perfil"
@@ -157,6 +174,15 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             >
               Meu perfil
             </Link>
+            {canManageUsers && (
+              <Link
+                to="/backoffice/perfil/usuarios"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                onClick={() => setDropdownOpen(false)}
+              >
+                Gerenciar usuários
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

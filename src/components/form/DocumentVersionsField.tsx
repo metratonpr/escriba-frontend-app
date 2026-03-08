@@ -1,5 +1,5 @@
 // src/components/form/DocumentVersionsField.tsx
-import  { useState } from "react";
+import { useState } from "react";
 import { FormInput } from "./FormInput";
 import { FormTextArea } from "./FormTextArea";
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
@@ -10,7 +10,6 @@ interface Version {
   id?: number;
   code?: string;
   description?: string;
-  validity_days?: number | "";
   version?: string;
 }
 
@@ -21,7 +20,7 @@ interface Props {
 }
 
 export default function DocumentVersionsField({ value = [], onChange, errors = {} }: Props) {
-  const [draft, setDraft] = useState<Version>({ code: "", description: "", validity_days: "", version: "" });
+  const [draft, setDraft] = useState<Version>({ code: "", description: "", version: "" });
   const {
     currentPage,
     perPage,
@@ -35,7 +34,7 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
   const handleAdd = () => {
     if (!draft.version?.trim()) return;
     onChange([...value, draft]);
-    setDraft({ code: "", description: "", validity_days: "", version: "" });
+    setDraft({ code: "", description: "", version: "" });
   };
 
   const handleRemove = (index: number) => {
@@ -46,7 +45,7 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
 
   return (
     <div className="space-y-4">
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <FormInput
           label="Código"
           name="code"
@@ -59,23 +58,16 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
           value={draft.version ?? ""}
           onChange={(e) => setDraft((v) => ({ ...v, version: e.target.value }))}
         />
-        <FormInput
-          label="Validade (dias)"
-          name="validity_days"
-          type="number"
-          value={draft.validity_days ?? ""}
-          onChange={(e) => setDraft((v) => ({ ...v, validity_days: Number(e.target.value) }))}
-        />
         <div className="flex items-end">
           <button
             type="button"
             onClick={handleAdd}
-            className="h-10 px-4 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+            className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             Adicionar
           </button>
         </div>
-        <div className="md:col-span-4">
+        <div className="md:col-span-3">
           <FormTextArea
             label="Descrição"
             name="description"
@@ -86,15 +78,14 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
       </div>
 
       {value.length > 0 && (
-        <div className="relative overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <div className="relative mt-4 overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
               <tr>
                 <th scope="col" className="px-4 py-2">Código</th>
                 <th scope="col" className="px-4 py-2">Versão</th>
-                <th scope="col" className="px-4 py-2">Validade (dias)</th>
                 <th scope="col" className="px-4 py-2">Descrição</th>
-                <th scope="col" className="px-4 py-2 text-center w-28">Ação</th>
+                <th scope="col" className="w-28 px-4 py-2 text-center">Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -103,32 +94,30 @@ export default function DocumentVersionsField({ value = [], onChange, errors = {
                 const rowErrors = errors[absoluteIndex] ?? {};
                 const codeError = normalizeFieldError(rowErrors.code);
                 const versionError = normalizeFieldError(rowErrors.version);
-                const validityError = normalizeFieldError(rowErrors.validity_days);
                 const descriptionError = normalizeFieldError(rowErrors.description);
 
                 return (
-                  <tr key={v.id ?? absoluteIndex} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                      {v.code}
+                  <tr
+                    key={v.id ?? absoluteIndex}
+                    className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-white">
+                      {v.code ?? ""}
                       {codeError && <p className="text-xs text-red-600">{codeError}</p>}
                     </td>
                     <td className="px-4 py-2">
-                      {v.version}
+                      {v.version ?? ""}
                       {versionError && <p className="text-xs text-red-600">{versionError}</p>}
                     </td>
                     <td className="px-4 py-2">
-                      {v.validity_days}
-                      {validityError && <p className="text-xs text-red-600">{validityError}</p>}
-                    </td>
-                    <td className="px-4 py-2">
-                      {v.description}
+                      {v.description ?? ""}
                       {descriptionError && <p className="text-xs text-red-600">{descriptionError}</p>}
                     </td>
                     <td className="px-4 py-2 text-center">
                       <button
                         type="button"
                         onClick={() => handleRemove(absoluteIndex)}
-                        className="text-red-600 hover:underline text-xs"
+                        className="text-xs text-red-600 hover:underline"
                       >
                         Remover
                       </button>

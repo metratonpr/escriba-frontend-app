@@ -54,11 +54,19 @@ import EmployeeDocumentUploadPage from "../pages/backoffice/colaboradores/employ
 import PrivateRoute from '../components/auth/PrivateRoute'
 import CompanyAttachmentViewerPage
     from "../pages/backoffice/empresas/companydocumentupload/CompanyAttachmentViewerPage.tsx";
+import UsersPage from "../pages/backoffice/parametros/users/UsersPage";
+import UserFormPage from "../pages/backoffice/parametros/users/UserFormPage";
+import AdminRoute from "../components/auth/AdminRoute";
+import ResetPassword from "../pages/ResetPassword";
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: <Login />,
+    },
+    {
+        path: '/reset-password',
+        element: <ResetPassword />,
     },
     {
         path: '/backoffice',
@@ -77,6 +85,30 @@ export const router = createBrowserRouter([
             { path: 'eventos-acoes', element: <EventosDashboard /> },
             { path: 'parametros', element: <ParametrosDashboard /> },
             { path: 'perfil', element: <UserProfilePage /> },
+            {
+                path: 'perfil/usuarios',
+                element: (
+                    <AdminRoute>
+                        <UsersPage />
+                    </AdminRoute>
+                ),
+            },
+            {
+                path: 'perfil/usuarios/novo',
+                element: (
+                    <AdminRoute>
+                        <UserFormPage />
+                    </AdminRoute>
+                ),
+            },
+            {
+                path: 'perfil/usuarios/editar/:id',
+                element: (
+                    <AdminRoute>
+                        <UserFormPage />
+                    </AdminRoute>
+                ),
+            },
             { path: 'grupos-empresa', element: <CompanyGroupsPage /> },
             { path: 'grupos-empresa/novo', element: <CompanyGroupFormPage /> },
             { path: 'grupos-empresa/editar/:id', element: <CompanyGroupFormPage /> },

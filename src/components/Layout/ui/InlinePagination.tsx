@@ -48,7 +48,7 @@ export default function InlinePagination({
           Anterior
         </button>
         <span className="text-xs text-gray-600">
-          Pagina {currentPage} de {totalPages}
+          Página {currentPage} de {totalPages}
         </span>
         <button
           type="button"
@@ -56,7 +56,7 @@ export default function InlinePagination({
           disabled={currentPage === totalPages}
           className="h-8 rounded border border-gray-300 px-2 text-xs text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Proxima
+          Próxima
         </button>
 
         <select
@@ -66,7 +66,7 @@ export default function InlinePagination({
         >
           {perPageOptions.map((option) => (
             <option key={option} value={option}>
-              {option}/pagina
+              {option}/página
             </option>
           ))}
         </select>
@@ -74,4 +74,3 @@ export default function InlinePagination({
     </div>
   );
 }
-

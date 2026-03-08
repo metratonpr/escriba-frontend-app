@@ -1,5 +1,6 @@
 import http from "./http";
 import type { AxiosResponse, Method } from "axios";
+import { normalizeApiResponse } from "./responseNormalizer";
 
 /**
  * Requisição genérica para JSON (não suporta FormData).
@@ -32,8 +33,8 @@ export async function request<T = any>(
       },
     };
 
-    const response: AxiosResponse<T> = await http.request(config);
-    return response.data;
+    const response: AxiosResponse<unknown> = await http.request(config);
+    return normalizeApiResponse<T>(response.data);
   } catch (error) {
     console.error(`❌ Erro JSON ${method.toUpperCase()} ${url}:`, error);
     throw error;

@@ -71,9 +71,9 @@ const DAYS_OPTIONS = [
 ];
 
 const DASHBOARD_SECTIONS: Array<{ id: DashboardSection; label: string }> = [
-  { id: "overview", label: "Visao geral" },
+  { id: "overview", label: "Visão geral" },
   { id: "events", label: "Eventos" },
-  { id: "occurrences", label: "Ocorrencias" },
+  { id: "occurrences", label: "Ocorrências" },
   { id: "models", label: "Modelos" },
 ];
 
@@ -212,7 +212,7 @@ export default function DashboardPage() {
     const parsedDays = parseDaysInput(daysInput);
 
     if (parsedDays === null) {
-      setDaysError("Informe um numero inteiro entre 1 e 365.");
+      setDaysError("Informe um número inteiro entre 1 e 365.");
       return;
     }
 
@@ -265,21 +265,21 @@ export default function DashboardPage() {
       },
       {
         id: "events",
-        title: "Conclusao de eventos",
+        title: "Conclusão de eventos",
         value: `${rates.eventCompletion}%`,
-        text: "Percentual de eventos concluido no historico total.",
+        text: "Percentual de eventos concluído no historico total.",
       },
       {
         id: "occurrences",
-        title: "Encerramento de ocorrencias",
+        title: "Encerramento de ocorrências",
         value: `${rates.occurrenceClosure}%`,
-        text: "Taxa de ocorrencias encerradas no ciclo operacional.",
+        text: "Taxa de ocorrências encerradas no ciclo operacional.",
       },
       {
         id: "presence",
-        title: "Taxa de presenca em eventos",
+        title: "Taxa de presença em eventos",
         value: `${kpis.events.participations.presence_rate_percent.toFixed(2)}%`,
-        text: "Presenca registrada em participacoes de eventos.",
+        text: "Presença registrada em participações de eventos.",
       },
     ];
   }, [kpis, rates.eventCompletion, rates.expiredShare, rates.occurrenceClosure]);
@@ -334,7 +334,7 @@ export default function DashboardPage() {
       render: (row) => row.participants_total,
     },
     {
-      label: "Inicio",
+      label: "Início",
       field: "start_date",
       sortable: true,
       render: (row) => convertToBrazilianDateFormat(row.start_date ?? ""),
@@ -361,13 +361,13 @@ export default function DashboardPage() {
       render: (row) => row.events_total,
     },
     {
-      label: "Presencas",
+      label: "Presenças",
       field: "presences_total",
       sortable: true,
       render: (row) => row.presences_total,
     },
     {
-      label: "Taxa de presenca",
+      label: "Taxa de presença",
       field: "presence_rate_percent",
       sortable: true,
       render: (row) => `${row.presence_rate_percent.toFixed(2)}%`,
@@ -430,7 +430,7 @@ export default function DashboardPage() {
       label: "Soft delete",
       field: "supports_soft_deletes",
       sortable: true,
-      render: (row) => (row.supports_soft_deletes ? "Sim" : "Nao"),
+      render: (row) => (row.supports_soft_deletes ? "Sim" : "Não"),
     },
   ];
 
@@ -447,11 +447,11 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">
-              Inteligencia Operacional
+              Inteligência Operacional
             </p>
             <h1 className="mt-2 text-3xl font-bold text-white">Dashboard Executivo</h1>
             <p className="mt-2 text-sm text-blue-100">
-              Visao consolidada para decisao rapida sobre documentos, eventos, ocorrencias e
+              Visão consolidada para decisão rápida sobre documentos, eventos, ocorrências e
               volume de dados.
             </p>
           </div>
@@ -479,28 +479,28 @@ export default function DashboardPage() {
             icon={<BarChart3 size={18} />}
             label="Eventos em andamento"
             value={kpis?.events.totals.ongoing ?? 0}
-            helperText={`Conclusao: ${rates.eventCompletion}%`}
+            helperText={`Conclusão: ${rates.eventCompletion}%`}
           />
           <HeroMetric
             icon={<Users size={18} />}
-            label="Ocorrencias abertas"
+            label="Ocorrências abertas"
             value={kpis?.occurrences.totals.open ?? 0}
             helperText={`Encerramento: ${rates.occurrenceClosure}%`}
           />
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
+      <section className="rounded-2xl border border-white/15 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-5 shadow-lg">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">
               Controle do painel
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">
-              Atualizacao de indicadores
+            <h2 className="mt-1 text-lg font-semibold text-white">
+              Atualização de indicadores
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Selecione a janela de analise e atualize os dados em tempo real.
+            <p className="mt-1 text-sm text-blue-100">
+              Selecione a janela de análise e atualize os dados em tempo real.
             </p>
           </div>
 
@@ -511,7 +511,7 @@ export default function DashboardPage() {
             <div className="w-full">
               <label
                 htmlFor="days"
-                className="mb-1 block text-sm font-medium text-slate-700"
+                className="mb-1 block text-sm font-medium text-blue-100"
               >
                 Intervalo dos KPIs (dias)
               </label>
@@ -529,7 +529,7 @@ export default function DashboardPage() {
                   }}
                   aria-invalid={Boolean(daysError)}
                   aria-describedby={daysError ? "days-error" : undefined}
-                  className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pr-10 text-sm font-medium text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-11 w-full appearance-none rounded-xl border border-white/25 bg-white/10 px-3 pr-10 text-sm font-medium text-white shadow-sm transition focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 >
                   {DAYS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -540,12 +540,12 @@ export default function DashboardPage() {
 
                 <ChevronDown
                   size={16}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-200"
                 />
               </div>
 
               {daysError && (
-                <p id="days-error" className="mt-1 text-sm text-red-600">
+                <p id="days-error" className="mt-1 text-sm text-red-300">
                   {daysError}
                 </p>
               )}
@@ -554,7 +554,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 md:self-end"
+              className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70 md:self-end"
             >
               <RotateCw size={15} className={loading ? "animate-spin" : ""} />
               Atualizar indicadores
@@ -562,15 +562,15 @@ export default function DashboardPage() {
 
             <Link
               to="/backoffice/dashboard/vencimentos"
-              className="inline-flex h-11 items-center justify-center self-end rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 md:self-end"
+              className="inline-flex h-11 items-center justify-center self-end rounded-xl border border-white/30 bg-white/10 px-4 text-sm font-semibold text-blue-100 transition hover:bg-white/20 hover:text-white md:self-end"
             >
               Abrir vencimentos
             </Link>
           </form>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/20 pt-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-blue-200">
             Atalhos:
           </span>
           {DAYS_OPTIONS.map((option) => {
@@ -589,8 +589,8 @@ export default function DashboardPage() {
                 }}
                 className={`h-8 rounded-full px-3 text-xs font-semibold transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    ? "bg-white text-slate-900"
+                    : "bg-white/10 text-blue-100 hover:bg-white/20"
                 } disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {option.label}
@@ -600,7 +600,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+      <div className="rounded-xl border border-white/20 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-2 shadow-sm">
         <nav className="flex flex-wrap gap-2">
           {DASHBOARD_SECTIONS.map((section) => {
             const isActive = section.id === activeSection;
@@ -611,8 +611,8 @@ export default function DashboardPage() {
                 onClick={() => setActiveSection(section.id)}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-white text-slate-900"
+                    : "bg-white/10 text-blue-100 hover:bg-white/20 hover:text-white"
                 }`}
               >
                 {section.label}
@@ -628,15 +628,15 @@ export default function DashboardPage() {
         </div>
       ) : !kpis ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
-          Nenhum indicador disponivel.
+          Nenhum indicador disponível.
         </div>
       ) : (
         <div className="space-y-6">
           {activeSection === "overview" && (
             <>
               <DashboardSectionCard
-                title="Indicadores estrategicos"
-                subtitle="Leitura executiva para priorizacao"
+                title="Indicadores estratégicos"
+                subtitle="Leitura executiva para priorização"
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {strategicInsights.map((insight) => (
@@ -667,7 +667,7 @@ export default function DashboardPage() {
                     <KpiStatCard
                       title="Vencidos"
                       value={documentKpis.expired}
-                      helperText="Necessitam regularizacao"
+                      helperText="Necessitam regularização"
                       tone="red"
                     />
                     <KpiStatCard
@@ -685,7 +685,7 @@ export default function DashboardPage() {
                   </div>
                 </DashboardSectionCard>
 
-                <DashboardSectionCard title="Distribuicoes chave" subtitle="Corte rapido">
+                <DashboardSectionCard title="Distribuições chave" subtitle="Corte rápido">
                   <div className="space-y-6">
                     <div>
                       <h3 className="mb-2 text-sm font-semibold text-gray-700">Eventos por tipo</h3>
@@ -697,11 +697,11 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        Ocorrencias por status
+                        Ocorrências por status
                       </h3>
                       <DistributionList
                         items={occurrenceStatusDistribution}
-                        emptyMessage="Nenhuma ocorrencia por status."
+                        emptyMessage="Nenhuma ocorrência por status."
                         barClassName="bg-emerald-500"
                       />
                     </div>
@@ -729,19 +729,19 @@ export default function DashboardPage() {
                     tone="blue"
                   />
                   <KpiStatCard
-                    title="Concluidos"
+                    title="Concluídos"
                     value={kpis.events.totals.completed}
-                    helperText={`Conclusao: ${rates.eventCompletion}%`}
+                    helperText={`Conclusão: ${rates.eventCompletion}%`}
                     tone="emerald"
                   />
                   <KpiStatCard
                     title="Em andamento"
                     value={kpis.events.totals.ongoing}
-                    helperText={`Proximos: ${kpis.events.totals.upcoming}`}
+                    helperText={`Próximos: ${kpis.events.totals.upcoming}`}
                     tone="amber"
                   />
                   <KpiStatCard
-                    title="Taxa de presenca"
+                    title="Taxa de presença"
                     value={`${kpis.events.participations.presence_rate_percent.toFixed(2)}%`}
                     helperText={`Participacoes: ${kpis.events.participations.total}`}
                     tone="slate"
@@ -750,7 +750,7 @@ export default function DashboardPage() {
               </DashboardSectionCard>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <DashboardSectionCard title="Eventos por tipo" subtitle="Distribuicao">
+                <DashboardSectionCard title="Eventos por tipo" subtitle="Distribuição">
                   <DistributionList
                     items={eventByTypeDistribution}
                     emptyMessage="Nenhum evento por tipo encontrado."
@@ -771,12 +771,12 @@ export default function DashboardPage() {
           {activeSection === "occurrences" && (
             <>
               <DashboardSectionCard
-                title="Resumo de ocorrencias"
+                title="Resumo de ocorrências"
                 subtitle={`Ciclo monitorado: ${kpis.window_days} dias`}
               >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <KpiStatCard
-                    title="Total de ocorrencias"
+                    title="Total de ocorrências"
                     value={kpis.occurrences.totals.total}
                     helperText={`Criadas na janela: ${kpis.occurrences.totals.created_in_window}`}
                     tone="blue"
@@ -784,7 +784,7 @@ export default function DashboardPage() {
                   <KpiStatCard
                     title="Abertas"
                     value={kpis.occurrences.totals.open}
-                    helperText="Ocorrencias pendentes"
+                    helperText="Ocorrências pendentes"
                     tone="red"
                   />
                   <KpiStatCard
@@ -794,7 +794,7 @@ export default function DashboardPage() {
                     tone="emerald"
                   />
                   <KpiStatCard
-                    title="Tempo medio de fechamento"
+                    title="Tempo médio de fechamento"
                     value={
                       kpis.occurrences.closure_time_days.average === null
                         ? "0"
@@ -810,27 +810,27 @@ export default function DashboardPage() {
                 <DashboardSectionCard title="Por status">
                   <DistributionList
                     items={occurrenceStatusDistribution}
-                    emptyMessage="Nenhuma ocorrencia por status."
+                    emptyMessage="Nenhuma ocorrência por status."
                     barClassName="bg-emerald-500"
                   />
                 </DashboardSectionCard>
                 <DashboardSectionCard title="Por severidade">
                   <DistributionList
                     items={occurrenceSeverityDistribution}
-                    emptyMessage="Nenhuma ocorrencia por severidade."
+                    emptyMessage="Nenhuma ocorrência por severidade."
                     barClassName="bg-amber-500"
                   />
                 </DashboardSectionCard>
-                <DashboardSectionCard title="Por classificacao">
+                <DashboardSectionCard title="Por classificação">
                   <DistributionList
                     items={occurrenceClassificationDistribution}
-                    emptyMessage="Nenhuma ocorrencia por classificacao."
+                    emptyMessage="Nenhuma ocorrência por classificação."
                     barClassName="bg-indigo-500"
                   />
                 </DashboardSectionCard>
               </div>
 
-              <DashboardSectionCard title="Top colaboradores envolvidos em ocorrencias">
+              <DashboardSectionCard title="Top colaboradores envolvidos em ocorrências">
                 <TableTailwind
                   columns={topInvolvedEmployeesColumns}
                   data={topInvolvedEmployeesRows}
@@ -841,7 +841,7 @@ export default function DashboardPage() {
 
           {activeSection === "models" && (
             <DashboardSectionCard
-              title="Inventario de models"
+              title="Inventário de models"
               subtitle="Volume ativo e total por tabela"
               action={
                 <div className="flex items-center gap-2 text-xs text-gray-500">

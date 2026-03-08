@@ -2,11 +2,23 @@
 import { request } from "../api/request";
 import { API_EVENTS, API_EVENT_TYPES } from "../api/apiConfig";
 import type { Participant } from "../types/participant";
+import type { EventAttendanceListItem } from "../types/eventAttendance";
+
+export interface EventMedia {
+  id: number;
+  media_type: "image" | "video";
+  mime_type: string;
+  original_name: string;
+  size_bytes?: number | null;
+  url: string;
+  created_at: string;
+}
 
 export interface Event {
-  id: string;
+  id: string | number;
   name: string;
-  event_type_id: string;
+  event_type_id: string | number;
+  total_hours?: number | null;
   event_type?: {
     id: string | number;
     nome_tipo_evento: string;
@@ -19,6 +31,8 @@ export interface Event {
   target_audience: string;
   notes: string;
   participations?: Participant[];
+  attendance_list?: EventAttendanceListItem[];
+  media?: EventMedia[];
 }
 
 

@@ -10,7 +10,6 @@ import DocumentIssuerAutocompleteField from "../../../../components/form/Documen
 import FormSelectField from "../../../../components/form/FormSelectField";
 import FormSwitchField from "../../../../components/form/FormSwitchField";
 import Spinner from "../../../../components/Layout/ui/Spinner";
-
 import {
   getDocumentById,
   createDocument,
@@ -28,9 +27,10 @@ interface Option {
 interface Version {
   code?: string;
   description?: string;
-  validity_days?: number | "";
   version?: string;
 }
+
+type DocumentTab = "dados" | "versoes";
 
 export default function DocumentFormPage() {
   const { id } = useParams();
@@ -43,7 +43,6 @@ export default function DocumentFormPage() {
     description: "",
     category: "general" as DocumentCategory,
     is_required: false,
-    validity_days: undefined as number | undefined,
   });
 
   const [type, setType] = useState<Option | null>(null);
@@ -53,94 +52,109 @@ export default function DocumentFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<DocumentTab>("dados");
 
   useEffect(() => {
-    if (isEdit && id) {
-      setIsLoading(true);
-      getDocumentById(id)
-        .then((doc) => {
-          setForm({
-            code: doc.code,
-            name: doc.name,
-            description: doc.description ?? "",
-            category: doc.category,
-            is_required: doc.is_required,
-            validity_days: typeof doc.validity_days === "number" ? doc.validity_days : undefined,
-          });
-
-          setType({ id: doc.document_type_id, label: doc.type?.name ?? `Tipo ${doc.document_type_id}` });
-          setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name ?? `Órgão ${doc.document_issuer_id}` })
-          // ajuste no useEffect
-          setVersions(
-            (doc.versions ?? []).map((v) => ({
-              code: v.code,
-              description: v.description ?? "",
-              version: v.version,
-              validity_days: v.validity_days,
-            }))
-          );
-
-        })
-        .catch(() => {
-          setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });
-          navigate("/backoffice/documentos");
-        })
-        .finally(() => setIsLoading(false));
+    if (!isEdit || !id) {
+      return;
     }
-  }, [id]);
+
+    setIsLoading(true);
+    getDocumentById(id)
+      .then((doc) => {
+        setForm({
+          code: doc.code,
+          name: doc.name,
+          description: doc.description ?? "",
+          category: doc.category,
+          is_required: doc.is_required,
+        });
+
+        setType({ id: doc.document_type_id, label: doc.type?.name ?? `Tipo ${doc.document_type_id}` });
+        setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name ?? `Órgão ${doc.document_issuer_id}` });
+
+        setVersions(
+          (doc.versions ?? []).map((item) => ({
+            code: item.code,
+            description: item.description ?? "",
+            version: item.version,
+          }))
+        );
+      })
+      .catch(() => {
+        setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });
+        navigate("/backoffice/documentos");
+      })
+      .finally(() => setIsLoading(false));
+  }, [id, isEdit, navigate]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
-    const val = type === "checkbox" && "checked" in e.target
-      ? (e.target as HTMLInputElement).checked
-      : value;
-    setForm((prev) => ({ ...prev, [name]: val }));
+    const { name, value, type } = event.target;
+    const parsedValue =
+      type === "checkbox" && "checked" in event.target
+        ? (event.target as HTMLInputElement).checked
+        : value;
+
+    setForm((prev) => ({ ...prev, [name]: parsedValue }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrors({});
     setVersionErrors({});
+
     try {
       const payload = {
         ...form,
-        validity_days: form.validity_days !== undefined ? Number(form.validity_days) : undefined,
-        document_type_id: String(type?.id),
-        document_issuer_id: String(issuer?.id),
+        document_type_id: type?.id != null ? String(type.id) : "",
+        document_issuer_id: issuer?.id != null ? String(issuer.id) : "",
         versions,
         version: 1,
       };
 
-      if (isEdit) {
-        await updateDocument(id!, payload);
+      if (isEdit && id) {
+        await updateDocument(id, payload);
       } else {
         await createDocument(payload);
       }
 
-      setToast({ open: true, message: `Documento ${isEdit ? "atualizado" : "criado"} com sucesso.`, type: "success" });
+      setToast({
+        open: true,
+        message: `Documento ${isEdit ? "atualizado" : "criado"} com sucesso.`,
+        type: "success",
+      });
       navigate("/backoffice/documentos");
     } catch (err: any) {
       const rawErrors = err.response?.data?.errors ?? {};
-      const versionFieldErrors: Record<number, Record<string, string>> = {};
+      const groupedVersionErrors: Record<number, Record<string, string>> = {};
+
       Object.keys(rawErrors).forEach((key) => {
         const match = key.match(/^versions\.(\d+)\.(\w+)$/);
-        if (match) {
-          const [_, indexStr, field] = match;
-          const index = Number(indexStr);
-          if (!versionFieldErrors[index]) versionFieldErrors[index] = {};
-          versionFieldErrors[index][field] = rawErrors[key];
+        if (!match) {
+          return;
         }
+
+        const index = Number(match[1]);
+        const field = match[2];
+        if (!groupedVersionErrors[index]) {
+          groupedVersionErrors[index] = {};
+        }
+        groupedVersionErrors[index][field] = rawErrors[key];
       });
+
       setErrors(rawErrors);
-      setVersionErrors(versionFieldErrors);
+      setVersionErrors(groupedVersionErrors);
+      if (Object.keys(groupedVersionErrors).length > 0) {
+        setActiveTab("versoes");
+      }
       setToast({ open: true, message: "Erro ao salvar documento.", type: "error" });
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="mx-auto max-w-4xl p-4">
       <Breadcrumbs
         items={[
           { label: "Parâmetros", to: "/backoffice/parametros" },
@@ -148,83 +162,135 @@ export default function DocumentFormPage() {
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
       />
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Documento" : "Novo Documento"}</h1>
+
+      <h1 className="mb-6 text-2xl font-bold">{isEdit ? "Editar Documento" : "Novo Documento"}</h1>
 
       {isEdit && isLoading ? (
-        <div className="h-64 flex items-center justify-center">
+        <div className="flex h-64 items-center justify-center">
           <Spinner />
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 grid gap-6 md:grid-cols-2">
-          <FormInput label="Código" name="code" value={form.code} onChange={handleChange} error={errors.code} required />
-          <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />
-
-          <FormTextArea
-            label="Descrição"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            error={errors.description}
-            className="md:col-span-2"
-          />
-
-          <FormSelectField
-            label="Categoria"
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            error={errors.category}
-            options={[
-              { value: "employee", label: "Funcionário" },
-              { value: "company", label: "Empresa" },
-              { value: "general", label: "Geral" },
-            ]}
-          />
-
-          <FormSwitchField
-            label="Obrigatório"
-            name="is_required"
-            checked={form.is_required}
-            error={getFieldError(errors, "is_required")}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                is_required: e.target.checked,
-              }))
-            }
-          />
-
-          <FormInput
-            label="Dias de Validade"
-            name="validity_days"
-            value={form.validity_days ?? ""}
-            onChange={handleChange}
-            error={errors.validity_days}
-            type="number"
-          />
-
-          <DocumentTypeAutocompleteField
-            value={type}
-            onChange={setType}
-            error={getFieldError(errors, "document_type_id")}
-          />
-          <DocumentIssuerAutocompleteField
-            value={issuer}
-            onChange={setIssuer}
-            error={getFieldError(errors, "document_issuer_id")}
-          />
-
-          <div className="md:col-span-2">
-            <DocumentVersionsField value={versions} onChange={setVersions} errors={versionErrors} />
+        <form onSubmit={handleSubmit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+            <nav className="-mb-px flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("dados")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "dados"
+                    ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                }`}
+              >
+                Dados
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("versoes")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "versoes"
+                    ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                }`}
+              >
+                Versões
+              </button>
+            </nav>
           </div>
 
-          <div className="md:col-span-2">
-            <FormActions onCancel={() => navigate("/backoffice/documentos")} text={isEdit ? "Atualizar" : "Criar"} />
+          {activeTab === "dados" && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <FormInput
+                label="Código"
+                name="code"
+                value={form.code}
+                onChange={handleChange}
+                error={errors.code}
+                required
+              />
+              <FormInput
+                label="Nome"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                error={errors.name}
+                required
+              />
+
+              <FormTextArea
+                label="Descrição"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                error={errors.description}
+                className="md:col-span-2"
+              />
+
+              <div className="grid gap-6 md:col-span-2 md:grid-cols-2 md:items-end">
+                <FormSelectField
+                  label="Categoria"
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  error={errors.category}
+                  options={[
+                    { value: "employee", label: "Funcionário" },
+                    { value: "company", label: "Empresa" },
+                    { value: "general", label: "Geral" },
+                  ]}
+                />
+
+                <FormSwitchField
+                  label="Obrigatório"
+                  name="is_required"
+                  checked={form.is_required}
+                  error={getFieldError(errors, "is_required")}
+                  className="flex h-full items-center justify-center md:pb-2"
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      is_required: event.target.checked,
+                    }))
+                  }
+                />
+              </div>
+
+              <DocumentTypeAutocompleteField
+                value={type}
+                onChange={setType}
+                error={getFieldError(errors, "document_type_id")}
+                required
+              />
+              <DocumentIssuerAutocompleteField
+                value={issuer}
+                onChange={setIssuer}
+                error={getFieldError(errors, "document_issuer_id")}
+                required
+              />
+            </div>
+          )}
+
+          {activeTab === "versoes" && (
+            <div className="space-y-4">
+              <DocumentVersionsField value={versions} onChange={setVersions} errors={versionErrors} />
+            </div>
+          )}
+
+          <div className="mt-6">
+            <FormActions
+              onCancel={() => navigate("/backoffice/documentos")}
+              text={isEdit ? "Atualizar" : "Criar"}
+            />
           </div>
         </form>
       )}
 
-      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </div>
   );
 }

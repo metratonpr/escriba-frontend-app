@@ -72,7 +72,7 @@ export default function CompanyDocumentUploadPage() {
   };
 
   const handleAskDelete = (id: string) => {
-      const item = data.data.find((d: CompanyDocumentUpload) => String(d.id) === id);
+    const item = data.data.find((d: CompanyDocumentUpload) => String(d.id) === id);
     setSelectedId(id);
     setSelectedName(item?.company?.name ?? null);
     setModalOpen(true);
@@ -109,12 +109,20 @@ export default function CompanyDocumentUploadPage() {
       sortable: true,
     },
     {
-      label: "Versão do Documento",
-      field: "document_version.code",
-      render: (row) =>
-        row.document_version
-          ? `${row.document_version.code} - ${row.document_version.version}`
-          : "",
+      label: "Documento",
+      field: "document.code",
+      render: (row) => {
+        const doc = row.document ?? row.document_version;
+        if (!doc) {
+          return "";
+        }
+
+        if (doc.name) {
+          return `${doc.code} - ${doc.name}`;
+        }
+
+        return `${doc.code}${doc.version ? ` (${doc.version})` : ""}`;
+      },
       sortable: true,
     },
     {
@@ -179,5 +187,3 @@ export default function CompanyDocumentUploadPage() {
     </>
   );
 }
-
-

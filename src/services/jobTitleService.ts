@@ -20,6 +20,20 @@ export interface PaginatedResponse<T> {
   per_page: number;
 }
 
+interface LaravelMetaPagination {
+  current_page?: number;
+  per_page?: number;
+  total?: number;
+}
+
+interface LaravelPaginatedResponse<T> {
+  data: T[];
+  meta?: LaravelMetaPagination;
+  total?: number;
+  page?: number;
+  per_page?: number;
+}
+
 export interface GetJobTitlesOptions {
   page?: number;
   perPage?: number;
@@ -39,7 +53,7 @@ export const getJobTitles = async (
     sortOrder = "asc",
   } = options;
 
-  return await request<PaginatedResponse<JobTitle>>(
+  const response = await request<LaravelPaginatedResponse<JobTitle>>(
     "GET",
     API_JOB_TITLES,
     {},
@@ -51,6 +65,13 @@ export const getJobTitles = async (
       sort_order: sortOrder,
     }
   );
+
+  return {
+    data: Array.isArray(response.data) ? response.data : [],
+    total: Number(response.total ?? response.meta?.total ?? 0),
+    page: Number(response.page ?? response.meta?.current_page ?? page),
+    per_page: Number(response.per_page ?? response.meta?.per_page ?? perPage),
+  };
 };
 
 export const getJobTitleById = (id: string): Promise<JobTitle> =>

@@ -15,6 +15,7 @@ export interface AuthUser {
   id: number | string;
   name?: string | null;
   email?: string | null;
+  is_admin?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -33,6 +34,21 @@ export interface UpdateProfileResponse {
   message: string;
   user: AuthUser;
 }
+
+interface ApiEnvelope<T> {
+  success?: boolean;
+  message?: string;
+  data?: T;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isApiEnvelope = <T>(value: unknown): value is ApiEnvelope<T> =>
+  isRecord(value) && ("success" in value || "message" in value || "data" in value);
+
+const unwrapApiData = <T>(value: T | ApiEnvelope<T>): T =>
+  isApiEnvelope<T>(value) ? (value.data as T) : value;
 
 const setDefaultAuthHeader = (token: string | null) => {
   if (token) {
@@ -78,6 +94,11 @@ export const getStoredUser = (): AuthUser | null => {
   return null;
 };
 
+export const isAdminUser = (user: AuthUser | null | undefined): boolean =>
+  Boolean(user?.is_admin);
+
+export const isStoredUserAdmin = (): boolean => isAdminUser(getStoredUser());
+
 export const clearAuthSession = () => {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
   localStorage.removeItem(USER_STORAGE_KEY);
@@ -94,24 +115,26 @@ const getAuthHeaders = () => {
 };
 
 export const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
-  const response = await axios.post<LoginResponse>(API_LOGIN, credentials);
-  const { token, user } = response.data;
+  const response = await axios.post<LoginResponse | ApiEnvelope<LoginResponse>>(API_LOGIN, credentials);
+  const payload = unwrapApiData<LoginResponse>(response.data);
+  const { token, user } = payload;
 
   setStoredToken(token);
   setStoredUser(user);
 
-  return response.data;
+  return payload;
 };
 
 export const fetchCurrentUser = async (): Promise<AuthUser> => {
   try {
-    const response = await axios.get<AuthUser>(API_ME, {
+    const response = await axios.get<AuthUser | ApiEnvelope<AuthUser>>(API_ME, {
       headers: getAuthHeaders(),
     });
+    const payload = unwrapApiData<AuthUser>(response.data);
 
-    setStoredUser(response.data);
+    setStoredUser(payload);
 
-    return response.data;
+    return payload;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearAuthSession();
@@ -137,11 +160,12 @@ export const checkToken = async (): Promise<boolean> => {
   }
 
   try {
-    const response = await axios.get<AuthUser>(API_CHECK_TOKEN, {
+    const response = await axios.get<AuthUser | ApiEnvelope<AuthUser>>(API_CHECK_TOKEN, {
       headers: getAuthHeaders(),
     });
+    const payload = unwrapApiData<AuthUser>(response.data);
 
-    setStoredUser(response.data);
+    setStoredUser(payload);
 
     return true;
   } catch {
@@ -153,13 +177,27 @@ export const checkToken = async (): Promise<boolean> => {
 export const updateProfile = async (
   payload: UpdateProfilePayload
 ): Promise<UpdateProfileResponse> => {
-  const response = await axios.put<UpdateProfileResponse>(API_PROFILE, payload, {
+  const response = await axios.put<UpdateProfileResponse | ApiEnvelope<UpdateProfileResponse>>(API_PROFILE, payload, {
     headers: getAuthHeaders(),
   });
+  const raw = response.data;
 
-  setStoredUser(response.data.user);
+  if (isApiEnvelope<UpdateProfileResponse>(raw)) {
+    const responseData = raw.data;
+    const user = responseData?.user ?? getStoredUser() ?? ({ id: "unknown" } as AuthUser);
+    const message = raw.message?.trim() || responseData?.message || "Perfil atualizado com sucesso.";
 
-  return response.data;
+    setStoredUser(user);
+
+    return {
+      message,
+      user,
+    };
+  }
+
+  setStoredUser(raw.user);
+
+  return raw;
 };
 
 setDefaultAuthHeader(getStoredToken());

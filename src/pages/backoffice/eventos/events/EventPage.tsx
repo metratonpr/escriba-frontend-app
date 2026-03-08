@@ -91,6 +91,11 @@ export default function EventPage() {
             render: (row) => (row.event_type_id ?? "").toString(),
         },
         {
+            label: "Carga Horária",
+            field: "total_hours",
+            render: (row) => (row.total_hours != null ? `${row.total_hours}h` : ""),
+        },
+        {
             label: "Início",
             field: "start_date",
             render: (row) =>
@@ -166,3 +171,4 @@ export default function EventPage() {
     </>
   );
 }
+

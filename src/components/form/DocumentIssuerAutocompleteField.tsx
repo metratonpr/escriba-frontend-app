@@ -1,6 +1,4 @@
-// src/components/form/DocumentIssuerAutocompleteField.tsx
-import { useEffect, useState, useCallback } from "react";
-import debounce from "lodash/debounce";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getDocumentIssuers } from "../../services/documentIssuerService";
 
@@ -19,6 +17,68 @@ interface DocumentIssuerAutocompleteFieldProps {
   required?: boolean;
 }
 
+const MIN_SEARCH_LENGTH = 2;
+const FETCH_LIMIT = 25;
+
+function extractListFromResponse(response: unknown): any[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (response && typeof response === "object") {
+    const record = response as Record<string, unknown>;
+    const directData = record.data;
+
+    if (Array.isArray(directData)) {
+      return directData;
+    }
+
+    if (directData && typeof directData === "object") {
+      const nestedData = (directData as Record<string, unknown>).data;
+      if (Array.isArray(nestedData)) {
+        return nestedData;
+      }
+    }
+  }
+
+  return [];
+}
+
+const toUniqueOptions = (items: any[]): Option[] => {
+  const map = new Map<string, Option>();
+
+  items.forEach((item) => {
+    if (item?.id == null) {
+      return;
+    }
+
+    const id = String(item.id);
+    if (map.has(id)) {
+      return;
+    }
+
+    map.set(id, {
+      id,
+      label: typeof item.name === "string" ? item.name : id,
+    });
+  });
+
+  return Array.from(map.values());
+};
+
+const mergeSelectedOption = (list: Option[], selected: Option | null): Option[] => {
+  if (!selected?.id) {
+    return list;
+  }
+
+  const selectedId = String(selected.id);
+  if (list.some((item) => String(item.id) === selectedId)) {
+    return list;
+  }
+
+  return [{ id: selectedId, label: selected.label }, ...list];
+};
+
 export default function DocumentIssuerAutocompleteField({
   label = "Emissor do Documento",
   value,
@@ -28,39 +88,95 @@ export default function DocumentIssuerAutocompleteField({
   error,
   required = false,
 }: DocumentIssuerAutocompleteFieldProps) {
+  const requestIdRef = useRef(0);
+  const selectedRef = useRef<Option | null>(value);
+  const debounceRef = useRef<number | null>(null);
+
   const [options, setOptions] = useState<Option[]>([]);
+  const [baseOptions, setBaseOptions] = useState<Option[]>([]);
   const [query, setQuery] = useState("");
 
-  // Função de busca com debounce
-  const fetchOptions = useCallback(
-    debounce(async (term: string) => {
+  const loadOptions = useCallback(async (term: string): Promise<Option[]> => {
+    const response = await getDocumentIssuers({
+      search: term,
+      page: 1,
+      perPage: FETCH_LIMIT,
+    });
+
+    return toUniqueOptions(extractListFromResponse(response));
+  }, []);
+
+  useEffect(() => {
+    selectedRef.current = value ? { id: String(value.id), label: value.label } : null;
+    setOptions((prev) => mergeSelectedOption(prev, selectedRef.current));
+  }, [value]);
+
+  useEffect(() => {
+    let canceled = false;
+    const currentRequest = ++requestIdRef.current;
+
+    const fetchInitial = async () => {
       try {
-        const res = await getDocumentIssuers({ search: term, page: 1, perPage: 25 });
-        const list = Array.isArray(res) ? res : res.data;
-        const mapped = list.map((item: any) => ({
-          id: item.id,
-          label: item.name,
-        }));
-        setOptions(mapped);
+        const fetched = await loadOptions("");
+        if (canceled || requestIdRef.current !== currentRequest) {
+          return;
+        }
+
+        setBaseOptions(fetched);
+        setOptions(mergeSelectedOption(fetched, selectedRef.current));
       } catch {
-        setOptions([]);
+        if (canceled || requestIdRef.current !== currentRequest) {
+          return;
+        }
+
+        setBaseOptions([]);
+        setOptions(mergeSelectedOption([], selectedRef.current));
       }
-    }, 300),
-    []
-  );
+    };
 
-  // Busca reativa a mudanças de query
-  useEffect(() => {
-    fetchOptions(query);
-    return () => fetchOptions.cancel();
-  }, [query, fetchOptions]);
+    void fetchInitial();
 
-  // Inclui valor manual caso não esteja na lista de opções
+    return () => {
+      canceled = true;
+    };
+  }, [loadOptions]);
+
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
+    if (debounceRef.current) {
+      window.clearTimeout(debounceRef.current);
     }
-  }, [value, options]);
+
+    const term = query.trim();
+
+    if (term.length < MIN_SEARCH_LENGTH) {
+      setOptions(mergeSelectedOption(baseOptions, selectedRef.current));
+      return;
+    }
+
+    const currentRequest = ++requestIdRef.current;
+    debounceRef.current = window.setTimeout(async () => {
+      try {
+        const fetched = await loadOptions(term);
+        if (requestIdRef.current !== currentRequest) {
+          return;
+        }
+
+        setOptions(mergeSelectedOption(fetched, selectedRef.current));
+      } catch {
+        if (requestIdRef.current !== currentRequest) {
+          return;
+        }
+
+        setOptions(mergeSelectedOption([], selectedRef.current));
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        window.clearTimeout(debounceRef.current);
+      }
+    };
+  }, [baseOptions, loadOptions, query]);
 
   return (
     <FormAutocompleteField

@@ -86,8 +86,8 @@ export const getCompanies = async (
 };
 
 // Busca empresa por ID
-export const getCompanyById = (id: string): Promise<{ data: CompanyResponse }> =>
-  request<{ data: CompanyResponse }>('GET', `${API_COMPANIES}/${id}`);
+export const getCompanyById = (id: string): Promise<CompanyResponse> =>
+  request<CompanyResponse>('GET', `${API_COMPANIES}/${id}`);
 
 
 // Criação

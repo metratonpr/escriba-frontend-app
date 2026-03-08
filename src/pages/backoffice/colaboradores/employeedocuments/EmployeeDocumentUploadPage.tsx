@@ -1,5 +1,3 @@
-// src/pages/backoffice/colaboradores/employee-documents/EmployeeDocumentUploadPage.tsx
-
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import {
@@ -91,41 +89,50 @@ export default function EmployeeDocumentUploadPage() {
     }
   };
 
-    const columns: Column<EmployeeDocumentUpload>[] = [
-        {
-            label: "Funcionário",
-            field: "employee.name",
-            render: (row) => row.employee?.name ?? "",
-            sortable: true,
-        },
-        {
-            label: "Versão do Documento",
-            field: "document_version.code",
-            render: (row) =>
-                `${row.document_version?.code ?? ""} - ${row.document_version?.version ?? ""}`,
-            sortable: true,
-        },
-        {
-            label: "Status",
-            field: "status",
-            sortable: true,
-            render: (row) => {
-                if (!row.status) return "";
-                const clean = row.status.trim().toLowerCase();
-                return clean.charAt(0).toUpperCase() + clean.slice(1);
-            },
-        },
-        {
-            label: "Criado em",
-            field: "created_at",
-            render: (row) =>
-                row.created_at && dayjs(row.created_at).isValid()
-                    ? dayjs(row.created_at).format("DD/MM/YYYY HH:mm")
-                    : "",
-            sortable: true,
-        },
-    ];
+  const columns: Column<EmployeeDocumentUpload>[] = [
+    {
+      label: "Funcionario",
+      field: "employee.name",
+      render: (row) => row.employee?.name ?? "",
+      sortable: true,
+    },
+    {
+      label: "Documento",
+      field: "document.code",
+      render: (row) => {
+        const doc = row.document ?? row.document_version;
+        if (!doc) {
+          return "";
+        }
 
+        if (doc.name) {
+          return `${doc.code} - ${doc.name}`;
+        }
+
+        return `${doc.code}${doc.version ? ` (${doc.version})` : ""}`;
+      },
+      sortable: true,
+    },
+    {
+      label: "Status",
+      field: "status",
+      sortable: true,
+      render: (row) => {
+        if (!row.status) return "";
+        const clean = row.status.trim().toLowerCase();
+        return clean.charAt(0).toUpperCase() + clean.slice(1);
+      },
+    },
+    {
+      label: "Criado em",
+      field: "created_at",
+      render: (row) =>
+        row.created_at && dayjs(row.created_at).isValid()
+          ? dayjs(row.created_at).format("DD/MM/YYYY HH:mm")
+          : "",
+      sortable: true,
+    },
+  ];
 
   return (
     <>
@@ -176,5 +183,3 @@ export default function EmployeeDocumentUploadPage() {
     </>
   );
 }
-
-

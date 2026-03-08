@@ -36,7 +36,7 @@ type FormDocument = File | DocumentFile;
 interface FormState {
     company_id: Option | null;
     document: Option | null;
-    document_version_id: string;
+    document_id: string;
     issue_date: string;
     due_date: string;
     documents: FormDocument[];
@@ -52,7 +52,7 @@ export default function CompanyDocumentUploadFormPage() {
     const [form, setForm] = useState<FormState>({
         company_id: null,
         document: null,
-        document_version_id: "",
+        document_id: "",
         issue_date: "",
         due_date: "",
         documents: [],
@@ -86,15 +86,19 @@ export default function CompanyDocumentUploadFormPage() {
             setIsLoading(true);
             getCompanyDocumentUploadById(id)
                 .then((data) => {
+                    const selectedDocument = data.document ?? data.document_version;
+
                     setForm({
                         company_id: data.company ? { id: data.company.id, label: data.company.name } : null,
-                        document: data.document_version
+                        document: selectedDocument
                             ? {
-                                id: data.document_version.id,
-                                label: `${data.document_version.code} (${data.document_version.version})`,
+                                id: selectedDocument.id,
+                                label: selectedDocument.name
+                                    ? `${selectedDocument.code} - ${selectedDocument.name}`
+                                    : `${selectedDocument.code}${selectedDocument.version ? ` (${selectedDocument.version})` : ""}`,
                             }
                             : null,
-                        document_version_id: String(data.document_version_id ?? ""),
+                        document_id: String(data.document_id ?? selectedDocument?.id ?? ""),
                         issue_date: data.emission_date ?? "",
                         due_date: data.due_date ?? "",
                         documents: data.upload
@@ -157,7 +161,7 @@ export default function CompanyDocumentUploadFormPage() {
         const formData = new FormData();
 
         if (form.company_id?.id) formData.append("company_id", String(form.company_id.id));
-        formData.append("document_version_id", form.document_version_id);
+        formData.append("document_id", form.document_id);
         formData.append("emission_date", form.issue_date);
         formData.append("due_date", form.due_date);
         formData.append("status", form.status);
@@ -222,11 +226,17 @@ export default function CompanyDocumentUploadFormPage() {
                     />
                     <DocumentWithVersionField
                         document={form.document}
-                        onDocumentChange={(doc: Option | null) => setForm((p) => ({ ...p, document: doc }))}
-                        versionId={form.document_version_id}
-                        onVersionChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm((p) => ({ ...p, document_version_id: e.target.value }))}
+                        onDocumentChange={(doc: Option | null) =>
+                            setForm((p) => ({
+                                ...p,
+                                document: doc,
+                                document_id: doc ? String(doc.id) : "",
+                            }))
+                        }
+                        versionId={form.document_id}
+                        onVersionChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm((p) => ({ ...p, document_id: e.target.value }))}
                         documentError={getFieldError(errors, "document_id", "document")}
-                        versionError={getFieldError(errors, "document_version_id")}
+                        versionError={getFieldError(errors, "document_id", "document_version_id")}
                     />
                     <FormDatePickerField
                         name="issue_date"

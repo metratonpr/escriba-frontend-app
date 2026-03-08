@@ -7,8 +7,8 @@ export const SOURCE_TYPE_LABEL: Record<DocumentSourceType, string> = {
   employee: "Colaborador",
   event: "Evento",
   epi_delivery: "Entrega EPI",
-  occurrence: "Ocorrencia",
-  medical_exam: "Exame medico",
+  occurrence: "Ocorrência",
+  medical_exam: "Exame médico",
 };
 
 export const getSourceTypeLabel = (value: string): string =>

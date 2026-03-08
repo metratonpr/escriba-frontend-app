@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import Spinner from "../../../components/Layout/ui/Spinner";
 import { FormActions } from "../../../components/form/FormActions";
 import { FormInput } from "../../../components/form/FormInput";
-import { fetchCurrentUser, getStoredUser, updateProfile } from "../../../services/authService";
+import {
+  fetchCurrentUser,
+  getStoredUser,
+  isStoredUserAdmin,
+  updateProfile,
+} from "../../../services/authService";
 import { getFieldError } from "../../../utils/errorUtils";
 
 type ProfileForm = {
@@ -16,6 +21,7 @@ type ProfileForm = {
 
 export default function UserProfilePage() {
   const navigate = useNavigate();
+  const canManageUsers = isStoredUserAdmin();
   const [form, setForm] = useState<ProfileForm>({
     name: "",
     email: "",
@@ -55,7 +61,7 @@ export default function UserProfilePage() {
       } catch {
         setToast({
           open: true,
-          message: "Nao foi possivel carregar o perfil do usuario.",
+          message: "Não foi possível carregar o perfil do usuário.",
           type: "error",
         });
       } finally {
@@ -123,6 +129,18 @@ export default function UserProfilePage() {
       />
 
       <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
+
+      {canManageUsers && (
+        <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4">
+          <p className="text-sm font-medium text-blue-900">Você possui acesso de administrador.</p>
+          <Link
+            to="/backoffice/perfil/usuarios"
+            className="mt-2 inline-flex rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Gerenciar usuários
+          </Link>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="h-56 flex items-center justify-center">

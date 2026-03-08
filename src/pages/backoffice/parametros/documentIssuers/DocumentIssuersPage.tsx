@@ -115,7 +115,7 @@ export default function DocumentIssuersPage() {
           pagination={{
             total: data.total,
             perPage: data.per_page,
-            currentPage: page,
+            currentPage: data.page,
             onPageChange: setPage,
             onPerPageChange: (pp) => {
               setPage(1);

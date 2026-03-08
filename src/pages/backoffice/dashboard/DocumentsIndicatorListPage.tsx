@@ -29,8 +29,8 @@ const SOURCE_TYPE_LABEL: Record<string, string> = {
   employee: "Colaborador",
   event: "Evento",
   epi_delivery: "Entrega EPI",
-  occurrence: "Ocorrencia",
-  medical_exam: "Exame medico",
+  occurrence: "Ocorrência",
+  medical_exam: "Exame médico",
 };
 
 const buildRowId = (row: DocumentDeadlineIndicator, index: number) =>
@@ -47,7 +47,7 @@ const formatRemainingDays = (value: number | null, mode: IndicatorMode): string 
   }
 
   if (mode === "expired") {
-    return `${days} dia(s) vencido`;
+    return `${days} dia(s) vencido(s)`;
   }
 
   return `${days} dia(s)`;
@@ -144,7 +144,7 @@ export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorL
       render: (row) => row.status ?? "",
     },
     {
-      label: "Emissao",
+      label: "Emissão",
       field: "emission_date",
       sortable: true,
       render: (row) => convertToBrazilianDateFormat(row.emission_date ?? ""),
