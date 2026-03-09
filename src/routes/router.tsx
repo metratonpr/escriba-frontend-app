@@ -58,6 +58,7 @@ import UsersPage from "../pages/backoffice/parametros/users/UsersPage";
 import UserFormPage from "../pages/backoffice/parametros/users/UserFormPage";
 import AdminRoute from "../components/auth/AdminRoute";
 import ResetPassword from "../pages/ResetPassword";
+import CertificateVerificationPage from "../pages/CertificateVerificationPage";
 
 export const router = createBrowserRouter([
     {
@@ -67,6 +68,18 @@ export const router = createBrowserRouter([
     {
         path: '/reset-password',
         element: <ResetPassword />,
+    },
+    {
+        path: '/certificados/validar',
+        element: <CertificateVerificationPage />,
+    },
+    {
+        path: '/certificados/validar/:verificationCode',
+        element: <CertificateVerificationPage />,
+    },
+    {
+        path: '/certificates/verify/:verificationCode',
+        element: <CertificateVerificationPage />,
     },
     {
         path: '/backoffice',

@@ -39,7 +39,7 @@ export interface CompanyResponse {
   email: string;
   group?: { id: string; name: string };
   type?: { id: string; name: string };
-  company_sectors?: { sector: { id: string; name: string } }[];
+  company_sectors?: { id: string | number; sector: { id: string; name: string } }[];
 }
 
 // Paginação genérica

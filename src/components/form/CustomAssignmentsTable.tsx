@@ -1,23 +1,39 @@
 // src/components/form/CustomAssignmentsTable.tsx
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FormDatePickerField from "../../components/form/FormDatePickerField";
 import { convertToBrazilianDateTimeFormat } from "../../utils/formatUtils";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import debounce from "lodash/debounce";
-import { getCompanies } from "../../services/companyService";
-import { getJobTitles } from "../../services/jobTitleService";
-import FormSelectField from "./FormSelectField";
+import { getCompanies, type CompanyResponse } from "../../services/companyService";
+import { getJobTitles, type JobTitle } from "../../services/jobTitleService";
+import { getSectors } from "../../services/sectorService";
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 import { useClientPagination } from "../../hooks/useClientPagination";
 import InlinePagination from "../Layout/ui/InlinePagination";
 
-interface Option<T = any> {
+interface Option<T = unknown> {
   id: string | number;
   label: string;
   _original?: T;
 }
 
-interface CustomAssignment {
+interface CompanySectorRelation {
+  id: string | number;
+  sector?: {
+    id?: string | number | null;
+    name?: string | null;
+  } | null;
+}
+
+type CompanyWithSectorVariants = CompanyResponse & {
+  companySectors?: CompanySectorRelation[];
+};
+
+type CompanyOption = Option<CompanyWithSectorVariants>;
+type SectorOption = Option<CompanySectorRelation>;
+type JobTitleOption = Option<JobTitle>;
+
+export interface CustomAssignment {
   company_sector_id: number;
   company_name: string;
   sector_name: string;
@@ -34,17 +50,19 @@ interface Props {
 }
 
 export default function CustomAssignmentsTable({ value, onChange, error }: Props) {
-  const [selectedCompany, setSelectedCompany] = useState<Option | null>(null);
-  const [selectedSector, setSelectedSector] = useState<Option | null>(null);
-  const [selectedJobTitle, setSelectedJobTitle] = useState<Option | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null);
+  const [selectedSector, setSelectedSector] = useState<SectorOption | null>(null);
+  const [selectedJobTitle, setSelectedJobTitle] = useState<JobTitleOption | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
   const [companyQuery, setCompanyQuery] = useState("");
+  const [sectorQuery, setSectorQuery] = useState("");
   const [jobTitleQuery, setJobTitleQuery] = useState("");
-  const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [sectorOptions, setSectorOptions] = useState<Option[]>([]);
-  const [jobTitleOptions, setJobTitleOptions] = useState<Option[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
+  const [sectorOptions, setSectorOptions] = useState<SectorOption[]>([]);
+  const [jobTitleOptions, setJobTitleOptions] = useState<JobTitleOption[]>([]);
+  const [sectorLoadError, setSectorLoadError] = useState<string | null>(null);
   const errorMessage = normalizeFieldError(error);
   const {
     currentPage,
@@ -56,25 +74,73 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     setPerPage,
   } = useClientPagination(value, { initialPerPage: 5 });
 
-  const fetchCompanies = useCallback(debounce(async (term: string) => {
-    try {
-      const response = await getCompanies({ search: term, page: 1, perPage: 25 });
-      const data = Array.isArray(response) ? response : response.data;
-      setCompanyOptions(data.map((c: any) => ({ id: c.id, label: c.name, _original: c })));
-    } catch {
-      setCompanyOptions([]);
-    }
-  }, 300), []);
+  const fetchCompanies = useMemo(
+    () =>
+      debounce(async (term: string) => {
+        try {
+          const response = await getCompanies({ search: term, page: 1, perPage: 25 });
+          setCompanyOptions(
+            response.data.map((company) => ({
+              id: company.id,
+              label: company.name,
+              _original: company,
+            }))
+          );
+        } catch {
+          setCompanyOptions([]);
+        }
+      }, 300),
+    []
+  );
 
-  const fetchJobTitles = useCallback(debounce(async (term: string) => {
-    try {
-      const response = await getJobTitles({ search: term, page: 1, perPage: 25 });
-      const data = Array.isArray(response) ? response : response.data;
-      setJobTitleOptions(data.map((j: any) => ({ id: j.id, label: j.name })));
-    } catch {
-      setJobTitleOptions([]);
-    }
-  }, 300), []);
+  const fetchJobTitles = useMemo(
+    () =>
+      debounce(async (term: string) => {
+        try {
+          const response = await getJobTitles({ search: term, page: 1, perPage: 25 });
+          setJobTitleOptions(
+            response.data.map((jobTitle) => ({
+              id: jobTitle.id,
+              label: jobTitle.name,
+              _original: jobTitle,
+            }))
+          );
+        } catch {
+          setJobTitleOptions([]);
+        }
+      }, 300),
+    []
+  );
+
+  const fetchSectors = useMemo(
+    () =>
+      debounce(async (term: string, company: CompanyWithSectorVariants) => {
+        try {
+          const response = await getSectors({ search: term, page: 1, perPage: 25 });
+          const allowedSectorIds = new Set(
+            response.data.map((sector) => String(sector.id))
+          );
+          const companySectors = company.company_sectors ?? company.companySectors ?? [];
+
+          setSectorOptions(
+            companySectors
+              .filter((companySector) =>
+                allowedSectorIds.has(String(companySector.sector?.id ?? ""))
+              )
+              .map((companySector) => ({
+                id: companySector.id,
+                label: companySector.sector?.name ?? "Setor desconhecido",
+                _original: companySector,
+              }))
+          );
+          setSectorLoadError(null);
+        } catch {
+          setSectorLoadError("Erro ao buscar setores.");
+          setSectorOptions([]);
+        }
+      }, 300),
+    []
+  );
 
   useEffect(() => {
     fetchCompanies(companyQuery);
@@ -87,17 +153,41 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
   }, [jobTitleQuery, fetchJobTitles]);
 
   useEffect(() => {
-    const extractSectorsFromCompany = (company: any): Option[] => {
-      const sectors = company?.company_sectors ?? company?.companySectors ?? [];
-      return sectors.map((cs: any) => ({
-        id: cs.id,
-        label: cs.sector?.name ?? "Setor desconhecido",
-        _original: cs,
-      }));
-    };
+    const company = selectedCompany?._original;
+    if (!company) {
+      setSectorOptions([]);
+      setSectorLoadError(null);
+      return;
+    }
 
-    setSectorOptions(selectedCompany ? extractSectorsFromCompany(selectedCompany._original) : []);
-  }, [selectedCompany]);
+    const companySectors = company.company_sectors ?? company.companySectors ?? [];
+
+    if (!sectorQuery.trim()) {
+      setSectorOptions(
+        companySectors.map((companySector) => ({
+          id: companySector.id,
+          label: companySector.sector?.name ?? "Setor desconhecido",
+          _original: companySector,
+        }))
+      );
+      setSectorLoadError(null);
+      return;
+    }
+
+    fetchSectors(sectorQuery, company);
+    return () => fetchSectors.cancel();
+  }, [fetchSectors, sectorQuery, selectedCompany]);
+
+  const visibleSectorOptions = useMemo(() => {
+    if (
+      selectedSector &&
+      !sectorOptions.some((option) => String(option.id) === String(selectedSector.id))
+    ) {
+      return [selectedSector, ...sectorOptions];
+    }
+
+    return sectorOptions;
+  }, [sectorOptions, selectedSector]);
 
   const handleAdd = () => {
     if (!selectedCompany || !selectedSector || !selectedJobTitle || !startDate) return;
@@ -140,7 +230,9 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     setSelectedJobTitle(null);
     setStartDate("");
     setEndDate("");
+    setSectorQuery("");
     setSectorOptions([]);
+    setSectorLoadError(null);
   };
 
   const handleRemove = (index: number) => {
@@ -161,20 +253,28 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
             setSelectedCompany(v);
             setSelectedSector(null);
             setSelectedJobTitle(null);
+            setSectorQuery("");
             setSectorOptions([]);
+            setSectorLoadError(null);
           }}
           onInputChange={setCompanyQuery}
         />
-        <FormSelectField
+        <div>
+          <FormAutocompleteField
           name="sector_id"
           label="Setor"
-          value={selectedSector?.id ?? ""}
-          onChange={(e) => {
-            const selected = sectorOptions.find(opt => String(opt.id) === e.target.value);
-            setSelectedSector(selected || null);
-          }}
-          options={sectorOptions.map(opt => ({ value: opt.id, label: opt.label }))}
-        />
+            value={selectedSector}
+            options={visibleSectorOptions}
+            onChange={setSelectedSector}
+            onInputChange={setSectorQuery}
+            disabled={!selectedCompany}
+          />
+          {sectorLoadError && (
+            <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
+              {sectorLoadError}
+            </p>
+          )}
+        </div>
         <FormAutocompleteField
           name="job_title_id"
           label="Cargo"

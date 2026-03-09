@@ -24,6 +24,7 @@ export const API_COMPANY_EVENTS = `${BASE_URL}/company-events`;
 export const API_EVENT_PARTICIPATIONS = `${BASE_URL}/event-participations`;
 export const API_EVENT_ATTENDANCE_LISTS = `${BASE_URL}/event-attendance-lists`;
 export const API_CERTIFICATES_GENERATE = `${BASE_URL}/certificates/generate`;
+export const API_CERTIFICATES_VERIFY = `${BASE_URL}/certificates/verify`;
 export const API_MEDICAL_EXAMS = `${BASE_URL}/medical-exams`;
 export const API_EPI_TYPES = `${BASE_URL}/epi-types`;
 export const API_BRANDS = `${BASE_URL}/brands`;

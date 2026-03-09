@@ -23,6 +23,26 @@ export interface EmployeeCompany {
   status: "ativo" | "afastado" | "desligado";
 }
 
+export interface EmployeeAssignmentRelation {
+  id: number | string;
+  name: string;
+}
+
+export interface EmployeeCompanySectorRelation {
+  id: number;
+  company?: EmployeeAssignmentRelation | null;
+  sector?: EmployeeAssignmentRelation | null;
+}
+
+export interface EmployeeAssignment {
+  company_sector_id: number;
+  job_title_id: number;
+  start_date: string;
+  end_date?: string | null;
+  company_sector?: EmployeeCompanySectorRelation | null;
+  job_title?: EmployeeAssignmentRelation | null;
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -32,12 +52,29 @@ export interface Employee {
   birth_date: string;
   driver_license_type: string;
   first_license_date?: string | null;
-  job_titles: EmployeeJobTitle[];
-  sectors: EmployeeSector[];
-  companies: EmployeeCompany[];
+  assignments?: EmployeeAssignment[];
+  job_titles?: EmployeeJobTitle[];
+  sectors?: EmployeeSector[];
+  companies?: EmployeeCompany[];
 }
 
-export type EmployeePayload = Omit<Employee, "id">;
+export interface EmployeeAssignmentPayload {
+  company_sector_id: number;
+  job_title_id: number;
+  start_date: string;
+  end_date?: string | null;
+}
+
+export interface EmployeePayload {
+  name: string;
+  cpf: string;
+  rg: string;
+  rg_issuer: string;
+  birth_date: string;
+  driver_license_type: string;
+  first_license_date?: string | null;
+  assignments: EmployeeAssignmentPayload[];
+}
 
 export interface PaginatedResponse<T> {
   data: T[];
