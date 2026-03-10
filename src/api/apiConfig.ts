@@ -9,6 +9,7 @@ export const API_URL = BASE_URL;
 export const API_COMPANY_GROUPS = `${BASE_URL}/company-groups`;
 export const API_COMPANY_TYPES = `${BASE_URL}/company-types`;
 export const API_COMPANIES = `${BASE_URL}/companies`;
+export const API_COMPANIES_WITH_SECTORS = `${BASE_URL}/companies/with-sectors`;
 export const API_SECTORS = `${BASE_URL}/sectors`;
 export const API_JOB_TITLES = `${BASE_URL}/job-titles`;
 export const API_EMPLOYEES = `${BASE_URL}/employees`;

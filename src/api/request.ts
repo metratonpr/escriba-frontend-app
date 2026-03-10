@@ -1,22 +1,28 @@
-import http from "./http";
 import type { AxiosResponse, Method } from "axios";
+import http from "./http";
+import { multipartRequest } from "./multipartRequest";
 import { normalizeApiResponse } from "./responseNormalizer";
 
 /**
- * Requisição genérica para JSON (não suporta FormData).
+ * Requisicao generica para JSON.
+ * Se receber FormData, delega automaticamente para multipart.
  */
-export async function request<T = any>(
+export async function request<T = unknown>(
   method: Method,
   url: string,
-  data: Record<string, any> = {},
-  params: Record<string, any> = {}
+  data: Record<string, unknown> | FormData = {},
+  params: Record<string, unknown> = {}
 ): Promise<T> {
   try {
     if (data instanceof FormData) {
-      throw new Error("Esta função não aceita FormData. Use `multipartRequest` para uploads.");
+      console.log(`Multipart request para: ${url}`, {
+        method,
+        params,
+      });
+      return multipartRequest<T>(method, url, data, params);
     }
 
-    console.log(`🔄 JSON request para: ${url}`, {
+    console.log(`JSON request para: ${url}`, {
       method,
       params,
       body: method !== "GET" ? data : undefined,
@@ -26,7 +32,7 @@ export async function request<T = any>(
       url,
       method,
       params,
-      ...(method !== "GET" && { data }), // ✅ só inclui `data` se for método válido
+      ...(method !== "GET" && { data }),
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -36,7 +42,7 @@ export async function request<T = any>(
     const response: AxiosResponse<unknown> = await http.request(config);
     return normalizeApiResponse<T>(response.data);
   } catch (error) {
-    console.error(`❌ Erro JSON ${method.toUpperCase()} ${url}:`, error);
+    console.error(`Erro JSON ${method.toUpperCase()} ${url}:`, error);
     throw error;
   }
 }

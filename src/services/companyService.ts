@@ -1,5 +1,5 @@
 import { request } from "../api/request";
-import { API_COMPANIES } from "../api/apiConfig";
+import { API_COMPANIES, API_COMPANIES_WITH_SECTORS } from "../api/apiConfig";
 
 // Representa os dados planos da empresa
 export interface Company {
@@ -50,6 +50,8 @@ export interface PaginatedResponse<T> {
   per_page: number;
 }
 
+type CompanyCollectionResponse = PaginatedResponse<CompanyResponse> | CompanyResponse[];
+
 // Filtros para listagem
 export interface GetCompaniesOptions {
   page?: number;
@@ -83,6 +85,42 @@ export const getCompanies = async (
       sort_order: sortOrder,
     }
   );
+};
+
+export const getCompaniesWithSectors = async (
+  options: GetCompaniesOptions = {}
+): Promise<PaginatedResponse<CompanyResponse>> => {
+  const {
+    page = 1,
+    perPage = 25,
+    search = "",
+    sortBy = "name",
+    sortOrder = "asc",
+  } = options;
+
+  const response = await request<CompanyCollectionResponse>(
+    "GET",
+    API_COMPANIES_WITH_SECTORS,
+    {},
+    {
+      page,
+      per_page: perPage,
+      search,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    }
+  );
+
+  if (Array.isArray(response)) {
+    return {
+      data: response,
+      total: response.length,
+      page,
+      per_page: perPage,
+    };
+  }
+
+  return response;
 };
 
 // Busca empresa por ID

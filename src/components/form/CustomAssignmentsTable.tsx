@@ -1,14 +1,17 @@
-// src/components/form/CustomAssignmentsTable.tsx
 import { useEffect, useMemo, useState } from "react";
-import FormDatePickerField from "../../components/form/FormDatePickerField";
-import { convertToBrazilianDateTimeFormat } from "../../utils/formatUtils";
-import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import debounce from "lodash/debounce";
-import { getCompanies, type CompanyResponse } from "../../services/companyService";
+import FormAutocompleteField from "../../components/form/FormAutocompleteField";
+import FormDatePickerField from "../../components/form/FormDatePickerField";
+import FormSelectField from "../../components/form/FormSelectField";
+import { useClientPagination } from "../../hooks/useClientPagination";
+import {
+  getCompaniesWithSectors,
+  type CompanyResponse,
+} from "../../services/companyService";
 import { getJobTitles, type JobTitle } from "../../services/jobTitleService";
 import { getSectors } from "../../services/sectorService";
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
-import { useClientPagination } from "../../hooks/useClientPagination";
+import { convertToBrazilianDateTimeFormat } from "../../utils/formatUtils";
 import InlinePagination from "../Layout/ui/InlinePagination";
 
 interface Option<T = unknown> {
@@ -33,12 +36,23 @@ type CompanyOption = Option<CompanyWithSectorVariants>;
 type SectorOption = Option<CompanySectorRelation>;
 type JobTitleOption = Option<JobTitle>;
 
+type AssignmentFieldErrors = {
+  company?: string;
+  sector?: string;
+  jobTitle?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  general?: string;
+};
+
 export interface CustomAssignment {
   company_sector_id: number;
   company_name: string;
   sector_name: string;
   job_title_id: number;
   job_title_name: string;
+  status: string;
   start_date: string;
   end_date: string;
 }
@@ -49,12 +63,23 @@ interface Props {
   error?: FieldErrorValue;
 }
 
+function getDefaultStartDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const ASSIGNMENT_STATUS_OPTIONS = [
+  { value: "ativo", label: "Ativo" },
+  { value: "inativo", label: "Inativo" },
+];
+
 export default function CustomAssignmentsTable({ value, onChange, error }: Props) {
   const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null);
   const [selectedSector, setSelectedSector] = useState<SectorOption | null>(null);
   const [selectedJobTitle, setSelectedJobTitle] = useState<JobTitleOption | null>(null);
-  const [startDate, setStartDate] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ativo");
+  const [startDate, setStartDate] = useState<string>(() => getDefaultStartDate());
   const [endDate, setEndDate] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<AssignmentFieldErrors>({});
 
   const [companyQuery, setCompanyQuery] = useState("");
   const [sectorQuery, setSectorQuery] = useState("");
@@ -78,7 +103,11 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     () =>
       debounce(async (term: string) => {
         try {
-          const response = await getCompanies({ search: term, page: 1, perPage: 25 });
+          const response = await getCompaniesWithSectors({
+            search: term,
+            page: 1,
+            perPage: 25,
+          });
           setCompanyOptions(
             response.data.map((company) => ({
               id: company.id,
@@ -189,26 +218,61 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     return sectorOptions;
   }, [sectorOptions, selectedSector]);
 
+  const clearFieldError = (field: keyof AssignmentFieldErrors) => {
+    setFieldErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+      general: undefined,
+    }));
+  };
+
   const handleAdd = () => {
-    if (!selectedCompany || !selectedSector || !selectedJobTitle || !startDate) return;
+    const nextErrors: AssignmentFieldErrors = {};
+
+    if (!selectedCompany) {
+      nextErrors.company = "Selecione uma empresa.";
+    }
+    if (!selectedSector) {
+      nextErrors.sector = "Selecione um setor.";
+    }
+    if (!selectedJobTitle) {
+      nextErrors.jobTitle = "Selecione um cargo.";
+    }
+    if (!selectedStatus) {
+      nextErrors.status = "Selecione um status.";
+    }
+    if (!startDate) {
+      nextErrors.startDate = "Informe a data de inicio.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      return;
+    }
+
     if (endDate && new Date(endDate) < new Date(startDate)) {
-      alert("A data de fim não pode ser anterior à data de início.");
+      setFieldErrors({
+        endDate: "A data de fim nao pode ser anterior a data de inicio.",
+      });
       return;
     }
 
     const companySectorId = Number(selectedSector._original?.id ?? selectedSector.id);
     const jobTitleId = Number(selectedJobTitle.id);
 
-    const duplicate = value.some(item =>
-      item.company_sector_id === companySectorId &&
-      item.job_title_id === jobTitleId &&
-      item.start_date === startDate
+    const duplicate = value.some(
+      (item) =>
+        item.company_sector_id === companySectorId &&
+        item.job_title_id === jobTitleId &&
+        item.start_date === startDate
     );
+
     if (duplicate) {
-      alert("Essa combinação já foi adicionada.");
+      setFieldErrors({ general: "Essa combinacao ja foi adicionada." });
       return;
     }
 
+    setFieldErrors({});
     onChange([
       ...value,
       {
@@ -217,6 +281,7 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
         sector_name: selectedSector.label,
         job_title_id: jobTitleId,
         job_title_name: selectedJobTitle.label,
+        status: selectedStatus,
         start_date: startDate,
         end_date: endDate,
       },
@@ -228,11 +293,13 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
     setSelectedCompany(null);
     setSelectedSector(null);
     setSelectedJobTitle(null);
-    setStartDate("");
+    setSelectedStatus("ativo");
+    setStartDate(getDefaultStartDate());
     setEndDate("");
     setSectorQuery("");
     setSectorOptions([]);
     setSectorLoadError(null);
+    setFieldErrors({});
   };
 
   const handleRemove = (index: number) => {
@@ -249,25 +316,32 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
           label="Empresa"
           value={selectedCompany}
           options={companyOptions}
-          onChange={(v) => {
-            setSelectedCompany(v);
+          onChange={(company) => {
+            setSelectedCompany(company);
             setSelectedSector(null);
-            setSelectedJobTitle(null);
             setSectorQuery("");
             setSectorOptions([]);
             setSectorLoadError(null);
+            clearFieldError("company");
+            clearFieldError("sector");
           }}
           onInputChange={setCompanyQuery}
+          error={fieldErrors.company}
         />
+
         <div>
           <FormAutocompleteField
-          name="sector_id"
-          label="Setor"
+            name="sector_id"
+            label="Setor"
             value={selectedSector}
             options={visibleSectorOptions}
-            onChange={setSelectedSector}
+            onChange={(sector) => {
+              setSelectedSector(sector);
+              clearFieldError("sector");
+            }}
             onInputChange={setSectorQuery}
             disabled={!selectedCompany}
+            error={fieldErrors.sector}
           />
           {sectorLoadError && (
             <p className="mt-1 text-sm text-red-600" role="alert" aria-live="polite">
@@ -275,51 +349,86 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
             </p>
           )}
         </div>
+
         <FormAutocompleteField
           name="job_title_id"
           label="Cargo"
           value={selectedJobTitle}
           options={jobTitleOptions}
-          onChange={setSelectedJobTitle}
+          onChange={(jobTitle) => {
+            setSelectedJobTitle(jobTitle);
+            clearFieldError("jobTitle");
+          }}
           onInputChange={setJobTitleQuery}
+          error={fieldErrors.jobTitle}
         />
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-4">
         <FormDatePickerField
           name="start_date"
-          label="Data Início"
+          label="Data Inicio"
           value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          onChange={(e) => {
+            setStartDate(e.target.value);
+            clearFieldError("startDate");
+            clearFieldError("endDate");
+          }}
+          error={fieldErrors.startDate}
         />
+
         <FormDatePickerField
           name="end_date"
           label="Data Fim"
           value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
+          onChange={(e) => {
+            setEndDate(e.target.value);
+            clearFieldError("endDate");
+          }}
+          error={fieldErrors.endDate}
         />
+
+        <FormSelectField
+          name="status"
+          label="Status"
+          value={selectedStatus}
+          onChange={(e) => {
+            setSelectedStatus(e.target.value);
+            clearFieldError("status");
+          }}
+          options={ASSIGNMENT_STATUS_OPTIONS}
+          error={fieldErrors.status}
+        />
+
         <div className="flex items-end">
           <button
             type="button"
             onClick={handleAdd}
-            className="h-10 px-4 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+            className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             Adicionar
           </button>
         </div>
       </div>
 
+      {fieldErrors.general && (
+        <p className="text-sm text-red-600" role="alert">
+          {fieldErrors.general}
+        </p>
+      )}
+
       {value.length > 0 && (
-        <div className="relative overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-400">
+        <div className="relative mt-4 overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
               <tr>
                 <th className="px-4 py-2 font-semibold">Empresa</th>
                 <th className="px-4 py-2 font-semibold">Setor</th>
                 <th className="px-4 py-2 font-semibold">Cargo</th>
-                <th className="px-4 py-2 font-semibold">Início</th>
+                <th className="px-4 py-2 font-semibold">Status</th>
+                <th className="px-4 py-2 font-semibold">Inicio</th>
                 <th className="px-4 py-2 font-semibold">Fim</th>
-                <th className="px-4 py-2 text-center w-28">Ação</th>
+                <th className="w-28 px-4 py-2 text-center">Acao</th>
               </tr>
             </thead>
             <tbody>
@@ -327,17 +436,33 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
                 const absoluteIndex = (currentPage - 1) * perPage + idx;
 
                 return (
-                  <tr key={absoluteIndex} className="bg-white border-b dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.company_name}</td>
+                  <tr
+                    key={absoluteIndex}
+                    className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-white">
+                      {item.company_name}
+                    </td>
                     <td className="px-4 py-2">{item.sector_name}</td>
                     <td className="px-4 py-2">{item.job_title_name}</td>
-                    <td className="px-4 py-2">{convertToBrazilianDateTimeFormat(item.start_date)}</td>
-                    <td className="px-4 py-2">{item.end_date ? convertToBrazilianDateTimeFormat(item.end_date) : ""}</td>
+                    <td className="px-4 py-2">
+                      {item.status
+                        ? item.status.charAt(0).toUpperCase() + item.status.slice(1)
+                        : ""}
+                    </td>
+                    <td className="px-4 py-2">
+                      {convertToBrazilianDateTimeFormat(item.start_date)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {item.end_date
+                        ? convertToBrazilianDateTimeFormat(item.end_date)
+                        : ""}
+                    </td>
                     <td className="px-4 py-2 text-center">
                       <button
                         type="button"
                         onClick={() => handleRemove(absoluteIndex)}
-                        className="text-red-600 hover:underline text-xs"
+                        className="text-xs text-red-600 hover:underline"
                       >
                         Remover
                       </button>
@@ -360,7 +485,7 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
         </div>
       )}
 
-      {errorMessage && <p className="text-red-600 text-sm mt-2">{errorMessage}</p>}
+      {errorMessage && <p className="mt-2 text-sm text-red-600">{errorMessage}</p>}
     </div>
   );
 }

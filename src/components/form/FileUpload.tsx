@@ -8,6 +8,11 @@ export type UploadFile =
       id: number;
       nome_arquivo: string;
       url_arquivo: string;
+      file_path?: string;
+      links?: {
+        view?: string;
+        download?: string;
+      };
     };
 
 interface FileUploadProps {

@@ -13,19 +13,25 @@ interface EmployeeDocumentAttachmentListProps {
   persisted?: DocumentFile[];
   pending?: File[];
   onRemove: (index: number, type: "persisted" | "pending") => void;
+  employeeId?: string | number;
 }
 
 const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListProps> = ({
   persisted = [],
   pending = [],
   onRemove,
+  employeeId,
 }) => {
   const navigate = useNavigate();
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
   const pendingPagination = useClientPagination(pending, { initialPerPage: 5 });
 
   const handleViewAttachment = (attachment: DocumentFile) => {
-    navigate(`/backoffice/colaboradores/documentos/visualizar-anexo/${attachment.id}`, {
+    const pathname = employeeId
+      ? `/backoffice/colaboradores/editar/${employeeId}/visualizar-anexo/${attachment.id}`
+      : `/backoffice/colaboradores/documentos/visualizar-anexo/${attachment.id}`;
+
+    navigate(pathname, {
       state: { attachment },
     });
   };
