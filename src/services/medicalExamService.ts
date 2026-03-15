@@ -6,6 +6,7 @@ export interface Attachment {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
 }
 
 export interface MedicalExam {

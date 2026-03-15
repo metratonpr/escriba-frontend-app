@@ -7,6 +7,7 @@ interface Attachment {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
 }
 
 interface CompanyAttachmentListProps {
@@ -24,6 +25,7 @@ const CompanyAttachmentList: React.FC<CompanyAttachmentListProps> = ({
 }) => {
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
   const pendingPagination = useClientPagination(pending, { initialPerPage: 5 });
+  const canViewAttachment = (attachment: Attachment) => attachment.has_file === true;
 
   return (
     <div className="mt-6 space-y-2">
@@ -39,13 +41,19 @@ const CompanyAttachmentList: React.FC<CompanyAttachmentListProps> = ({
 
               return (
                 <li key={file.id} className="flex items-center justify-between py-2 text-sm text-gray-700 dark:text-gray-200">
-                  <Link
-                    to={`/backoffice/empresas/editar/${companyId}/visualizar-anexo/${file.id}`}
-                    state={{ attachment: file }}
-                    className="max-w-xs truncate text-blue-600 underline"
-                  >
-                    {file.nome_arquivo}
-                  </Link>
+                  {canViewAttachment(file) ? (
+                    <Link
+                      to={`/backoffice/empresas/editar/${companyId}/visualizar-anexo/${file.id}`}
+                      state={{ attachment: file }}
+                      className="max-w-xs truncate text-blue-600 underline"
+                    >
+                      {file.nome_arquivo}
+                    </Link>
+                  ) : (
+                    <span className="max-w-xs truncate text-gray-500" title="Arquivo fisico indisponivel">
+                      {file.nome_arquivo}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => onRemove(absoluteIndex, "persisted")}
@@ -108,4 +116,3 @@ const CompanyAttachmentList: React.FC<CompanyAttachmentListProps> = ({
 };
 
 export default CompanyAttachmentList;
-

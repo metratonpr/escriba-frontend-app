@@ -9,6 +9,18 @@ export type DocumentSourceType =
   | "occurrence"
   | "medical_exam";
 
+export interface DocumentFileLinks {
+  view?: string | null;
+  download?: string | null;
+}
+
+export interface DocumentUploadReference {
+  id: number | string;
+  nome_arquivo?: string;
+  url_arquivo?: string;
+  links?: DocumentFileLinks | null;
+}
+
 export interface DocumentDeadlineIndicator {
   source_type: DocumentSourceType;
   source_id: number;
@@ -22,6 +34,10 @@ export interface DocumentDeadlineIndicator {
   days_until_due?: number | null;
   days_remaining: number | null;
   uploaded_at: string | null;
+  has_file?: boolean | null;
+  upload_id?: number | string | null;
+  links?: DocumentFileLinks | null;
+  upload?: DocumentUploadReference | null;
 }
 
 export interface GetExpiringSoonOptions {

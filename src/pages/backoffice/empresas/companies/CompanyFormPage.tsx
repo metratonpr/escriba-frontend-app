@@ -194,6 +194,7 @@ function mapCompanyDocumentToForm(
           id: Number(document.upload.id),
           nome_arquivo: fileName,
           url_arquivo: fileUrl,
+          has_file: document.upload.has_file,
           file_path: document.upload.file_path,
           links: document.upload.links,
         },

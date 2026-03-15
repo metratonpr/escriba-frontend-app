@@ -8,6 +8,7 @@ export type UploadFile =
       id: number;
       nome_arquivo: string;
       url_arquivo: string;
+      has_file?: boolean | null;
       file_path?: string;
       links?: {
         view?: string;

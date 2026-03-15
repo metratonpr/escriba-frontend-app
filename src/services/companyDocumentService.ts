@@ -20,6 +20,7 @@ export interface UploadFile {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
   descricao?: string | null;
   created_at?: string;
   updated_at?: string;

@@ -7,6 +7,7 @@ interface Attachment {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
 }
 
 interface ExamAttachmentListProps {
@@ -24,6 +25,7 @@ const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
 }) => {
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
   const pendingPagination = useClientPagination(pending, { initialPerPage: 5 });
+  const canViewAttachment = (attachment: Attachment) => attachment.has_file === true;
 
   return (
     <div className="space-y-2">
@@ -38,13 +40,19 @@ const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
 
               return (
                 <li key={file.id} className="flex items-center justify-between py-2 text-sm text-gray-700 dark:text-gray-200">
-                  <Link
-                    to={`/backoffice/exames-medicos/editar/${examId}/visualizar-anexo/${file.id}`}
-                    state={{ attachment: file }}
-                    className="max-w-xs truncate text-blue-600 underline"
-                  >
-                    {file.nome_arquivo}
-                  </Link>
+                  {canViewAttachment(file) ? (
+                    <Link
+                      to={`/backoffice/exames-medicos/editar/${examId}/visualizar-anexo/${file.id}`}
+                      state={{ attachment: file }}
+                      className="max-w-xs truncate text-blue-600 underline"
+                    >
+                      {file.nome_arquivo}
+                    </Link>
+                  ) : (
+                    <span className="max-w-xs truncate text-gray-500" title="Arquivo fisico indisponivel">
+                      {file.nome_arquivo}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => onRemove(absoluteIndex, "persisted")}
@@ -107,4 +115,3 @@ const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
 };
 
 export default ExamAttachmentList;
-

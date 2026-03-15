@@ -7,6 +7,7 @@ interface DocumentFile {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
 }
 
 interface CompanyDocumentAttachmentListProps {
@@ -23,8 +24,13 @@ const CompanyDocumentAttachmentList: React.FC<CompanyDocumentAttachmentListProps
   const navigate = useNavigate();
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
   const pendingPagination = useClientPagination(pending, { initialPerPage: 5 });
+  const canViewAttachment = (attachment: DocumentFile) => attachment.has_file === true;
 
   const handleViewAttachment = (attachment: DocumentFile) => {
+    if (!canViewAttachment(attachment)) {
+      return;
+    }
+
     navigate(`/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`, {
       state: { attachment },
     });
@@ -42,23 +48,31 @@ const CompanyDocumentAttachmentList: React.FC<CompanyDocumentAttachmentListProps
               return (
                 <li key={file.id} className="flex items-center justify-between py-2 text-sm text-gray-700 dark:text-gray-200">
                   <div className="flex flex-1 items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleViewAttachment(file)}
-                      className="max-w-xs truncate text-left text-blue-600 underline hover:text-blue-800"
-                      title="Clique para visualizar o arquivo"
-                    >
-                      {file.nome_arquivo}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleViewAttachment(file)}
-                      className="p-1 text-blue-500 hover:text-blue-700"
-                      aria-label="Visualizar anexo"
-                      title="Visualizar arquivo"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    {canViewAttachment(file) ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleViewAttachment(file)}
+                          className="max-w-xs truncate text-left text-blue-600 underline hover:text-blue-800"
+                          title="Clique para visualizar o arquivo"
+                        >
+                          {file.nome_arquivo}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleViewAttachment(file)}
+                          className="p-1 text-blue-500 hover:text-blue-700"
+                          aria-label="Visualizar anexo"
+                          title="Visualizar arquivo"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="max-w-xs truncate text-gray-500" title="Arquivo fisico indisponivel">
+                        {file.nome_arquivo}
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"

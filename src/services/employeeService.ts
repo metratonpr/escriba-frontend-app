@@ -111,6 +111,7 @@ export interface EmployeeDocumentVersionDefinition {
 export interface EmployeeDocumentUpload {
   id: number | string;
   file_name: string;
+  has_file?: boolean | null;
   file_path?: string;
   links?: {
     view?: string;

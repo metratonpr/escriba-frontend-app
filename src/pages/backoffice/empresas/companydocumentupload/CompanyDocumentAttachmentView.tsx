@@ -80,18 +80,17 @@ const CompanyDocumentAttachmentView: React.FC<Props> = ({
     }, [fileUrl, fileName]);
 
     const handleOpenNewTab = () => {
-        if (!fileUrl) return;
-        window.open(fileUrl, "_blank", "noopener,noreferrer");
+        if (!idNum) return;
+        void fileService.openFileInNewTab(idNum).catch(() => {
+            setErrorMsg("Erro ao abrir o anexo.");
+        });
     };
 
     const handleDownload = () => {
-        if (!fileUrl) return;
-        const a = document.createElement("a");
-        a.href = fileUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        if (!idNum) return;
+        void fileService.downloadFile(idNum, fileName).catch(() => {
+            setErrorMsg("Erro ao baixar o anexo.");
+        });
     };
 
     return (
@@ -178,15 +177,13 @@ const CompanyDocumentAttachmentView: React.FC<Props> = ({
                 ) : (
                     <div className="p-4 text-sm text-gray-700 dark:text-gray-300 text-center">
                         <div className="mb-2">Pré-visualização não disponível para este tipo de arquivo.</div>
-                        <a
-                            href={fileUrl}
-                            download={fileName}
+                        <button
+                            type="button"
+                            onClick={handleDownload}
                             className="text-blue-600 underline hover:text-blue-800"
-                            target="_blank"
-                            rel="noopener noreferrer"
                         >
-                            Baixar ou abrir o arquivo
-                        </a>
+                            Baixar o arquivo
+                        </button>
                     </div>
                 )}
             </div>

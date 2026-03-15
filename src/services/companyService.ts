@@ -30,6 +30,7 @@ export interface CompanyUploadRef {
   url_arquivo?: string;
   file_name?: string;
   file_path?: string;
+  has_file?: boolean | null;
   links?: CompanyUploadLinks;
 }
 

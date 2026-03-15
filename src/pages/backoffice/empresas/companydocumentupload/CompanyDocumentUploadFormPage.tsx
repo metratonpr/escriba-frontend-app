@@ -30,6 +30,7 @@ interface DocumentFile {
   id: number;
   nome_arquivo: string;
   url_arquivo: string;
+  has_file?: boolean | null;
 }
 
 interface Option {
@@ -183,6 +184,7 @@ export default function CompanyDocumentUploadFormPage() {
                   id: data.upload.id,
                   nome_arquivo: data.upload.nome_arquivo,
                   url_arquivo: data.upload.url_arquivo,
+                  has_file: data.upload.has_file,
                 },
               ]
             : [],
