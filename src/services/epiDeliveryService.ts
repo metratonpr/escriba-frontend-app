@@ -1,4 +1,5 @@
 // src/services/epiDeliveryService.ts
+import http from "../api/http";
 import { request } from "../api/request";
 import { API_EPI_DELIVERIES } from "../api/apiConfig";
 import type { EpiDelivery } from "../types/epi";
@@ -86,3 +87,17 @@ export const updateEpiDelivery = (
  */
 export const deleteEpiDelivery = (id: number): Promise<void> =>
   request<void>("DELETE", `${API_EPI_DELIVERIES}/${id}`);
+
+export const getEpiDeliveryTermUrl = (id: number): string =>
+  `${API_EPI_DELIVERIES}/${id}/term`;
+
+export const getEpiDeliveryTermBlob = async (id: number): Promise<Blob> => {
+  const response = await http.get(getEpiDeliveryTermUrl(id), {
+    responseType: "blob",
+    headers: {
+      Accept: "application/pdf",
+    },
+  });
+
+  return response.data as Blob;
+};

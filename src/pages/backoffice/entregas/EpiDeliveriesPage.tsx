@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { deleteEpiDelivery, getEpiDeliveries, type PaginatedResponse } from "../../../services/epiDeliveryService";
+import { Download } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import {
+  deleteEpiDelivery,
+  getEpiDeliveries,
+  getEpiDeliveryTermBlob,
+  getEpiDeliveryTermUrl,
+  type PaginatedResponse,
+} from "../../../services/epiDeliveryService";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
@@ -9,6 +17,7 @@ import Toast from "../../../components/Layout/Feedback/Toast";
 import type { EpiDelivery } from "../../../types/epi";
 
 export default function EpiDeliveriesPage() {
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<PaginatedResponse<EpiDelivery>>({
     data: [],
     total: 0,
@@ -27,6 +36,13 @@ export default function EpiDeliveriesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const shortcutId = searchParams.get("termId") ?? searchParams.get("id");
+  const parsedShortcutId = shortcutId ? Number(shortcutId) : null;
+  const hasValidShortcutId =
+    parsedShortcutId !== null &&
+    Number.isInteger(parsedShortcutId) &&
+    parsedShortcutId > 0;
 
   const loadEpiDeliveries = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
@@ -41,8 +57,29 @@ export default function EpiDeliveriesPage() {
   };
 
   useEffect(() => {
-    loadEpiDeliveries();
-  }, [search, page, perPage]);
+    if (hasValidShortcutId) {
+      return;
+    }
+
+    void loadEpiDeliveries();
+  }, [search, page, perPage, hasValidShortcutId]);
+
+  useEffect(() => {
+    if (!shortcutId) {
+      return;
+    }
+
+    if (!hasValidShortcutId || parsedShortcutId === null) {
+      setToast({
+        open: true,
+        message: 'Informe um ID valido para o atalho do termo. Ex.: "/backoffice/entregas-epis?termId=123".',
+        type: "error",
+      });
+      return;
+    }
+
+    window.location.assign(getEpiDeliveryTermUrl(parsedShortcutId));
+  }, [shortcutId, parsedShortcutId, hasValidShortcutId]);
 
   const handleSearch = (q: string) => {
     setSearch(q);
@@ -68,6 +105,36 @@ export default function EpiDeliveriesPage() {
       setModalOpen(false);
       setSelectedId(null);
       setSelectedName(null);
+    }
+  };
+
+  const handleDownloadTerm = async (row: EpiDelivery) => {
+    setDownloadingId(row.id);
+
+    try {
+      const blob = await getEpiDeliveryTermBlob(row.id);
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const safeDocumentNumber = (row.document_number || `entrega-epi-${row.id}`)
+        .trim()
+        .replace(/[^a-zA-Z0-9-_]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      anchor.href = objectUrl;
+      anchor.download = `${safeDocumentNumber || `entrega-epi-${row.id}`}-termo.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch {
+      setToast({
+        open: true,
+        message: `Erro ao baixar o termo da entrega "${row.document_number ?? row.id}".`,
+        type: "error",
+      });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -105,6 +172,18 @@ export default function EpiDeliveriesPage() {
           createUrl="/backoffice/entregas-epis/nova"
           columns={columns}
           data={data.data}
+          renderActions={(row) => (
+            <button
+              type="button"
+              onClick={() => void handleDownloadTerm(row)}
+              disabled={downloadingId === row.id}
+              aria-label="Baixar termo"
+              title="Baixar termo"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              <Download size={16} />
+            </button>
+          )}
           pagination={{
             total: data.total,
             perPage: data.per_page,

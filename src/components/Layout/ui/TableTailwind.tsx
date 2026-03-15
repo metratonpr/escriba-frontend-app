@@ -18,7 +18,7 @@ type Pagination = {
   onPerPageChange: (perPage: number) => void;
 };
 
-type TableTailwindProps<T> = {
+type TableTailwindProps<T extends { id: string | number }> = {
   title?: string;
   createUrl?: string;
   columns: Column<T>[];
@@ -27,6 +27,7 @@ type TableTailwindProps<T> = {
   pagination?: Pagination;
   getEditUrl?: (id: T["id"]) => string;
   onDelete?: (id: T["id"]) => void;
+  renderActions?: (row: T) => React.ReactNode;
   onSortChange?: (field: string, order: "asc" | "desc") => void;
 };
 
@@ -39,6 +40,7 @@ export default function TableTailwind<T extends { id: string | number }>({
   pagination,
   getEditUrl,
   onDelete,
+  renderActions,
   onSortChange,
 }: TableTailwindProps<T>) {
   const [orderBy, setOrderBy] = useState<string>(String(columns[0].field));
@@ -109,7 +111,8 @@ export default function TableTailwind<T extends { id: string | number }>({
       (effectivePagination.currentPage - 1) * effectivePagination.perPage,
       effectivePagination.currentPage * effectivePagination.perPage
     );
-  const actionColumnCount = getEditUrl || onDelete ? 1 : 0;
+  const hasActions = Boolean(renderActions || getEditUrl || onDelete);
+  const actionColumnCount = hasActions ? 1 : 0;
   const skeletonRowCount = Math.max(
     4,
     Math.min(pagination ? effectivePagination.perPage : 6, 8)
@@ -184,7 +187,7 @@ export default function TableTailwind<T extends { id: string | number }>({
                 </div>
               </th>
             ))}
-            {(getEditUrl || onDelete) && (
+            {hasActions && (
               <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wider sm:px-6 sm:py-3">
                 Ações
               </th>
@@ -240,9 +243,10 @@ export default function TableTailwind<T extends { id: string | number }>({
                     </td>
                   );
                 })}
-                {(getEditUrl || onDelete) && (
+                {hasActions && (
                   <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">
                     <div className="inline-flex items-center gap-2">
+                      {renderActions?.(row)}
                       {getEditUrl && (
                         <Link
                           to={getEditUrl(row.id)}
