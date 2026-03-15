@@ -45,7 +45,7 @@ export const BACKOFFICE_MAIN_SECTIONS: BackofficeMainSection[] = [
     icon: LayoutDashboard,
     matchPrefixes: ["/backoffice/dashboard"],
     items: [
-      { to: "/backoffice/dashboard", label: "Visão geral" },
+      { to: "/backoffice/dashboard", label: "Visão geral", icon: LayoutDashboard },
       { to: "/backoffice/dashboard/vencimentos", label: "Vencimentos", icon: CalendarClock },
     ],
   },

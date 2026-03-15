@@ -152,6 +152,8 @@ export default function TableTailwind<T extends { id: string | number }>({
     ];
   };
 
+  const getColumnKey = (col: Column<T>, index: number) => `${String(col.field)}-${index}`;
+
   return (
     <div
       className="relative w-full overflow-x-auto rounded-lg bg-white px-2 shadow-sm sm:px-0 dark:bg-gray-900"
@@ -175,9 +177,9 @@ export default function TableTailwind<T extends { id: string | number }>({
       <table className="w-full text-left text-sm text-gray-500 rtl:text-right sm:text-base dark:text-gray-400">
         <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
           <tr>
-            {columns.map((col) => (
+            {columns.map((col, colIndex) => (
               <th
-                key={String(col.field)}
+                key={getColumnKey(col, colIndex)}
                 className="cursor-pointer px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3"
                 onClick={() => col.sortable && handleSort(String(col.field))}
               >
@@ -203,7 +205,7 @@ export default function TableTailwind<T extends { id: string | number }>({
               >
                 {columns.map((col, colIndex) => (
                   <td
-                    key={`${String(col.field)}-${rowIndex}`}
+                    key={`${getColumnKey(col, colIndex)}-${rowIndex}`}
                     className="px-4 py-2 sm:px-6 sm:py-4"
                   >
                     <div
@@ -233,12 +235,15 @@ export default function TableTailwind<T extends { id: string | number }>({
                 key={row.id}
                 className="odd:bg-white even:bg-gray-50 transition hover:bg-gray-100 odd:dark:bg-gray-900 even:dark:bg-gray-800 dark:hover:bg-gray-700"
               >
-                {columns.map((col) => {
+                {columns.map((col, colIndex) => {
                   const value = get(row, col.field);
                   const textValue = value == null ? "" : String(value);
 
                   return (
-                    <td key={String(col.field)} className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                    <td
+                      key={getColumnKey(col, colIndex)}
+                      className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white"
+                    >
                       {col.render ? col.render(row) : textValue}
                     </td>
                   );

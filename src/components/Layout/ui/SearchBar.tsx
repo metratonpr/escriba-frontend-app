@@ -5,9 +5,17 @@ type SearchBarProps = {
   placeholder?: string
   onSearch: (query: string) => void
   onClear?: () => void
+  fullWidth?: boolean
+  className?: string
 }
 
-export default function SearchBar({ placeholder = "Buscar...", onSearch, onClear }: SearchBarProps) {
+export default function SearchBar({
+  placeholder = "Buscar...",
+  onSearch,
+  onClear,
+  fullWidth = false,
+  className = "",
+}: SearchBarProps) {
   const [query, setQuery] = useState("")
 
   const handleSubmit = (e: FormEvent) => {
@@ -22,7 +30,10 @@ export default function SearchBar({ placeholder = "Buscar...", onSearch, onClear
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto flex items-center gap-2 mb-8">
+    <form
+      onSubmit={handleSubmit}
+      className={`${fullWidth ? "mb-4 flex w-full items-center gap-2" : "mx-auto mb-8 flex max-w-xl items-center gap-2"} ${className}`.trim()}
+    >
       <label htmlFor="default-search" className="sr-only">Buscar</label>
 
       <div className="relative flex-grow">

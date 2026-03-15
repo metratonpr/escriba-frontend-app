@@ -30,7 +30,7 @@ import {
   convertToBrazilianDateFormat,
   convertToBrazilianDateTimeFormat,
 } from "../../../utils/formatUtils";
-import { getDaysUntil } from "../../../utils/deadlineUtils";
+import { getDaysUntil, matchesExpiringRange } from "../../../utils/deadlineUtils";
 
 type ToastType = "success" | "error" | "info";
 type DashboardSection = "overview" | "events" | "occurrences" | "models";
@@ -135,15 +135,15 @@ const toModelRows = (rows: ModelItemKpi[]): ModelRow[] =>
 
 function HeroMetric({ icon, label, value, helperText = "" }: HeroMetricProps) {
   return (
-    <article className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+    <article className="rounded-xl border border-blue-100 bg-blue-50 p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-blue-100">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-white">{value}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
         </div>
-        <div className="rounded-lg bg-white/20 p-2 text-white">{icon}</div>
+        <div className="rounded-lg bg-white p-2 text-blue-600 ring-1 ring-blue-100">{icon}</div>
       </div>
-      {helperText && <p className="mt-2 text-xs text-blue-100">{helperText}</p>}
+      {helperText && <p className="mt-2 text-xs text-gray-500">{helperText}</p>}
     </article>
   );
 }
@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [kpis, setKpis] = useState<SystemKpiResponse | null>(null);
   const [expiringRows, setExpiringRows] = useState<DocumentDeadlineIndicator[]>([]);
+  const [expiringRangeRows, setExpiringRangeRows] = useState<DocumentDeadlineIndicator[]>([]);
   const [expiredRows, setExpiredRows] = useState<DocumentDeadlineIndicator[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<DashboardToastState>({
@@ -167,14 +168,16 @@ export default function DashboardPage() {
     setDaysError("");
 
     try {
-      const [systemKpis, expiringSoon, expired] = await Promise.all([
+      const [systemKpis, expiringSoon, expiringDistribution, expired] = await Promise.all([
         getSystemKpis({ days }),
         getDocumentsExpiringSoon({ days }),
+        getDocumentsExpiringSoon({ days: 365 }),
         getExpiredDocuments(),
       ]);
 
       setKpis(systemKpis);
       setExpiringRows(expiringSoon);
+      setExpiringRangeRows(expiringDistribution);
       setExpiredRows(expired);
       setDaysInput(String(systemKpis.window_days));
     } catch (error) {
@@ -220,20 +223,29 @@ export default function DashboardPage() {
   };
 
   const documentKpis = useMemo(() => {
-    const expiringToday = expiringRows.filter((row) => getDaysUntil(row.due_date) === 0).length;
-    const expiringIn7Days = expiringRows.filter((row) => {
-      const days = getDaysUntil(row.due_date);
-      return days !== null && days >= 0 && days <= 7;
-    }).length;
+    const upTo30 = expiringRangeRows.filter((row) =>
+      matchesExpiringRange(getDaysUntil(row.due_date), "up_to_30")
+    ).length;
+    const from31To60 = expiringRangeRows.filter((row) =>
+      matchesExpiringRange(getDaysUntil(row.due_date), "from_31_to_60")
+    ).length;
+    const from61To90 = expiringRangeRows.filter((row) =>
+      matchesExpiringRange(getDaysUntil(row.due_date), "from_61_to_90")
+    ).length;
+    const above90 = expiringRangeRows.filter((row) =>
+      matchesExpiringRange(getDaysUntil(row.due_date), "above_90")
+    ).length;
 
     return {
       expiring: expiringRows.length,
       expired: expiredRows.length,
-      expiringToday,
-      expiringIn7Days,
-      trackedTotal: expiringRows.length + expiredRows.length,
+      upTo30,
+      from31To60,
+      from61To90,
+      above90,
+      trackedTotal: expiringRangeRows.length + expiredRows.length,
     };
-  }, [expiringRows, expiredRows]);
+  }, [expiringRangeRows, expiringRows.length, expiredRows.length]);
 
   const rates = useMemo(() => {
     if (!kpis) {
@@ -443,20 +455,20 @@ export default function DashboardPage() {
     <div className="space-y-6 p-4">
       <Breadcrumbs items={[{ label: "Dashboard", to: "/backoffice/dashboard" }]} />
 
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-6 shadow-lg">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
               Inteligência Operacional
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-white">Dashboard Executivo</h1>
-            <p className="mt-2 text-sm text-blue-100">
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">Dashboard Executivo</h1>
+            <p className="mt-2 text-sm text-gray-600">
               Visão consolidada para decisão rápida sobre documentos, eventos, ocorrências e
               volume de dados.
             </p>
           </div>
           {generatedAtLabel && (
-            <div className="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-blue-100">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
               Atualizado em: {generatedAtLabel}
             </div>
           )}
@@ -490,16 +502,16 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/15 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-5 shadow-lg">
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
               Controle do painel
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-white">
+            <h2 className="mt-1 text-lg font-semibold text-gray-900">
               Atualização de indicadores
             </h2>
-            <p className="mt-1 text-sm text-blue-100">
+            <p className="mt-1 text-sm text-gray-600">
               Selecione a janela de análise e atualize os dados em tempo real.
             </p>
           </div>
@@ -511,7 +523,7 @@ export default function DashboardPage() {
             <div className="w-full">
               <label
                 htmlFor="days"
-                className="mb-1 block text-sm font-medium text-blue-100"
+                className="mb-1 block text-sm font-medium text-gray-700"
               >
                 Intervalo dos KPIs (dias)
               </label>
@@ -529,7 +541,7 @@ export default function DashboardPage() {
                   }}
                   aria-invalid={Boolean(daysError)}
                   aria-describedby={daysError ? "days-error" : undefined}
-                  className="h-11 w-full appearance-none rounded-xl border border-white/25 bg-white/10 px-3 pr-10 text-sm font-medium text-white shadow-sm transition focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-300 bg-gray-50 px-3 pr-10 text-sm font-medium text-gray-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {DAYS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -540,12 +552,12 @@ export default function DashboardPage() {
 
                 <ChevronDown
                   size={16}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-200"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
 
               {daysError && (
-                <p id="days-error" className="mt-1 text-sm text-red-300">
+                <p id="days-error" className="mt-1 text-sm text-red-600">
                   {daysError}
                 </p>
               )}
@@ -554,7 +566,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70 md:self-end"
+              className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 md:self-end"
             >
               <RotateCw size={15} className={loading ? "animate-spin" : ""} />
               Atualizar indicadores
@@ -562,15 +574,15 @@ export default function DashboardPage() {
 
             <Link
               to="/backoffice/dashboard/vencimentos"
-              className="inline-flex h-11 items-center justify-center self-end rounded-xl border border-white/30 bg-white/10 px-4 text-sm font-semibold text-blue-100 transition hover:bg-white/20 hover:text-white md:self-end"
+              className="inline-flex h-11 items-center justify-center self-end rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:self-end"
             >
               Abrir vencimentos
             </Link>
           </form>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/20 pt-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-blue-200">
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
             Atalhos:
           </span>
           {DAYS_OPTIONS.map((option) => {
@@ -589,8 +601,8 @@ export default function DashboardPage() {
                 }}
                 className={`h-8 rounded-full px-3 text-xs font-semibold transition ${
                   isActive
-                    ? "bg-white text-slate-900"
-                    : "bg-white/10 text-blue-100 hover:bg-white/20"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 } disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {option.label}
@@ -600,7 +612,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="rounded-xl border border-white/20 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 p-2 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
         <nav className="flex flex-wrap gap-2">
           {DASHBOARD_SECTIONS.map((section) => {
             const isActive = section.id === activeSection;
@@ -611,8 +623,8 @@ export default function DashboardPage() {
                 onClick={() => setActiveSection(section.id)}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   isActive
-                    ? "bg-white text-slate-900"
-                    : "bg-white/10 text-blue-100 hover:bg-white/20 hover:text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 {section.label}
@@ -640,9 +652,9 @@ export default function DashboardPage() {
                   {strategicInsights.map((insight) => (
                     <article
                       key={insight.id}
-                      className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-xl border border-blue-100 bg-blue-50 p-4"
                     >
-                      <p className="text-sm font-medium text-gray-700">{insight.title}</p>
+                      <p className="text-sm font-medium text-blue-700">{insight.title}</p>
                       <p className="mt-2 text-2xl font-bold text-gray-900">{insight.value}</p>
                       <p className="mt-2 text-xs text-gray-500">{insight.text}</p>
                     </article>
@@ -657,28 +669,28 @@ export default function DashboardPage() {
                 >
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <KpiStatCard
-                      title="A vencer"
-                      value={documentKpis.expiring}
-                      helperText="Documentos dentro da janela"
+                      title="Até 30 dias"
+                      value={documentKpis.upTo30}
+                      helperText="Vencimento no curto prazo"
                       tone="amber"
                     />
                     <KpiStatCard
-                      title="Vencidos"
-                      value={documentKpis.expired}
-                      helperText="Necessitam regularização"
-                      tone="red"
-                    />
-                    <KpiStatCard
-                      title="Vencem hoje"
-                      value={documentKpis.expiringToday}
-                      helperText="Prioridade do dia"
+                      title="31 a 60 dias"
+                      value={documentKpis.from31To60}
+                      helperText="Faixa intermediária"
                       tone="blue"
                     />
                     <KpiStatCard
-                      title="Vencem em 7 dias"
-                      value={documentKpis.expiringIn7Days}
-                      helperText="Curto prazo"
+                      title="61 a 90 dias"
+                      value={documentKpis.from61To90}
+                      helperText="Médio prazo"
                       tone="emerald"
+                    />
+                    <KpiStatCard
+                      title="Acima de 90 dias"
+                      value={documentKpis.above90}
+                      helperText="Faixa estendida"
+                      tone="slate"
                     />
                   </div>
                 </DashboardSectionCard>

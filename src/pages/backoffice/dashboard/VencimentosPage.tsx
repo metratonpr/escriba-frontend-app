@@ -9,15 +9,17 @@ import {
   getDocumentsExpiringSoon,
   getExpiredDocuments,
   type DocumentDeadlineIndicator,
+  type DocumentSourceType,
 } from "../../../services/documentReportService";
-import {
-  convertToBrazilianDateFormat,
-  convertToBrazilianDateTimeFormat,
-} from "../../../utils/formatUtils";
+import { convertToBrazilianDateFormat } from "../../../utils/formatUtils";
 import { normalizeFieldError } from "../../../utils/errorUtils";
 import {
+  EXPIRING_RANGE_OPTIONS,
   getDeadlineBadge,
+  getDaysUntil,
   getSourceTypeLabel,
+  matchesExpiringRange,
+  type ExpiringRangeKey,
 } from "../../../utils/deadlineUtils";
 
 type TableRow = DocumentDeadlineIndicator & {
@@ -28,7 +30,7 @@ type EndpointFilter = "all" | "expired" | "expiring";
 type ToastType = "success" | "error" | "info";
 type FieldErrors = {
   endpointFilter?: string;
-  sampleDays?: string;
+  sampleRange?: string;
 };
 
 type AxiosValidationErrorResponse = {
@@ -36,17 +38,33 @@ type AxiosValidationErrorResponse = {
   errors?: Record<string, string | string[]>;
 };
 
+const DEFAULT_ENDPOINT_FILTER: EndpointFilter = "all";
+const DEFAULT_SAMPLE_RANGE: ExpiringRangeKey = "up_to_30";
+const DEFAULT_SOURCE_TYPE_FILTER: DocumentSourceType | "" = "";
+const DEFAULT_STATUS_FILTER = "";
+
 const ENDPOINT_FILTER_OPTIONS: Array<{ value: EndpointFilter; label: string }> = [
   { value: "all", label: "Todos (a vencer + vencidos)" },
   { value: "expired", label: "Apenas vencidos" },
   { value: "expiring", label: "Apenas a vencer" },
 ];
 
-const SAMPLE_DAYS_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 7, label: "Ate 7 dias" },
-  { value: 15, label: "Ate 15 dias" },
-  { value: 30, label: "Ate 30 dias" },
-  { value: 59, label: "Abaixo de 60 dias" },
+const SOURCE_TYPE_OPTIONS: Array<{ value: DocumentSourceType | ""; label: string }> = [
+  { value: "", label: "Todos os tipos de origem" },
+  { value: "company", label: "Empresa" },
+  { value: "employee", label: "Colaborador" },
+  { value: "event", label: "Evento" },
+  { value: "epi_delivery", label: "Entrega EPI" },
+  { value: "occurrence", label: "Ocorrencia" },
+  { value: "medical_exam", label: "Exame medico" },
+];
+
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "Todos os status" },
+  { value: "pendente", label: "Pendente" },
+  { value: "enviado", label: "Enviado" },
+  { value: "aprovado", label: "Aprovado" },
+  { value: "rejeitado", label: "Rejeitado" },
 ];
 
 const toTableRows = (rows: DocumentDeadlineIndicator[], scope: string): TableRow[] =>
@@ -55,33 +73,69 @@ const toTableRows = (rows: DocumentDeadlineIndicator[], scope: string): TableRow
     id: `${scope}-${row.source_type}-${row.source_id}-${row.document_id}-${index}`,
   }));
 
-const applySearch = (rows: DocumentDeadlineIndicator[], query: string): DocumentDeadlineIndicator[] => {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) {
-    return rows;
-  }
+const filterExpiringRowsByRange = (
+  rows: DocumentDeadlineIndicator[],
+  range: ExpiringRangeKey
+): DocumentDeadlineIndicator[] =>
+  rows.filter((row) => matchesExpiringRange(getDaysUntil(row.due_date), range));
+
+const applyFilters = (
+  rows: DocumentDeadlineIndicator[],
+  query: string,
+  sourceType: DocumentSourceType | "",
+  status: string
+): DocumentDeadlineIndicator[] => {
+  const normalizedQuery = query.trim().toLowerCase();
 
   return rows.filter((row) => {
-    const sourceLabel = getSourceTypeLabel(row.source_type);
+    const normalizedStatus = row.status?.trim().toLowerCase() ?? "";
 
-    return [
-      row.document_name ?? "",
+    if (sourceType && row.source_type !== sourceType) {
+      return false;
+    }
+
+    if (status && normalizedStatus !== status) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const searchableText = [
+      row.source_type ?? "",
+      getSourceTypeLabel(row.source_type),
       row.source_name ?? "",
-      sourceLabel,
+      row.document_name ?? "",
       row.status ?? "",
-      row.due_date ?? "",
     ]
       .join(" ")
-      .toLowerCase()
-      .includes(normalized);
+      .toLowerCase();
+
+    return searchableText.includes(normalizedQuery);
   });
+};
+
+const formatStatusLabel = (value: string | null): string => {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 };
 
 export default function VencimentosPage() {
   const [rows, setRows] = useState<DocumentDeadlineIndicator[]>([]);
-  const [endpointFilter, setEndpointFilter] = useState<EndpointFilter>("all");
-  const [sampleDays, setSampleDays] = useState<number>(59);
+  const [endpointFilter, setEndpointFilter] = useState<EndpointFilter>(DEFAULT_ENDPOINT_FILTER);
+  const [sampleRange, setSampleRange] = useState<ExpiringRangeKey>(DEFAULT_SAMPLE_RANGE);
   const [search, setSearch] = useState("");
+  const [sourceTypeFilter, setSourceTypeFilter] =
+    useState<DocumentSourceType | "">(DEFAULT_SOURCE_TYPE_FILTER);
+  const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS_FILTER);
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [toast, setToast] = useState<{
@@ -101,17 +155,23 @@ export default function VencimentosPage() {
 
       try {
         let result: DocumentDeadlineIndicator[] = [];
+        const selectedRange =
+          EXPIRING_RANGE_OPTIONS.find((option) => option.key === sampleRange) ??
+          EXPIRING_RANGE_OPTIONS[0];
 
         if (endpointFilter === "expired") {
           result = await getExpiredDocuments();
         } else if (endpointFilter === "expiring") {
-          result = await getDocumentsExpiringSoon({ days: sampleDays });
+          const expiring = await getDocumentsExpiringSoon({
+            days: selectedRange.queryDays,
+          });
+          result = filterExpiringRowsByRange(expiring, sampleRange);
         } else {
           const [expiring, expired] = await Promise.all([
-            getDocumentsExpiringSoon({ days: sampleDays }),
+            getDocumentsExpiringSoon({ days: selectedRange.queryDays }),
             getExpiredDocuments(),
           ]);
-          result = [...expired, ...expiring];
+          result = [...expired, ...filterExpiringRowsByRange(expiring, sampleRange)];
         }
 
         setRows(result.sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")));
@@ -126,7 +186,7 @@ export default function VencimentosPage() {
             endpointFilter: normalizeFieldError(
               errors.endpointFilter ?? errors.filter ?? errors.type ?? errors.mode
             ),
-            sampleDays: normalizeFieldError(errors.days ?? errors.sampleDays),
+            sampleRange: normalizeFieldError(errors.days ?? errors.sampleDays),
           });
 
           if (typeof responseData?.message === "string" && responseData.message.trim()) {
@@ -145,10 +205,22 @@ export default function VencimentosPage() {
     };
 
     void load();
-  }, [endpointFilter, sampleDays]);
+  }, [endpointFilter, sampleRange]);
 
-  const filteredRows = useMemo(() => applySearch(rows, search), [rows, search]);
+  const filteredRows = useMemo(
+    () => applyFilters(rows, search, sourceTypeFilter, statusFilter),
+    [rows, search, sourceTypeFilter, statusFilter]
+  );
   const tableRows = useMemo(() => toTableRows(filteredRows, "vencimentos"), [filteredRows]);
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setEndpointFilter(DEFAULT_ENDPOINT_FILTER);
+    setSampleRange(DEFAULT_SAMPLE_RANGE);
+    setSourceTypeFilter(DEFAULT_SOURCE_TYPE_FILTER);
+    setStatusFilter(DEFAULT_STATUS_FILTER);
+    setFieldErrors({});
+  };
 
   const columns: Column<TableRow>[] = [
     {
@@ -173,7 +245,7 @@ export default function VencimentosPage() {
       label: "Status",
       field: "status",
       sortable: true,
-      render: (row) => row.status ?? "",
+      render: (row) => formatStatusLabel(row.status),
     },
     {
       label: "Emissao",
@@ -199,7 +271,7 @@ export default function VencimentosPage() {
 
         return (
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}
+            className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}
           >
             {badge.label}
           </span>
@@ -212,16 +284,10 @@ export default function VencimentosPage() {
       sortable: true,
       render: (row) => getDeadlineBadge(row.due_date).daysLabel,
     },
-    {
-      label: "Enviado em",
-      field: "uploaded_at",
-      sortable: true,
-      render: (row) => convertToBrazilianDateTimeFormat(row.uploaded_at ?? ""),
-    },
   ];
 
   return (
-    <div className="p-4">
+    <>
       <Breadcrumbs
         items={[
           { label: "Dashboard", to: "/backoffice/dashboard" },
@@ -229,52 +295,83 @@ export default function VencimentosPage() {
         ]}
       />
 
-      <h1 className="mb-4 text-2xl font-semibold">Vencimentos</h1>
-      <p className="mb-4 text-sm text-gray-600">
-        Regra de badge: vencido (vermelho), ate 30 dias (amarelo), abaixo de 60 dias
-        (verde).
-      </p>
-
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormSelectField
-          id="vencimentos-filter"
-          name="endpointFilter"
-          label="Tipo de consulta"
-          value={endpointFilter}
-          onChange={(event) => {
-            setEndpointFilter(event.target.value as EndpointFilter);
-            if (fieldErrors.endpointFilter) {
-              setFieldErrors((prev) => ({ ...prev, endpointFilter: "" }));
-            }
-          }}
-          options={ENDPOINT_FILTER_OPTIONS}
-          error={fieldErrors.endpointFilter}
+      <div className="mb-4 rounded-lg bg-white p-4 shadow-sm">
+        <SearchBar
+          placeholder="Buscar por tipo de origem, origem, documento ou status..."
+          onSearch={setSearch}
+          onClear={handleClearFilters}
+          fullWidth
         />
 
-        <FormSelectField
-          id="vencimentos-range"
-          name="sampleDays"
-          label="Faixa de amostra (dias)"
-          value={sampleDays}
-          onChange={(event) => {
-            setSampleDays(Number(event.target.value));
-            if (fieldErrors.sampleDays) {
-              setFieldErrors((prev) => ({ ...prev, sampleDays: "" }));
-            }
-          }}
-          disabled={endpointFilter === "expired"}
-          options={SAMPLE_DAYS_OPTIONS}
-          error={fieldErrors.sampleDays}
-        />
+        <p className="mb-4 text-xs text-gray-500">
+          Campos pesquisaveis: source_type, source_name, document_name e status.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <FormSelectField
+            id="vencimentos-filter"
+            name="endpointFilter"
+            label="Tipo de consulta"
+            value={endpointFilter}
+            onChange={(event) => {
+              setEndpointFilter(event.target.value as EndpointFilter);
+              if (fieldErrors.endpointFilter) {
+                setFieldErrors((prev) => ({ ...prev, endpointFilter: "" }));
+              }
+            }}
+            options={ENDPOINT_FILTER_OPTIONS}
+            error={fieldErrors.endpointFilter}
+          />
+
+          <FormSelectField
+            id="vencimentos-range"
+            name="sampleRange"
+            label="Faixa de vencimento"
+            value={sampleRange}
+            onChange={(event) => {
+              setSampleRange(event.target.value as ExpiringRangeKey);
+              if (fieldErrors.sampleRange) {
+                setFieldErrors((prev) => ({ ...prev, sampleRange: "" }));
+              }
+            }}
+            disabled={endpointFilter === "expired"}
+            options={EXPIRING_RANGE_OPTIONS.map((option) => ({
+              value: option.key,
+              label: option.label,
+            }))}
+            error={fieldErrors.sampleRange}
+          />
+
+          <FormSelectField
+            id="vencimentos-source-type"
+            name="sourceTypeFilter"
+            label="Tipo de origem"
+            value={sourceTypeFilter}
+            onChange={(event) => {
+              setSourceTypeFilter(event.target.value as DocumentSourceType | "");
+            }}
+            options={SOURCE_TYPE_OPTIONS}
+          />
+
+          <FormSelectField
+            id="vencimentos-status"
+            name="statusFilter"
+            label="Status"
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
+            }}
+            options={STATUS_OPTIONS}
+          />
+        </div>
       </div>
 
-      <SearchBar
-        placeholder="Buscar por documento, origem ou status..."
-        onSearch={setSearch}
-        onClear={() => setSearch("")}
+      <TableTailwind
+        loading={loading}
+        title="Vencimentos"
+        columns={columns}
+        data={tableRows}
       />
-
-      <TableTailwind loading={loading} columns={columns} data={tableRows} />
 
       <Toast
         open={toast.open}
@@ -282,6 +379,6 @@ export default function VencimentosPage() {
         type={toast.type}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
-    </div>
+    </>
   );
 }
