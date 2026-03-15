@@ -25,7 +25,7 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const loadCompanies = async (q = search, pg = page, limit = perPage) => {
@@ -41,7 +41,7 @@ export default function CompaniesPage() {
   };
 
   useEffect(() => {
-    loadCompanies();
+    void loadCompanies();
   }, [search, page, perPage]);
 
   const handleSearch = (q: string) => {
@@ -49,7 +49,7 @@ export default function CompaniesPage() {
     setPage(1);
   };
 
-  const handleAskDelete = (id: string) => {
+  const handleAskDelete = (id: string | number) => {
     const item = data.data.find((d) => d.id === id);
     setSelectedId(id);
     setSelectedName(item?.name ?? null);
@@ -73,8 +73,8 @@ export default function CompaniesPage() {
 
   const columns: Column<CompanyResponse>[] = [
     { label: "Nome", field: "name", sortable: true },
-    { label: "Grupo", field: "company_group_name" },
-    { label: "Tipo", field: "company_type_name" },
+    { label: "Grupo", field: "group.name", render: (row) => row.group?.name ?? "" },
+    { label: "Tipo", field: "type.name", render: (row) => row.type?.name ?? "" },
     { label: "CNPJ", field: "cnpj" },
     { label: "Cidade", field: "city" },
     { label: "Estado", field: "state" },

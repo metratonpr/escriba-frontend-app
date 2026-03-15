@@ -1,34 +1,97 @@
-import { request } from "../api/request";
 import { API_COMPANIES, API_COMPANIES_WITH_SECTORS } from "../api/apiConfig";
+import { multipartRequest } from "../api/multipartRequest";
+import { request } from "../api/request";
 
-// Representa os dados planos da empresa
-export interface Company {
-  id: string;
-  company_group_id: string;
-  company_type_id: string;
+export type CompanyId = string | number;
+
+export interface CompanyGroupRef {
+  id: CompanyId;
   name: string;
-  cnpj: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state: string;
-  responsible: string;
-  email: string;
 }
 
-// Novo tipo para os setores associados
+export interface CompanyTypeRef {
+  id: CompanyId;
+  name: string;
+}
+
+export interface CompanySectorRef {
+  id: CompanyId;
+  name: string;
+}
+
+export interface CompanyUploadLinks {
+  view?: string;
+  download?: string;
+}
+
+export interface CompanyUploadRef {
+  id: CompanyId;
+  nome_arquivo?: string;
+  url_arquivo?: string;
+  file_name?: string;
+  file_path?: string;
+  links?: CompanyUploadLinks;
+}
+
+export interface CompanyDocumentRef {
+  id: CompanyId;
+  code?: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  is_required?: boolean;
+  validity_days?: number | null;
+  document_type_id?: CompanyId;
+  document_issuer_id?: CompanyId;
+}
+
+export interface CompanyDocumentPayloadItem {
+  document_id?: CompanyId;
+  document?: { id: CompanyId };
+  upload_id?: CompanyId;
+  upload?: { id: CompanyId };
+  status?: string;
+  emission_date?: string;
+  due_date?: string;
+  issued_at?: string;
+  expires_at?: string;
+}
+
+export interface CompanyDocumentItem {
+  id: CompanyId;
+  company_id: CompanyId;
+  company?: {
+    id: CompanyId;
+    name: string;
+  } | null;
+  document_id: CompanyId;
+  document?: CompanyDocumentRef | null;
+  upload_id?: CompanyId | null;
+  status?: string | null;
+  emission_date?: string | null;
+  due_date?: string | null;
+  issued_at?: string | null;
+  expires_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  upload?: CompanyUploadRef | null;
+}
+
 export interface CompanySectorPayload {
-  sector_id: string;
+  sector_id?: CompanyId;
+  sector?: { id: CompanyId };
 }
 
-// Payload atualizado com os setores
-export interface CompanyPayload extends Omit<Company, "id"> {
-  company_sectors: CompanySectorPayload[];
+export interface CompanySectorRelation {
+  id: CompanyId;
+  company_id?: CompanyId;
+  sector_id?: CompanyId;
+  sector: CompanySectorRef;
 }
 
-// Dados da empresa com relacionamentos (usado nas páginas de edição)
-export interface CompanyResponse {
-  id: string;
+export interface CompanyPayload {
+  company_group_id: CompanyId;
+  company_type_id: CompanyId;
   name: string;
   cnpj: string;
   phone?: string;
@@ -37,12 +100,36 @@ export interface CompanyResponse {
   state: string;
   responsible: string;
   email: string;
-  group?: { id: string; name: string };
-  type?: { id: string; name: string };
-  company_sectors?: { id: string | number; sector: { id: string; name: string } }[];
+  logo?: File | null;
+  company_sectors: CompanySectorPayload[];
+  documents?: CompanyDocumentPayloadItem[];
 }
 
-// Paginação genérica
+export interface CompanyResponse {
+  id: CompanyId;
+  company_group_id?: CompanyId;
+  company_type_id?: CompanyId;
+  name: string;
+  cnpj: string;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  responsible?: string | null;
+  email?: string | null;
+  logo_path?: string | null;
+  logo_url?: string | null;
+  group?: CompanyGroupRef | null;
+  type?: CompanyTypeRef | null;
+  company_sectors?: CompanySectorRelation[];
+  sectors?: CompanySectorRef[];
+  documents_count?: number;
+  documents?: CompanyDocumentItem[];
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -50,18 +137,19 @@ export interface PaginatedResponse<T> {
   per_page: number;
 }
 
+export type CompanyMutationPayload = CompanyPayload | FormData;
+export type CompanyMutationResponse = CompanyResponse;
+
 type CompanyCollectionResponse = PaginatedResponse<CompanyResponse> | CompanyResponse[];
 
-// Filtros para listagem
 export interface GetCompaniesOptions {
   page?: number;
   perPage?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
-// Lista de empresas com paginação
 export const getCompanies = async (
   options: GetCompaniesOptions = {}
 ): Promise<PaginatedResponse<CompanyResponse>> => {
@@ -73,18 +161,13 @@ export const getCompanies = async (
     sortOrder = "asc",
   } = options;
 
-  return request<PaginatedResponse<CompanyResponse>>(
-    "GET",
-    API_COMPANIES,
-    {},
-    {
-      page,
-      per_page: perPage,
-      search,
-      sort_by: sortBy,
-      sort_order: sortOrder,
-    }
-  );
+  return request<PaginatedResponse<CompanyResponse>>("GET", API_COMPANIES, {}, {
+    page,
+    per_page: perPage,
+    search,
+    sort_by: sortBy,
+    sort_order: sortOrder,
+  });
 };
 
 export const getCompaniesWithSectors = async (
@@ -123,19 +206,39 @@ export const getCompaniesWithSectors = async (
   return response;
 };
 
-// Busca empresa por ID
-export const getCompanyById = (id: string): Promise<CompanyResponse> =>
-  request<CompanyResponse>('GET', `${API_COMPANIES}/${id}`);
+export const getCompanyById = (id: CompanyId): Promise<CompanyResponse> =>
+  request<CompanyResponse>("GET", `${API_COMPANIES}/${id}`);
 
+export const createCompany = (
+  data: CompanyMutationPayload
+): Promise<CompanyMutationResponse> =>
+  data instanceof FormData
+    ? multipartRequest<CompanyMutationResponse>("POST", API_COMPANIES, data)
+    : request<CompanyMutationResponse>(
+        "POST",
+        API_COMPANIES,
+        data as unknown as Record<string, unknown>
+      );
 
-// Criação
-export const createCompany = (data: CompanyPayload): Promise<Company> =>
-  request<Company>('POST', API_COMPANIES, data);
+export const updateCompany = (
+  id: CompanyId,
+  data: CompanyMutationPayload
+): Promise<CompanyMutationResponse> => {
+  if (data instanceof FormData) {
+    data.append("_method", "PUT");
+    return multipartRequest<CompanyMutationResponse>(
+      "POST",
+      `${API_COMPANIES}/${id}`,
+      data
+    );
+  }
 
-// Atualização
-export const updateCompany = (id: string, data: CompanyPayload): Promise<Company> =>
-  request<Company>('PUT', `${API_COMPANIES}/${id}`, data);
+  return request<CompanyMutationResponse>(
+    "PUT",
+    `${API_COMPANIES}/${id}`,
+    data as unknown as Record<string, unknown>
+  );
+};
 
-// Exclusão
-export const deleteCompany = (id: string): Promise<void> =>
-  request<void>('DELETE', `${API_COMPANIES}/${id}`);
+export const deleteCompany = (id: CompanyId): Promise<void> =>
+  request<void>("DELETE", `${API_COMPANIES}/${id}`);

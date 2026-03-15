@@ -2,7 +2,10 @@ import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import DrawerLinkItem from "./drawer/DrawerLinkItem";
 import DrawerSection from "./drawer/DrawerSection";
-import { resolveBackofficeSectionByPath } from "./drawer/navigation";
+import {
+  resolveBackofficeSectionByPath,
+  resolveDrawerItemByPath,
+} from "./drawer/navigation";
 import { isStoredUserAdmin } from "../services/authService";
 
 type SidebarProps = {
@@ -24,6 +27,7 @@ export default function Sidebar({
   const visibleItems = currentSection.items.filter(
     (item) => !item.requiresAdmin || isAdmin
   );
+  const activeItem = resolveDrawerItemByPath(location.pathname, visibleItems);
 
   return (
     <aside
@@ -62,6 +66,7 @@ export default function Sidebar({
               icon={item.icon}
               label={item.label}
               compact={compact}
+              isActive={item.to === activeItem?.to}
               onNavigate={onClose}
             />
           ))}

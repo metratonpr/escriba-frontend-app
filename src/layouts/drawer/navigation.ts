@@ -34,7 +34,7 @@ export interface BackofficeMainSection {
   items: DrawerNavItem[];
 }
 
-const matchesPrefix = (pathname: string, prefix: string): boolean =>
+export const matchesPrefix = (pathname: string, prefix: string): boolean =>
   pathname === prefix || pathname.startsWith(`${prefix}/`);
 
 export const BACKOFFICE_MAIN_SECTIONS: BackofficeMainSection[] = [
@@ -142,3 +142,11 @@ export const resolveBackofficeSectionByPath = (pathname: string): BackofficeMain
   BACKOFFICE_MAIN_SECTIONS.find((section) =>
     section.matchPrefixes.some((prefix) => matchesPrefix(pathname, prefix))
   ) ?? BACKOFFICE_MAIN_SECTIONS[0];
+
+export const resolveDrawerItemByPath = (
+  pathname: string,
+  items: DrawerNavItem[]
+): DrawerNavItem | null =>
+  items
+    .filter((item) => matchesPrefix(pathname, item.to))
+    .sort((left, right) => right.to.length - left.to.length)[0] ?? null;

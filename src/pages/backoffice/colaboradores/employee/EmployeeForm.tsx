@@ -1,6 +1,6 @@
 // src/pages/backoffice/colaboradores/employee/EmployeeForm.tsx
 import { useEffect, useState } from "react";
-import { Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -117,7 +117,6 @@ type EmployeeFormState = {
   photoFile: File | null;
   existingPhotoUrl: string;
   photoMarkedForRemoval: boolean;
-  documentsDownloadUrl: string;
 };
 
 const INITIAL_FORM_STATE: EmployeeFormState = {
@@ -133,7 +132,6 @@ const INITIAL_FORM_STATE: EmployeeFormState = {
   photoFile: null,
   existingPhotoUrl: "",
   photoMarkedForRemoval: false,
-  documentsDownloadUrl: "",
 };
 
 const EPI_DELIVERIES_ROUTE = "/backoffice/entregas-epis";
@@ -323,10 +321,6 @@ function mapResponseToForm(response: EmployeeDetailsResponse): EmployeeFormState
     photoFile: null,
     existingPhotoUrl: employee.photo_path ? employee.photo_url ?? "" : "",
     photoMarkedForRemoval: false,
-    documentsDownloadUrl:
-      response.documents_download_url ??
-      employee.documents_download_url ??
-      "",
   };
 }
 
@@ -1151,17 +1145,6 @@ export default function EmployeeForm() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {form.documentsDownloadUrl && (
-                    <a
-                      href={form.documentsDownloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <Download size={16} />
-                      Baixar documentos
-                    </a>
-                  )}
                   <button
                     type="button"
                     onClick={handleAddDocument}
