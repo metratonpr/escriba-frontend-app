@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
-import Spinner from "../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import {
   getDocumentsExpiringSoon,
@@ -186,13 +185,7 @@ export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorL
         onClear={() => setSearch("")}
       />
 
-      {loading ? (
-        <div className="py-10 flex items-center justify-center">
-          <Spinner />
-        </div>
-      ) : (
-        <TableTailwind columns={columns} data={tableRows} />
-      )}
+      <TableTailwind loading={loading} columns={columns} data={tableRows} />
 
       <Toast
         open={toast.open}

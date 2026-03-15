@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
-import Spinner from "../../../../components/Layout/ui/Spinner";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormActions } from "../../../../components/form/FormActions";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSwitchField from "../../../../components/form/FormSwitchField";
@@ -150,9 +150,7 @@ export default function UserFormPage() {
       </h1>
 
       {isEdit && isLoading ? (
-        <div className="flex h-56 items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={6} />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-white p-6 shadow">
           <FormInput

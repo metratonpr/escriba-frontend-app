@@ -6,7 +6,6 @@ import {
   type PaginatedResponse,
 } from "../../../../services/brandService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
@@ -90,10 +89,8 @@ export default function BrandsPage() {
     <>
       <Breadcrumbs items={[{ label: "Parâmetros", to: "/backoffice/parametros" }, { label: "Marcas", to: "/backoffice/marcas" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Marcas"
           createUrl="/backoffice/marcas/novo"
           columns={columns}
@@ -111,10 +108,10 @@ export default function BrandsPage() {
           getEditUrl={(id) => `/backoffice/marcas/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmDelete} itemName={selectedName ?? undefined} title="Excluir marca" />
       <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, open: false })} />
     </>
   );
 }
+

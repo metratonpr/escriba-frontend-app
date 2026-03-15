@@ -6,7 +6,6 @@ import {
   type PaginatedResponse,
 } from "../../../../services/companyGroupService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
@@ -90,10 +89,8 @@ export default function CompanyGroupsPage() {
         ]}
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Grupos de Empresas"
           createUrl="/backoffice/grupos-empresa/novo"
           columns={columns}
@@ -111,7 +108,6 @@ export default function CompanyGroupsPage() {
           getEditUrl={(id) => `/backoffice/grupos-empresa/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -130,3 +126,4 @@ export default function CompanyGroupsPage() {
     </>
   );
 }
+

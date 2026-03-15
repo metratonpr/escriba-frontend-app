@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getEventTypes } from "../../services/eventTypeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface EventTypeAutocompleteFieldProps {
   label?: string;
@@ -16,6 +17,7 @@ interface EventTypeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function EventTypeAutocompleteField({
@@ -26,22 +28,25 @@ export default function EventTypeAutocompleteField({
   className = "",
   error,
   required = false,
+  initialOptions,
 }: EventTypeAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Função assíncrona para buscar tipos de eventos com debounce
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
         const res = await getEventTypes({ search: term, page: 1, perPage: 20 });
         const list = Array.isArray(res) ? res : res.data;
-        const mapped = list.map((item: any) => ({
-          id: item.id,
-          label: item.nome_tipo_evento,
-        }));
-        setOptions(mapped);
+        setOptions(
+          list.map((item: any) => ({
+            id: item.id,
+            label: item.nome_tipo_evento,
+          }))
+        );
         setLoadError(null);
       } catch {
         setLoadError("Erro ao carregar tipos de evento.");
@@ -51,11 +56,19 @@ export default function EventTypeAutocompleteField({
     []
   );
 
-  // Atualiza opções quando a query muda
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchOptions(query);
     return () => fetchOptions.cancel();
-  }, [query, fetchOptions]);
+  }, [fetchOptions, initialOptions, query, value]);
+
+  useEffect(() => {
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <div className={className}>

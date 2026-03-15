@@ -1,10 +1,11 @@
 // src/pages/backoffice/colaboradores/employee/EmployeeForm.tsx
 import { useEffect, useState } from "react";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
-import Spinner from "../../../../components/Layout/ui/Spinner";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
+import FormAutocompleteField from "../../../../components/form/FormAutocompleteField";
 import { FormActions } from "../../../../components/form/FormActions";
 import { FormInput } from "../../../../components/form/FormInput";
 import CustomAssignmentsTable, {
@@ -16,7 +17,12 @@ import FileUpload, {
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import EmployeeDocumentAttachmentList from "../employeedocuments/EmployeeDocumentAttachmentList";
-import { getDocuments } from "../../../../services/documentService";
+import { getDocumentsWithVersions } from "../../../../services/documentService";
+import {
+  getCompaniesWithSectors,
+  type CompanyResponse,
+} from "../../../../services/companyService";
+import { getJobTitles, type JobTitle } from "../../../../services/jobTitleService";
 import {
   createEmployee,
   getEmployeeById,
@@ -24,12 +30,18 @@ import {
   type Employee,
   type EmployeeDetailsResponse,
   type EmployeeDocument,
+  type EmployeeEpiDelivery,
   type EmployeeDocumentUpload,
 } from "../../../../services/employeeService";
 import {
   getFieldError,
   type FieldErrors,
 } from "../../../../utils/errorUtils";
+import { getEpiItemStateLabel } from "../../../../types/epi";
+import {
+  mapDocumentsWithVersionsToOptions,
+  type DocumentWithVersionOption,
+} from "../../../../utils/documentWithVersionUtils";
 
 const EMPLOYEES_ROUTE = "/backoffice/colaboradores";
 
@@ -64,12 +76,16 @@ type ToastState = {
   type: "success" | "error";
 };
 
-type EmployeeFormTab = "details" | "assignments" | "documents";
+type EmployeeFormTab = "details" | "assignments" | "documents" | "epis";
 
 type Option = {
   id: string | number;
   label: string;
 };
+
+type VersionOption = Option;
+
+type DocumentOption = DocumentWithVersionOption;
 
 type PersistedAttachment = Extract<
   FileUploadItem,
@@ -80,6 +96,7 @@ type EmployeeDocumentFormItem = {
   localId: string;
   id?: string | number;
   document: Option | null;
+  documentVersion: VersionOption | null;
   issued_at: string;
   expires_at: string;
   status: string;
@@ -119,6 +136,8 @@ const INITIAL_FORM_STATE: EmployeeFormState = {
   documentsDownloadUrl: "",
 };
 
+const EPI_DELIVERIES_ROUTE = "/backoffice/entregas-epis";
+
 function createLocalId(): string {
   return `employee-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -147,10 +166,18 @@ function isPersistedAttachment(file: FileUploadItem): file is PersistedAttachmen
   return !(file instanceof File);
 }
 
+function isDocumentReadyToSubmit(document: EmployeeDocumentFormItem): boolean {
+  return (
+    Boolean(document.document?.id) &&
+    (document.files.some(isPendingFile) || Boolean(document.upload?.id))
+  );
+}
+
 function createEmptyDocument(): EmployeeDocumentFormItem {
   return {
     localId: createLocalId(),
     document: null,
+    documentVersion: null,
     issued_at: "",
     expires_at: "",
     status: "",
@@ -239,6 +266,11 @@ function mapEmployeeDocumentToForm(document: EmployeeDocument): EmployeeDocument
   const documentLabel = document.document
     ? [document.document.code, document.document.name].filter(Boolean).join(" - ")
     : `Documento #${document.id}`;
+  const documentVersionLabel = document.document_version
+    ? [document.document_version.code, document.document_version.version]
+        .filter(Boolean)
+        .join(" - ")
+    : "";
 
   const files: FileUploadItem[] = document.upload
     ? [
@@ -262,6 +294,12 @@ function mapEmployeeDocumentToForm(document: EmployeeDocument): EmployeeDocument
       ? {
           id: document.document.id,
           label: documentLabel,
+        }
+      : null,
+    documentVersion: document.document_version
+      ? {
+          id: document.document_version.id,
+          label: documentVersionLabel,
         }
       : null,
     issued_at: toDateInputValue(document.issued_at),
@@ -324,6 +362,16 @@ function buildEmployeeFormData(form: EmployeeFormState): FormData {
   ) => {
     formData.append(key, value == null ? "" : String(value));
   };
+  const appendValueIfFilled = (
+    key: string,
+    value: string | number | boolean | null | undefined
+  ) => {
+    if (value == null || value === "") {
+      return;
+    }
+
+    formData.append(key, String(value));
+  };
 
   appendValue("name", form.name);
   appendValue("cpf", form.cpf);
@@ -352,21 +400,25 @@ function buildEmployeeFormData(form: EmployeeFormState): FormData {
       `assignments[${index}][start_date]`,
       toDateInputValue(assignment.start_date)
     );
-    appendValue(
+    appendValueIfFilled(
       `assignments[${index}][end_date]`,
       toDateInputValue(assignment.end_date)
     );
   });
 
-  const documentsToSubmit = form.documents.filter(
-    (document) =>
-      Boolean(document.document?.id) && document.files.some(isPendingFile)
-  );
+  const documentsToSubmit = form.documents.filter(isDocumentReadyToSubmit);
 
   documentsToSubmit.forEach((document, index) => {
     appendValue(`documents[${index}][document_id]`, document.document?.id);
-    appendValue(`documents[${index}][issued_at]`, toDateInputValue(document.issued_at));
-    appendValue(
+    appendValueIfFilled(
+      `documents[${index}][document_version_id]`,
+      document.documentVersion?.id
+    );
+    appendValueIfFilled(
+      `documents[${index}][issued_at]`,
+      toDateInputValue(document.issued_at)
+    );
+    appendValueIfFilled(
       `documents[${index}][expires_at]`,
       toDateInputValue(document.expires_at)
     );
@@ -375,7 +427,10 @@ function buildEmployeeFormData(form: EmployeeFormState): FormData {
     const pendingFile = document.files.find(isPendingFile);
     if (pendingFile) {
       formData.append(`documents[${index}][upload]`, pendingFile);
+      return;
     }
+
+    appendValueIfFilled(`documents[${index}][upload_id]`, document.upload?.id);
   });
 
   return formData;
@@ -393,9 +448,17 @@ export default function EmployeeForm() {
     message: "",
     type: "success",
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [documentOptions, setDocumentOptions] = useState<Option[]>([]);
+  const [, setIsLoading] = useState(false);
+  const [documentOptions, setDocumentOptions] = useState<DocumentOption[]>([]);
+  const [initialDocumentOptions, setInitialDocumentOptions] = useState<DocumentOption[]>([]);
+  const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [isLoadingDocumentOptions, setIsLoadingDocumentOptions] = useState(false);
+  const [documentOptionsError, setDocumentOptionsError] = useState<string | null>(null);
+  const [assignmentCompanyOptions, setAssignmentCompanyOptions] = useState<CompanyResponse[]>(
+    []
+  );
+  const [assignmentJobTitleOptions, setAssignmentJobTitleOptions] = useState<JobTitle[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [activeDocumentLocalId, setActiveDocumentLocalId] = useState<string | null>(
     null
   );
@@ -405,81 +468,148 @@ export default function EmployeeForm() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<EmployeeFormTab>("details");
+  const [epiDeliveries, setEpiDeliveries] = useState<EmployeeEpiDelivery[]>([]);
 
   useEffect(() => {
-    if (!isEdit || !id) {
-      setForm(INITIAL_FORM_STATE);
-      setActiveDocumentLocalId(null);
-      setDraftDocument(null);
-      setPhotoLoadFailed(false);
-      return;
-    }
+    let active = true;
 
-    setIsLoading(true);
+    const loadForm = async () => {
+      setIsInitializing(true);
+      setDocumentOptionsError(null);
+      setIsLoadingDocumentOptions(true);
 
-    getEmployeeById(id)
-      .then((response) => {
-        setForm(mapResponseToForm(response));
-        setActiveDocumentLocalId(null);
-        setDraftDocument(null);
-        setPhotoLoadFailed(false);
-      })
-      .catch(() => {
-        setToast({
-          open: true,
-          message: "Erro ao carregar colaborador.",
-          type: "error",
-        });
-        navigate(EMPLOYEES_ROUTE);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [id, isEdit, navigate]);
+      try {
+        const [documentsResponse, companiesResponse, jobTitlesResponse, employeeResponse] =
+          await Promise.all([
+            getDocumentsWithVersions({
+              page: 1,
+              perPage: 25,
+              search: "",
+              sortBy: "name",
+              sortOrder: "asc",
+            }),
+            getCompaniesWithSectors({ page: 1, perPage: 100 }),
+            getJobTitles({ page: 1, perPage: 100 }),
+            isEdit && id ? getEmployeeById(id) : Promise.resolve(null),
+          ]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    setIsLoadingDocumentOptions(true);
-
-    getDocuments({ page: 1, perPage: 100, sortBy: "name", sortOrder: "asc" })
-      .then((response) => {
-        if (!mounted) {
+        if (!active) {
           return;
         }
 
-        const nextOptions = response.data
-          .filter((document) => document.category === "employee")
-          .map((document) => ({
-            id: document.id,
-            label: [document.code, document.name].filter(Boolean).join(" - "),
-          }));
+        const nextDocumentOptions = mapDocumentsWithVersionsToOptions(
+          documentsResponse.data
+        );
 
-        setDocumentOptions(nextOptions);
-      })
-      .catch(() => {
-        if (!mounted) {
+        setDocumentOptions(nextDocumentOptions);
+        setInitialDocumentOptions(nextDocumentOptions);
+        setAssignmentCompanyOptions(companiesResponse.data);
+        setAssignmentJobTitleOptions(jobTitlesResponse.data);
+
+        if (employeeResponse) {
+          setForm(mapResponseToForm(employeeResponse));
+          setEpiDeliveries(employeeResponse.employee.epi_deliveries ?? []);
+        } else {
+          setForm(INITIAL_FORM_STATE);
+          setEpiDeliveries([]);
+        }
+
+        setActiveDocumentLocalId(null);
+        setDraftDocument(null);
+        setPhotoLoadFailed(false);
+      } catch {
+        if (!active) {
           return;
         }
 
         setDocumentOptions([]);
+        setInitialDocumentOptions([]);
+        setAssignmentCompanyOptions([]);
+        setAssignmentJobTitleOptions([]);
         setToast({
           open: true,
-          message: "Erro ao carregar documentos disponiveis.",
+          message: isEdit ? "Erro ao carregar colaborador." : "Erro ao carregar formulario.",
           type: "error",
         });
-      })
-      .finally(() => {
-        if (!mounted) {
-          return;
+
+        if (isEdit) {
+          navigate(EMPLOYEES_ROUTE);
         }
-        setIsLoadingDocumentOptions(false);
-      });
+      } finally {
+        if (active) {
+          setIsLoadingDocumentOptions(false);
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    void loadForm();
 
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, []);
+  }, [id, isEdit, navigate]);
+
+  useEffect(() => {
+    if (isInitializing) {
+      return;
+    }
+
+    const trimmedQuery = documentSearchQuery.trim();
+    if (!trimmedQuery) {
+      setDocumentOptions(initialDocumentOptions);
+      setDocumentOptionsError(null);
+      setIsLoadingDocumentOptions(false);
+      return;
+    }
+
+    let active = true;
+
+    setIsLoadingDocumentOptions(true);
+    setDocumentOptionsError(null);
+
+    const timer = window.setTimeout(() => {
+      getDocumentsWithVersions({
+        page: 1,
+        perPage: 25,
+        search: trimmedQuery,
+        sortBy: "name",
+        sortOrder: "asc",
+      })
+        .then((response) => {
+          if (!active) {
+            return;
+          }
+
+          const nextOptions = mapDocumentsWithVersionsToOptions(
+            response.data,
+            trimmedQuery
+          );
+
+          setDocumentOptions(nextOptions);
+        })
+        .catch(() => {
+          if (!active) {
+            return;
+          }
+
+          setDocumentOptions([]);
+          setDocumentOptionsError("Erro ao buscar documentos.");
+        })
+        .finally(() => {
+          if (!active) {
+            return;
+          }
+
+          setIsLoadingDocumentOptions(false);
+        });
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [documentSearchQuery, initialDocumentOptions, isInitializing]);
 
   useEffect(() => {
     if (form.photoFile) {
@@ -504,6 +634,30 @@ export default function EmployeeForm() {
     form.photoMarkedForRemoval,
     photoLoadFailed,
   ]);
+
+  const findDocumentOption = (
+    documentId?: string | number | null
+  ): DocumentOption | null =>
+    documentOptions.find((option) => String(option.id) === String(documentId)) ?? null;
+
+  const getVersionOptions = (
+    documentId?: string | number | null,
+    fallbackVersion?: VersionOption | null
+  ): VersionOption[] => {
+    const matchedDocument = findDocumentOption(documentId);
+    const matchedVersions = matchedDocument?.versions ?? [];
+
+    if (
+      fallbackVersion &&
+      !matchedVersions.some(
+        (version) => String(version.id) === String(fallbackVersion.id)
+      )
+    ) {
+      return [fallbackVersion, ...matchedVersions];
+    }
+
+    return matchedVersions;
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -623,10 +777,24 @@ export default function EmployeeForm() {
       return;
     }
 
+    const availableVersions = getVersionOptions(
+      draftDocument.document?.id,
+      draftDocument.documentVersion
+    );
+
     if (!draftDocument.document?.id) {
       setToast({
         open: true,
         message: "Selecione um documento antes de adicionar.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (availableVersions.length > 0 && !draftDocument.documentVersion?.id) {
+      setToast({
+        open: true,
+        message: "Selecione a versao do documento antes de adicionar.",
         type: "error",
       });
       return;
@@ -684,7 +852,15 @@ export default function EmployeeForm() {
       return;
     }
 
-    const payload = buildEmployeeFormData(form);
+    const documentsForSubmission =
+      draftDocument && isDocumentReadyToSubmit(draftDocument)
+        ? [...form.documents, draftDocument]
+        : form.documents;
+
+    const payload = buildEmployeeFormData({
+      ...form,
+      documents: documentsForSubmission,
+    });
 
     try {
       if (isEdit && id) {
@@ -758,8 +934,8 @@ export default function EmployeeForm() {
         ]}
       />
 
-      {isLoading && isEdit ? (
-        <Spinner />
+      {isInitializing ? (
+        <FormPageSkeleton className="px-0" fields={10} />
       ) : (
         <form
           onSubmit={handleSubmit}
@@ -799,6 +975,17 @@ export default function EmployeeForm() {
                 }`}
               >
                 Documentos
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("epis")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "epis"
+                    ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                }`}
+              >
+                EPIs
               </button>
             </nav>
           </div>
@@ -945,6 +1132,8 @@ export default function EmployeeForm() {
               value={form.assignments}
               onChange={handleAssignmentsChange}
               error={errors.assignments}
+              initialCompanyOptions={assignmentCompanyOptions}
+              initialJobTitleOptions={assignmentJobTitleOptions}
             />
             </section>
           ) : null}
@@ -992,13 +1181,30 @@ export default function EmployeeForm() {
 
               <div className="flex flex-col gap-4">
                 {editingDocument ? (() => {
-                const visibleDocumentOptions =
+                const fallbackDocumentOption: DocumentOption | null =
                   editingDocument.document &&
                   !documentOptions.some(
                     (option) => String(option.id) === String(editingDocument.document?.id)
                   )
-                    ? [editingDocument.document, ...documentOptions]
-                    : documentOptions;
+                    ? {
+                        ...editingDocument.document,
+                        versions: getVersionOptions(
+                          editingDocument.document.id,
+                          editingDocument.documentVersion
+                        ),
+                      }
+                    : null;
+                const visibleDocumentOptions: DocumentOption[] = fallbackDocumentOption
+                  ? [fallbackDocumentOption, ...documentOptions]
+                  : documentOptions;
+                const selectedDocumentOption =
+                  visibleDocumentOptions.find(
+                    (option) => String(option.id) === String(editingDocument.document?.id)
+                  ) ?? null;
+                const availableVersionOptions = getVersionOptions(
+                  selectedDocumentOption?.id ?? editingDocument.document?.id,
+                  editingDocument.documentVersion
+                );
                 const statusOptions = Array.from(
                   new Set(
                     [...DOCUMENT_STATUS_OPTIONS, editingDocument.status].filter(Boolean)
@@ -1036,39 +1242,116 @@ export default function EmployeeForm() {
                     </div>
 
                     <div className="space-y-4">
-                      <FormSelectField
-                        name={
-                          editingDocumentIndex !== null && editingDocumentIndex >= 0
-                            ? `documents.${editingDocumentIndex}.document_id`
-                            : "documents.draft.document_id"
-                        }
-                        label="Documento"
-                        value={editingDocument.document?.id ?? ""}
-                        onChange={(e) => {
-                          const selected =
-                            visibleDocumentOptions.find(
-                              (option) => String(option.id) === e.target.value
-                            ) ?? null;
-
-                          if (isCreatingDocument) {
-                            handleDraftDocumentPatch({ document: selected });
-                            return;
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FormAutocompleteField
+                          name={
+                            editingDocumentIndex !== null && editingDocumentIndex >= 0
+                              ? `documents.${editingDocumentIndex}.document_id`
+                              : "documents.draft.document_id"
                           }
+                          label="Documento"
+                          value={editingDocument.document}
+                          options={visibleDocumentOptions}
+                          onInputChange={setDocumentSearchQuery}
+                          onChange={(selectedOption) => {
+                            const selectedDocument = selectedOption
+                              ? visibleDocumentOptions.find(
+                                  (option) =>
+                                    String(option.id) === String(selectedOption.id)
+                                ) ?? null
+                              : null;
+                            const existingVersion =
+                              selectedDocument?.versions.find(
+                                (version) =>
+                                  String(version.id) ===
+                                  String(editingDocument.documentVersion?.id)
+                              ) ?? null;
+                            const searchedVersion =
+                              selectedDocument?.selectedVersionId
+                                ? selectedDocument.versions.find(
+                                    (version) =>
+                                      String(version.id) ===
+                                      String(selectedDocument.selectedVersionId)
+                                  ) ?? null
+                                : null;
+                            const nextVersion =
+                              existingVersion ??
+                              searchedVersion ??
+                              (selectedDocument?.versions.length === 1
+                                ? selectedDocument.versions[0]
+                                : null);
 
-                          handleDocumentPatch(editingDocument.localId, {
-                            document: selected,
-                          });
-                        }}
-                        options={visibleDocumentOptions.map((option) => ({
-                          value: option.id,
-                          label: option.label,
-                        }))}
-                        error={getEditingDocumentError("document_id")}
-                        disabled={
-                          isLoadingDocumentOptions &&
-                          visibleDocumentOptions.length === 0
-                        }
-                      />
+                            if (isCreatingDocument) {
+                              handleDraftDocumentPatch({
+                                document: selectedDocument
+                                  ? {
+                                      id: selectedDocument.id,
+                                      label: selectedDocument.label,
+                                    }
+                                  : null,
+                                documentVersion: nextVersion,
+                              });
+                              return;
+                            }
+
+                            handleDocumentPatch(editingDocument.localId, {
+                              document: selectedDocument
+                                ? {
+                                    id: selectedDocument.id,
+                                    label: selectedDocument.label,
+                                  }
+                                : null,
+                              documentVersion: nextVersion,
+                            });
+                          }}
+                          placeholder="Digite para buscar documento..."
+                          error={
+                            getEditingDocumentError("document_id", "document") ??
+                            documentOptionsError ??
+                            undefined
+                          }
+                          disabled={isLoadingDocumentOptions && visibleDocumentOptions.length === 0}
+                        />
+
+                        <FormSelectField
+                          name={
+                            editingDocumentIndex !== null && editingDocumentIndex >= 0
+                              ? `documents.${editingDocumentIndex}.document_version_id`
+                              : "documents.draft.document_version_id"
+                          }
+                          label="Versao"
+                          value={editingDocument.documentVersion?.id ?? ""}
+                          onChange={(e) => {
+                            const selectedVersion =
+                              availableVersionOptions.find(
+                                (option) => String(option.id) === e.target.value
+                              ) ?? null;
+
+                            if (isCreatingDocument) {
+                              handleDraftDocumentPatch({ documentVersion: selectedVersion });
+                              return;
+                            }
+
+                            handleDocumentPatch(editingDocument.localId, {
+                              documentVersion: selectedVersion,
+                            });
+                          }}
+                          options={availableVersionOptions.map((option) => ({
+                            value: option.id,
+                            label: option.label,
+                          }))}
+                          placeholder={
+                            editingDocument.document?.id
+                              ? "Selecione a versao..."
+                              : "Selecione um documento primeiro"
+                          }
+                          error={getEditingDocumentError("document_version_id")}
+                          disabled={
+                            !editingDocument.document?.id ||
+                            availableVersionOptions.length === 0
+                          }
+                        />
+                      </div>
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <FormDatePickerField
@@ -1248,7 +1531,14 @@ export default function EmployeeForm() {
                             >
                               <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
                                 <div className="flex items-center gap-2">
-                                  <span>{document.document?.label || "Documento nao informado"}</span>
+                                  <div className="flex flex-col">
+                                    <span>{document.document?.label || "Documento nao informado"}</span>
+                                    {document.documentVersion?.label && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {document.documentVersion.label}
+                                      </span>
+                                    )}
+                                  </div>
                                   {isEditingDocument && (
                                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                                       Em edicao
@@ -1301,6 +1591,114 @@ export default function EmployeeForm() {
                   </table>
                 </div>
               </div>
+            </section>
+          ) : null}
+
+          {activeTab === "epis" ? (
+            <section className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Entregas de EPI
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Consulta das entregas registradas para o colaborador.
+                  </p>
+                </div>
+
+                <Link
+                  to={EPI_DELIVERIES_ROUTE}
+                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Ver entregas de EPI
+                </Link>
+              </div>
+
+              {epiDeliveries.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  Nenhuma entrega de EPI encontrada para este colaborador.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {epiDeliveries.map((delivery) => (
+                    <div
+                      key={String(delivery.id)}
+                      className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                    >
+                      <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Entrega #{delivery.id}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Data: {toDateInputValue(delivery.delivery_date) || "-"}
+                          </p>
+                        </div>
+
+                        <Link
+                          to={`${EPI_DELIVERIES_ROUTE}/editar/${delivery.id}`}
+                          className="inline-flex items-center rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                        >
+                          Abrir entrega
+                        </Link>
+                      </div>
+
+                      <div className="w-full overflow-x-auto">
+                        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                          <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                              <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
+                                EPI
+                              </th>
+                              <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
+                                Quantidade
+                              </th>
+                              <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
+                                Estado
+                              </th>
+                              <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
+                                Observacao
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {delivery.epis.length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+                                >
+                                  Nenhum EPI informado nesta entrega.
+                                </td>
+                              </tr>
+                            ) : (
+                              delivery.epis.map((epi, epiIndex) => (
+                                <tr
+                                  key={`${delivery.id}-${epi.id}-${epiIndex}`}
+                                  className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800"
+                                >
+                                  <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
+                                    {epi.name}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
+                                    {epi.quantity}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
+                                    {getEpiItemStateLabel(epi.state)}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
+                                    {epi.note || "-"}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           ) : null}
 

@@ -31,6 +31,7 @@ export interface CompanyDocumentUpload {
   id: number;
   company_id: number;
   document_id: number;
+  document_version_id?: string | number | null;
   status: Status;
   emission_date: string | null;
   due_date: string | null;
@@ -47,9 +48,11 @@ export interface CompanyDocumentUpload {
 export type CompanyDocumentUploadPayload = {
   company_id: string | number;
   document_id: string | number;
+  document_version_id: string | number;
   status: Status;
   emission_date: string;
   due_date?: string;
+  upload_id?: string | number;
   upload?: File;
 };
 

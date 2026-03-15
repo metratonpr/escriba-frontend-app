@@ -11,7 +11,6 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function OccurrenceTypesListPage() {
   const [data, setData] = useState<PaginatedResponse<OccurrenceType>>({
@@ -107,12 +106,8 @@ export default function OccurrenceTypesListPage() {
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
 
-      {loading ? (
-        <div className="flex justify-center items-center py-10">
-          <Spinner />
-        </div>
-      ) : (
       <TableTailwind
+          loading={loading}
         title="Tipos de Ocorrência"
         createUrl="/backoffice/tipos-ocorrencia/novo"
         columns={columns}
@@ -136,7 +131,6 @@ export default function OccurrenceTypesListPage() {
           setModalOpen(true);
         }}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -155,3 +149,4 @@ export default function OccurrenceTypesListPage() {
     </>
   );
 }
+

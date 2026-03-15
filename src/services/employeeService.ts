@@ -101,6 +101,13 @@ export interface EmployeeDocumentDefinition {
   validity_days?: number | null;
 }
 
+export interface EmployeeDocumentVersionDefinition {
+  id: number | string;
+  code: string;
+  version: string;
+  description?: string | null;
+}
+
 export interface EmployeeDocumentUpload {
   id: number | string;
   file_name: string;
@@ -119,7 +126,22 @@ export interface EmployeeDocument {
   created_at?: string;
   updated_at?: string;
   document?: EmployeeDocumentDefinition | null;
+  document_version?: EmployeeDocumentVersionDefinition | null;
   upload?: EmployeeDocumentUpload | null;
+}
+
+export interface EmployeeEpiDeliveryItem {
+  id: number | string;
+  name: string;
+  quantity: number;
+  state?: string | null;
+  note?: string | null;
+}
+
+export interface EmployeeEpiDelivery {
+  id: number | string;
+  delivery_date: string;
+  epis: EmployeeEpiDeliveryItem[];
 }
 
 export interface Employee {
@@ -139,6 +161,7 @@ export interface Employee {
   sectors?: EmployeeSector[];
   companies?: EmployeeCompany[];
   documents?: EmployeeDocument[];
+  epi_deliveries?: EmployeeEpiDelivery[];
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;

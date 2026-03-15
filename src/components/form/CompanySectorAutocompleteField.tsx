@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import FormSelectField from "./FormSelectField";
-import debounce from "lodash/debounce";
-import { getCompanies } from "../../services/companyService";
+import {
+  getCompaniesWithSectors,
+  type CompanyResponse,
+} from "../../services/companyService";
+import { mergeSelectedOption, type AutocompleteOption } from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-  _original?: any;
-}
+type Option = AutocompleteOption;
 
 interface Props {
   company: Option | null;
@@ -16,6 +15,32 @@ interface Props {
   onChange: (payload: { company: Option | null; sector: Option | null }) => void;
   disabled?: boolean;
   className?: string;
+  companyLabel?: string;
+  sectorLabel?: string;
+  companyName?: string;
+  sectorName?: string;
+  companyError?: string;
+  sectorError?: string;
+  sectorValueMode?: "companySector" | "sector";
+  initialCompanies?: CompanyResponse[];
+}
+
+type CompanyOption = Option & {
+  _original?: CompanyResponse;
+};
+
+type CompanySectorRelation = NonNullable<CompanyResponse["company_sectors"]>[number];
+
+type SectorOption = Option & {
+  _original?: CompanySectorRelation;
+};
+
+function mapCompanyToOption(company: CompanyResponse): CompanyOption {
+  return {
+    id: company.id,
+    label: company.name,
+    _original: company,
+  };
 }
 
 export default function CompanySectorAutocompleteField({
@@ -24,82 +49,177 @@ export default function CompanySectorAutocompleteField({
   onChange,
   disabled = false,
   className = "",
+  companyLabel = "Empresa",
+  sectorLabel = "Setor",
+  companyName = "company_id",
+  sectorName = "company_sector_id",
+  companyError,
+  sectorError,
+  sectorValueMode = "companySector",
+  initialCompanies,
 }: Props) {
   const [query, setQuery] = useState("");
-  const [options, setOptions] = useState<Option[]>([]);
-  const [sectors, setSectors] = useState<Option[]>([]);
+  const [options, setOptions] = useState<CompanyOption[]>(() =>
+    mergeSelectedOption((initialCompanies ?? []).map(mapCompanyToOption), company)
+  );
+  const [sectors, setSectors] = useState<SectorOption[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompanies = useCallback(
-    debounce(async (term: string) => {
-      try {
-        const response = await getCompanies({ search: term, page: 1, perPage: 25 });
-        const data = Array.isArray(response) ? response : response.data;
-        const formatted: Option[] = data.map((company: any) => ({
-          id: company.id,
-          label: company.name,
-          _original: company,
-        }));
-        setOptions(formatted);
-        setError(null);
-      } catch {
-        setError("Erro ao buscar empresas.");
-        setOptions([]);
-      }
-    }, 300),
-    []
-  );
-
   useEffect(() => {
-    fetchCompanies(query);
-    return () => fetchCompanies.cancel();
-  }, [query, fetchCompanies]);
-
-  useEffect(() => {
-    if (company?._original?.company_sectors) {
-      const formatted = company._original.company_sectors.map((cs: any) => ({
-        id: cs.sector.id,
-        label: cs.sector.name,
-        _original: cs,
-      }));
-      setSectors(formatted);
-    } else {
-      setSectors([]);
+    if (!query.trim() && initialCompanies) {
+      setOptions(mergeSelectedOption(initialCompanies.map(mapCompanyToOption), company));
+      setError(null);
+      return;
     }
-  }, [company]);
 
-  const handleCompanyChange = (selected: Option | null) => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      getCompaniesWithSectors({
+        search: query,
+        page: 1,
+        perPage: 25,
+      })
+        .then((response) => {
+          if (!active) {
+            return;
+          }
+
+          const data = Array.isArray(response) ? response : response.data;
+          setOptions(mergeSelectedOption(data.map(mapCompanyToOption), company));
+          setError(null);
+        })
+        .catch(() => {
+          if (!active) {
+            return;
+          }
+
+          setError("Erro ao buscar empresas.");
+          setOptions([]);
+        });
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [company, initialCompanies, query]);
+
+  useEffect(() => {
+    if (!company) {
+      setSectors([]);
+      return;
+    }
+
+    const selectedCompany =
+      options.find((option) => String(option.id) === String(company.id)) ?? null;
+    const companySectors = selectedCompany?._original?.company_sectors ?? [];
+
+    if (companySectors.length === 0) {
+      setSectors(
+        sector
+          ? [
+              {
+                id: sector.id,
+                label: sector.label,
+              },
+            ]
+          : []
+      );
+      return;
+    }
+
+    setSectors(
+      companySectors.map((companySector) => ({
+        id:
+          sectorValueMode === "companySector"
+            ? companySector.id
+            : companySector.sector.id,
+        label: companySector.sector.name,
+        _original: companySector,
+      }))
+    );
+  }, [company, options, sector, sectorValueMode]);
+
+  useEffect(() => {
+    if (!company) {
+      return;
+    }
+
+    const hasHydratedCompany = options.some(
+      (option) =>
+        String(option.id) === String(company.id) &&
+        Boolean(option._original?.company_sectors)
+    );
+
+    if (hasHydratedCompany) {
+      return;
+    }
+
+    getCompaniesWithSectors({
+      search: company.label,
+      page: 1,
+      perPage: 25,
+    })
+      .then((response) => {
+        const data = Array.isArray(response) ? response : response.data;
+        const matchedCompany = data.find(
+          (item) => String(item.id) === String(company.id)
+        );
+
+        if (!matchedCompany) {
+          return;
+        }
+
+        setOptions((prev) => {
+          const filtered = prev.filter(
+            (option) => String(option.id) !== String(matchedCompany.id)
+          );
+          return [mapCompanyToOption(matchedCompany), ...filtered];
+        });
+      })
+      .catch(() => {
+        // Keep current value visible even if hydration fails.
+      });
+  }, [company, options]);
+
+  const handleCompanyChange = (selected: CompanyOption | null) => {
     onChange({ company: selected, sector: null });
   };
 
-  const handleSectorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = sectors.find((s) => String(s.id) === e.target.value);
+  const handleSectorChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = sectors.find((item) => String(item.id) === event.target.value);
     onChange({
       company,
-      sector: selected ? { ...selected, id: selected._original.id } : null,
+      sector: selected
+        ? {
+            id: selected.id,
+            label: selected.label,
+          }
+        : null,
     });
   };
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
+    <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${className}`}>
       <FormAutocompleteField
-        name="company_id"
-        label="Empresa"
+        name={companyName}
+        label={companyLabel}
         value={company}
         options={options}
         onChange={handleCompanyChange}
         onInputChange={setQuery}
         disabled={disabled}
-         error={error ?? undefined}
+        error={companyError ?? error ?? undefined}
       />
 
       <FormSelectField
-        label="Setor"
-        name="company_sector_id"
+        label={sectorLabel}
+        name={sectorName}
         value={sector?.id || ""}
         onChange={handleSectorChange}
-        options={sectors.map((s) => ({ value: s.id, label: s.label }))}
+        options={sectors.map((item) => ({ value: item.id, label: item.label }))}
         disabled={disabled || sectors.length === 0}
+        error={sectorError}
       />
     </div>
   );

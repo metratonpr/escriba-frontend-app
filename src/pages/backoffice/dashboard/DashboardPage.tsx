@@ -4,7 +4,7 @@ import { BarChart3, Boxes, ChevronDown, FileClock, RotateCw, ShieldAlert, Users 
 import { Link } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
-import Spinner from "../../../components/Layout/ui/Spinner";
+import DashboardPageSkeleton from "../../../components/Layout/ui/DashboardPageSkeleton";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import DashboardSectionCard from "../../../components/dashboard/DashboardSectionCard";
 import DistributionList, {
@@ -622,10 +622,8 @@ export default function DashboardPage() {
         </nav>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Spinner />
-        </div>
+      {loading && !kpis ? (
+        <DashboardPageSkeleton />
       ) : !kpis ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
           Nenhum indicador disponível.

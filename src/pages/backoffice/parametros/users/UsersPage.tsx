@@ -3,7 +3,6 @@ import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import { getStoredUser } from "../../../../services/authService";
 import {
@@ -200,33 +199,30 @@ export default function UsersPage() {
 
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
 
-      {loading ? (
-        <Spinner />
-      ) : (
-        <TableTailwind
-          title="Usuários"
-          createUrl="/backoffice/perfil/usuarios/novo"
-          columns={columns}
-          data={data.data}
-          pagination={{
-            total: data.total,
-            perPage: data.per_page,
-            currentPage: page,
-            onPageChange: setPage,
-            onPerPageChange: (nextPerPage: number) => {
-              setPerPage(nextPerPage);
-              setPage(1);
-            },
-          }}
-          onSortChange={(field, order) => {
-            setSortBy(field);
-            setSortOrder(order);
+      <TableTailwind
+        loading={loading}
+        title="Usuários"
+        createUrl="/backoffice/perfil/usuarios/novo"
+        columns={columns}
+        data={data.data}
+        pagination={{
+          total: data.total,
+          perPage: data.per_page,
+          currentPage: page,
+          onPageChange: setPage,
+          onPerPageChange: (nextPerPage: number) => {
+            setPerPage(nextPerPage);
             setPage(1);
-          }}
-          getEditUrl={(id) => `/backoffice/perfil/usuarios/editar/${id}`}
-          onDelete={handleAskDelete}
-        />
-      )}
+          },
+        }}
+        onSortChange={(field, order) => {
+          setSortBy(field);
+          setSortOrder(order);
+          setPage(1);
+        }}
+        getEditUrl={(id) => `/backoffice/perfil/usuarios/editar/${id}`}
+        onDelete={handleAskDelete}
+      />
 
       <DeleteModal
         isOpen={modalOpen}
@@ -245,3 +241,4 @@ export default function UsersPage() {
     </>
   );
 }
+

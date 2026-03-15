@@ -1,8 +1,19 @@
 // types/epi.ts
 
+export type EpiItemState = "novo" | "usado";
+
+export const EPI_ITEM_STATE_OPTIONS: Array<{ value: EpiItemState; label: string }> = [
+  { value: "novo", label: "Novo" },
+  { value: "usado", label: "Usado" },
+];
+
+export const getEpiItemStateLabel = (state?: string | null) =>
+  EPI_ITEM_STATE_OPTIONS.find((option) => option.value === state)?.label ?? "-";
+
 export interface EpiItem {
   epi_id: number;
   quantity: number;
+  state?: EpiItemState | null;
   notes?: string;
   epi?: {
     id: number;

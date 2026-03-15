@@ -1,13 +1,13 @@
-// src/components/form/BrandAutocompleteField.tsx
 import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash.debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getBrands } from "../../services/brandService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface BrandAutocompleteFieldProps {
   label?: string;
@@ -16,6 +16,7 @@ interface BrandAutocompleteFieldProps {
   disabled?: boolean;
   className?: string;
   error?: string;
+  initialOptions?: Option[];
 }
 
 export default function BrandAutocompleteField({
@@ -25,8 +26,11 @@ export default function BrandAutocompleteField({
   disabled = false,
   className = "",
   error,
+  initialOptions,
 }: BrandAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
 
   const fetchOptions = useCallback(
@@ -34,11 +38,12 @@ export default function BrandAutocompleteField({
       try {
         const res = await getBrands({ search: term, page: 1, perPage: 20 });
         const list = Array.isArray(res) ? res : res.data;
-        const mapped = list.map((brand: any) => ({
-          id: brand.id,
-          label: brand.name,
-        }));
-        setOptions(mapped);
+        setOptions(
+          list.map((brand: any) => ({
+            id: brand.id,
+            label: brand.name,
+          }))
+        );
       } catch {
         setOptions([]);
       }
@@ -47,15 +52,18 @@ export default function BrandAutocompleteField({
   );
 
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchOptions(query);
     return () => fetchOptions.cancel();
-  }, [query, fetchOptions]);
+  }, [fetchOptions, initialOptions, query, value]);
 
   useEffect(() => {
-    if (value && !options.find((opt) => opt.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <FormAutocompleteField

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import {
   createDocumentIssuer,
   getDocumentIssuerById,
@@ -93,9 +93,7 @@ export default function DocumentIssuerFormPage() {
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Órgão Emissor" : "Novo Órgão Emissor"}</h1>
 
       {isEdit && isLoading ? (
-        <div className="h-96 flex items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={8} />
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 grid gap-4 md:grid-cols-2">
           <FormInput id="name" label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required className="md:col-span-2" />

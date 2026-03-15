@@ -6,7 +6,6 @@ import {
   type PaginatedResponse,
 } from "../../../../services/documentService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
@@ -132,10 +131,8 @@ export default function DocumentsPage() {
         ]}
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Documentos"
           createUrl="/backoffice/documentos/novo"
           columns={columns}
@@ -153,7 +150,6 @@ export default function DocumentsPage() {
           getEditUrl={(id) => `/backoffice/documentos/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -171,3 +167,4 @@ export default function DocumentsPage() {
     </>
   );
 }
+

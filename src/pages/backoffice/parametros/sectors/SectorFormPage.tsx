@@ -2,11 +2,11 @@ import  { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
 import { getSectorById, createSector, updateSector } from "../../../../services/sectorService";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 
 
 export default function SectorFormPage() {
@@ -67,7 +67,7 @@ export default function SectorFormPage() {
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Setor" : "Novo Setor"}</h1>
 
       {isEdit && isLoading ? (
-        <Spinner />
+        <FormPageSkeleton className="px-0" fields={4} />
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
           <FormInput

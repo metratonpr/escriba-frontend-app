@@ -11,7 +11,6 @@ import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function EmployeeDocumentUploadPage() {
@@ -138,10 +137,8 @@ export default function EmployeeDocumentUploadPage() {
     <>
       <Breadcrumbs items={[{ label: "Documentos de Colaboradores", to: "/backoffice/colaboradores/documentos" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Documentos de Colaboradores"
           createUrl="/backoffice/colaboradores/documentos/novo"
           columns={columns}
@@ -164,7 +161,6 @@ export default function EmployeeDocumentUploadPage() {
             setPage(1);
           }}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -183,3 +179,4 @@ export default function EmployeeDocumentUploadPage() {
     </>
   );
 }
+

@@ -10,7 +10,6 @@ import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import dayjs from "dayjs";
 
@@ -112,10 +111,8 @@ export default function EmployeesPage() {
     <>
       <Breadcrumbs items={[{ label: "Colaboradores", to: "/backoffice/colaboradores" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind<Employee>
+              <TableTailwind<Employee>
+          loading={loading}
           title="Colaboradores"
           createUrl="/backoffice/colaboradores/novo"
           columns={columns}
@@ -130,8 +127,6 @@ export default function EmployeesPage() {
           getEditUrl={(id) => `/backoffice/colaboradores/editar/${id}`}
           onDelete={handleAskDelete}
         />
-
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -150,3 +145,4 @@ export default function EmployeesPage() {
     </>
   );
 }
+

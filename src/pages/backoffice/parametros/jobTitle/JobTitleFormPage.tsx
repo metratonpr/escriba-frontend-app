@@ -2,10 +2,10 @@ import  { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 
 import {
   getJobTitleById,
@@ -92,9 +92,7 @@ export default function JobTitleFormPage() {
       </h1>
 
       {isEdit && isLoading ? (
-        <div className="h-96 flex items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={4} />
       ) : (
         <form
           onSubmit={handleSubmit}

@@ -1,12 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getEpiTypes } from "../../services/epiTypeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface EpiTypeAutocompleteFieldProps {
   label?: string;
@@ -16,6 +17,7 @@ interface EpiTypeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function EpiTypeAutocompleteField({
@@ -26,18 +28,20 @@ export default function EpiTypeAutocompleteField({
   className = "",
   error,
   required = false,
+  initialOptions,
 }: EpiTypeAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Busca debounced por tipos de EPI
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
         const res = await getEpiTypes({ search: term, page: 1, perPage: 20 });
-        const data = Array.isArray(res) ? res : res.data;
-        setOptions(data.map((item: any) => ({ id: item.id, label: item.name })));
+        const list = Array.isArray(res) ? res : res.data;
+        setOptions(list.map((item: any) => ({ id: item.id, label: item.name })));
         setLoadError(null);
       } catch {
         setLoadError("Erro ao carregar tipos de EPI.");
@@ -47,11 +51,19 @@ export default function EpiTypeAutocompleteField({
     []
   );
 
-  // Atualiza opções ao digitar
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchOptions(query);
     return () => fetchOptions.cancel();
-  }, [query, fetchOptions]);
+  }, [fetchOptions, initialOptions, query, value]);
+
+  useEffect(() => {
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <div className={className}>

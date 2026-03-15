@@ -7,6 +7,7 @@ export interface Epi {
   epi_type_id: number;
   brand_id: number;
   company_id: number;
+  cost?: number | null;
   ca: string;
   ca_expiration: string;
   created_at: string;

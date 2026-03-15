@@ -7,7 +7,6 @@ import {
 } from "../../../../services/eventService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -134,27 +133,25 @@ export default function EventPage() {
         ]}
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-      {!loading && (
-        <TableTailwind
-          title="Eventos"
-          createUrl="/backoffice/eventos/novo"
-          columns={columns}
-          data={data.data}
-          pagination={{
-            total: data.total,
-            perPage: data.per_page,
-            currentPage: page,
-            onPageChange: setPage,
-            onPerPageChange: (pp) => {
-              setPerPage(pp);
-              setPage(1);
-            },
-          }}
-          getEditUrl={(id) => `/backoffice/eventos/editar/${id}`}
-          onDelete={handleAskDelete}
-        />
-      )}
+      <TableTailwind
+        loading={loading}
+        title="Eventos"
+        createUrl="/backoffice/eventos/novo"
+        columns={columns}
+        data={data.data}
+        pagination={{
+          total: data.total,
+          perPage: data.per_page,
+          currentPage: page,
+          onPageChange: setPage,
+          onPerPageChange: (pp) => {
+            setPerPage(pp);
+            setPage(1);
+          },
+        }}
+        getEditUrl={(id) => `/backoffice/eventos/editar/${id}`}
+        onDelete={handleAskDelete}
+      />
       <DeleteModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -171,4 +168,5 @@ export default function EventPage() {
     </>
   );
 }
+
 

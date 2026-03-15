@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
@@ -9,6 +9,7 @@ import { FormActions } from "../../../../components/form/FormActions";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import EventTypeAutocompleteField from "../../../../components/form/EventTypeAutocompleteField";
 import { createEvent, getEventById, updateEvent } from "../../../../services/eventService";
+import { getEventTypes } from "../../../../services/eventTypeService";
 import FormParticipantsTable from "../../../../components/form/FormParticipantsTable";
 import EventAttendanceByDay from "../../../../components/form/EventAttendanceByDay";
 import type { Participant } from "../../../../types/participant";
@@ -38,59 +39,94 @@ export default function EventFormPage() {
     id: string | number;
     label: string;
   } | null>(null);
-  const [errors, setErrors] = useState<Record<string, any>>({});
+  const [eventTypeOptions, setEventTypeOptions] = useState<
+    { id: string | number; label: string }[]
+  >([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({
     open: false,
     message: "",
     type: "success" as "success" | "error",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<EventFormTab>("details");
 
   useEffect(() => {
-    if (!isEdit) {
-      return;
-    }
+    let active = true;
 
-    setIsLoading(true);
-    getEventById(id!)
-      .then((data) => {
-        setForm({
-          name: data.name || "",
-          event_type_id: String(data.event_type_id),
-          total_hours: data.total_hours != null ? String(data.total_hours) : "",
-          start_date: data.start_date || "",
-          end_date: data.end_date || "",
-          location: data.location || "",
-          responsible: data.responsible || "",
-          speakers: data.speakers || "",
-          target_audience: data.target_audience || "",
-          notes: data.notes || "",
-          participants: (data.participations || []).map((p: any) => ({
-            id: p.id,
-            event_id: Number(p.event_id),
-            employee_id: Number(p.employee_id),
-            certificate_number: p.certificate_number,
-            presence: Number(p.presence ?? 0),
-            evaluation: p.evaluation || "",
-            emitir_certificado:
-              p.emitir_certificado === undefined ? true : Boolean(p.emitir_certificado),
-            employee: p.employee ? { id: Number(p.employee.id), name: p.employee.name } : undefined,
-          })),
-        });
+    const loadForm = async () => {
+      setIsLoading(true);
 
-        if (data.event_type) {
-          setEventTypeOption({
-            id: data.event_type.id,
-            label: data.event_type.nome_tipo_evento,
-          });
+      try {
+        const [eventTypesResponse, eventData] = await Promise.all([
+          getEventTypes({ page: 1, perPage: 100 }),
+          isEdit && id ? getEventById(id) : Promise.resolve(null),
+        ]);
+
+        if (!active) {
+          return;
         }
-      })
-      .catch(() => {
+
+        setEventTypeOptions(
+          eventTypesResponse.data.map((item) => ({
+            id: item.id,
+            label: item.nome_tipo_evento,
+          }))
+        );
+
+        if (eventData) {
+          setForm({
+            name: eventData.name || "",
+            event_type_id: String(eventData.event_type_id),
+            total_hours: eventData.total_hours != null ? String(eventData.total_hours) : "",
+            start_date: eventData.start_date || "",
+            end_date: eventData.end_date || "",
+            location: eventData.location || "",
+            responsible: eventData.responsible || "",
+            speakers: eventData.speakers || "",
+            target_audience: eventData.target_audience || "",
+            notes: eventData.notes || "",
+            participants: (eventData.participations || []).map((participant: Participant) => ({
+              id: participant.id,
+              event_id: Number(participant.event_id),
+              employee_id: Number(participant.employee_id),
+              certificate_number: participant.certificate_number,
+              presence: Number(participant.presence ?? 0),
+              evaluation: participant.evaluation || "",
+              emitir_certificado:
+                participant.emitir_certificado === undefined
+                  ? true
+                  : Boolean(participant.emitir_certificado),
+              employee: participant.employee
+                ? { id: Number(participant.employee.id), name: participant.employee.name }
+                : undefined,
+            })),
+          });
+
+          if (eventData.event_type) {
+            setEventTypeOption({
+              id: eventData.event_type.id,
+              label: eventData.event_type.nome_tipo_evento,
+            });
+          }
+        }
+      } catch {
         setToast({ open: true, message: "Erro ao carregar evento.", type: "error" });
-        navigate("/backoffice/eventos");
-      })
-      .finally(() => setIsLoading(false));
+        if (isEdit) {
+          navigate("/backoffice/eventos");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadForm();
+
+    return () => {
+      active = false;
+    };
   }, [id, isEdit, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -129,8 +165,10 @@ export default function EventFormPage() {
         type: "success",
       });
       navigate("/backoffice/eventos");
-    } catch (err: any) {
-      const backendErrors = err.response?.data?.errors ?? {};
+    } catch (err: unknown) {
+      const backendErrors =
+        (err as { response?: { data?: { errors?: Record<string, string> } } }).response
+          ?.data?.errors ?? {};
       setErrors(backendErrors);
 
       const hasParticipantErrors = Object.keys(backendErrors).some(
@@ -162,10 +200,8 @@ export default function EventFormPage() {
 
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Evento" : "Novo Evento"}</h1>
 
-      {isEdit && isLoading ? (
-        <div className="h-64 flex items-center justify-center">
-          <Spinner />
-        </div>
+      {isLoading ? (
+        <FormPageSkeleton className="px-0" fields={10} />
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
           <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -251,6 +287,7 @@ export default function EventFormPage() {
                     value={eventTypeOption}
                     onChange={setEventTypeOption}
                     error={errors.event_type_id}
+                    initialOptions={eventTypeOptions}
                   />
                 </div>
               </div>

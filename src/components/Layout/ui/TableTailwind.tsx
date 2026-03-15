@@ -23,17 +23,19 @@ type TableTailwindProps<T> = {
   createUrl?: string;
   columns: Column<T>[];
   data: T[];
+  loading?: boolean;
   pagination?: Pagination;
-  getEditUrl?: (id: any) => string;
-  onDelete?: (id: any) => void;
+  getEditUrl?: (id: T["id"]) => string;
+  onDelete?: (id: T["id"]) => void;
   onSortChange?: (field: string, order: "asc" | "desc") => void;
 };
 
-export default function TableTailwind<T extends { id: any }>({
+export default function TableTailwind<T extends { id: string | number }>({
   title,
   createUrl,
   columns,
   data,
+  loading = false,
   pagination,
   getEditUrl,
   onDelete,
@@ -107,6 +109,11 @@ export default function TableTailwind<T extends { id: any }>({
       (effectivePagination.currentPage - 1) * effectivePagination.perPage,
       effectivePagination.currentPage * effectivePagination.perPage
     );
+  const actionColumnCount = getEditUrl || onDelete ? 1 : 0;
+  const skeletonRowCount = Math.max(
+    4,
+    Math.min(pagination ? effectivePagination.perPage : 6, 8)
+  );
 
   const createPageButton = (page: number, label?: string, isActive = false, isDisabled = false) => (
     <button
@@ -143,7 +150,14 @@ export default function TableTailwind<T extends { id: any }>({
   };
 
   return (
-    <div className="w-full overflow-x-auto rounded-lg bg-white px-2 shadow-sm sm:px-0 dark:bg-gray-900">
+    <div
+      className="relative w-full overflow-x-auto rounded-lg bg-white px-2 shadow-sm sm:px-0 dark:bg-gray-900"
+      aria-busy={loading}
+    >
+      <div
+        aria-hidden="true"
+        className={`page-progress page-progress-muted ${loading ? "page-progress-active" : ""}`}
+      />
       {title && (
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
@@ -177,10 +191,36 @@ export default function TableTailwind<T extends { id: any }>({
             )}
           </tr>
         </thead>
-        <tbody>
-          {visibleData.length === 0 ? (
+        <tbody className={loading && visibleData.length > 0 ? "opacity-60 transition-opacity" : ""}>
+          {loading && visibleData.length === 0 ? (
+            Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+              <tr
+                key={`table-skeleton-${rowIndex}`}
+                className="odd:bg-white even:bg-gray-50 odd:dark:bg-gray-900 even:dark:bg-gray-800"
+              >
+                {columns.map((col, colIndex) => (
+                  <td
+                    key={`${String(col.field)}-${rowIndex}`}
+                    className="px-4 py-2 sm:px-6 sm:py-4"
+                  >
+                    <div
+                      className="h-4 rounded-full bg-slate-200 skeleton-shimmer dark:bg-slate-700"
+                      style={{
+                        width: `${Math.max(30, 72 - (colIndex % 3) * 14)}%`,
+                      }}
+                    />
+                  </td>
+                ))}
+                {actionColumnCount > 0 && (
+                  <td className="px-4 py-2 sm:px-6 sm:py-4">
+                    <div className="ml-auto h-8 w-20 rounded-full bg-slate-200 skeleton-shimmer dark:bg-slate-700" />
+                  </td>
+                )}
+              </tr>
+            ))
+          ) : visibleData.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
+              <td colSpan={columns.length + actionColumnCount} className="px-6 py-4 text-center text-sm text-gray-500">
                 Nenhum registro encontrado.
               </td>
             </tr>
@@ -231,6 +271,10 @@ export default function TableTailwind<T extends { id: any }>({
           )}
         </tbody>
       </table>
+
+      {loading && visibleData.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 rounded-lg bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/30" />
+      )}
 
       {effectivePagination.total > 0 && (
         <div className="flex flex-col items-center justify-between gap-4 px-4 py-4 sm:flex-row sm:px-6">

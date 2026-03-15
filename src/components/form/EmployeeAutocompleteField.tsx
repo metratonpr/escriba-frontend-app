@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getEmployees } from "../../services/employeeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface EmployeeAutocompleteFieldProps {
   label?: string;
@@ -16,18 +17,22 @@ interface EmployeeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function EmployeeAutocompleteField({
-  label = "Funcionário",
+  label = "Funcionario",
   value,
   onChange,
   disabled = false,
   className = "",
   error,
   required = false,
+  initialOptions,
 }: EmployeeAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -36,14 +41,10 @@ export default function EmployeeAutocompleteField({
       try {
         const response = await getEmployees({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        const mapped: Option[] = list.map((emp: any) => ({
-          id: emp.id,
-          label: emp.name,
-        }));
-        setOptions(mapped);
+        setOptions(list.map((employee: any) => ({ id: employee.id, label: employee.name })));
         setLoadError(null);
       } catch {
-        setLoadError("Erro ao buscar funcionários.");
+        setLoadError("Erro ao buscar funcionarios.");
         setOptions([]);
       }
     }, 300),
@@ -51,15 +52,18 @@ export default function EmployeeAutocompleteField({
   );
 
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchEmployees(query);
     return () => fetchEmployees.cancel();
-  }, [query, fetchEmployees]);
+  }, [fetchEmployees, initialOptions, query, value]);
 
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <div className={className}>

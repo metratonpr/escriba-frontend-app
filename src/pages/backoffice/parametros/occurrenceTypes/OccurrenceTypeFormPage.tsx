@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import {
   createOccurrenceType,
   getOccurrenceTypeById,
@@ -89,9 +89,7 @@ export default function OccurrenceTypeFormPage() {
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Ocorrência" : "Novo Tipo de Ocorrência"}</h1>
 
       {isEdit && isLoading ? (
-        <div className="h-64 flex items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={6} />
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
           <FormInput

@@ -1,13 +1,13 @@
-// src/components/form/CompanyTypeAutocompleteField.tsx
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import { getCompanyTypes } from "../../services/companyTypeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface CompanyTypeAutocompleteFieldProps {
   label?: string;
@@ -17,6 +17,7 @@ interface CompanyTypeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function CompanyTypeAutocompleteField({
@@ -27,11 +28,13 @@ export default function CompanyTypeAutocompleteField({
   className = "",
   error,
   required = false,
+  initialOptions,
 }: CompanyTypeAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
 
-  // Função assíncrona com debounce para buscar tipos de empresa
   const fetchOptions = useCallback(
     debounce(async (term: string) => {
       try {
@@ -45,18 +48,19 @@ export default function CompanyTypeAutocompleteField({
     []
   );
 
-  // Refaz a busca sempre que a query muda
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchOptions(query);
     return () => fetchOptions.cancel();
-  }, [query, fetchOptions]);
+  }, [fetchOptions, initialOptions, query, value]);
 
-  // Garante que o valor atual esteja nas opções
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <FormAutocompleteField

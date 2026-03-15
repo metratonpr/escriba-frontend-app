@@ -7,7 +7,6 @@ import {
   type PaginatedResponse
 } from "../../../../services/sectorService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
@@ -112,10 +111,8 @@ export default function SectorsPage() {
       <Breadcrumbs items={breadcrumbs} />
       <SearchBar onSearch={handleSearch} onClear={handleClear} />
 
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Setores"
           createUrl="/backoffice/setores/novo"
           columns={columns}
@@ -130,7 +127,6 @@ export default function SectorsPage() {
           getEditUrl={(id) => `/backoffice/setores/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -144,3 +140,4 @@ export default function SectorsPage() {
     </>
   );
 }
+

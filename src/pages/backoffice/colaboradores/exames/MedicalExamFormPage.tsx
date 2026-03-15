@@ -7,6 +7,7 @@ import {
 } from "../../../../services/medicalExamService";
 
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import { FormInput } from "../../../../components/form/FormInput";
@@ -17,6 +18,7 @@ import EmployeeAutocompleteField from "../../../../components/form/EmployeeAutoc
 import FileUpload from "../../../../components/form/FileUpload";
 import ExamAttachmentList from "./ExamAttachmentList";
 import { getFieldError } from "../../../../utils/errorUtils";
+import { getEmployees } from "../../../../services/employeeService";
 
 export type UploadFile =
   | File
@@ -43,33 +45,69 @@ export default function MedicalExamFormPage() {
 
   const [deletedUploadIds, setDeletedUploadIds] = useState<number[]>([]);
   const [employeeSelected, setEmployeeSelected] = useState<{ id: string | number; label: string } | null>(null);
+  const [employeeOptions, setEmployeeOptions] = useState<{ id: string | number; label: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ open: boolean; message: string; type: "success" | "error" }>({ open: false, message: "", type: "success" });
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    if (isEdit && id) {
-      getMedicalExamById(Number(id)).then((res) => {
-        setForm({
-          employee_id: String(res.employee_id),
-          exam_type: res.exam_type,
-          exam_date: res.exam_date?.slice(0, 10),
-          cid: res.cid || "",
-          fit: !!res.fit,
-          result_attachment_url: res.result_attachment_url || "",
-          documents: res.uploads?.map((u) => ({
-            id: u.id,
-            nome_arquivo: u.nome_arquivo,
-            url_arquivo: u.url_arquivo,
-          })) || [],
-        });
+    let active = true;
 
-        setEmployeeSelected({
-          id: res.employee_id,
-          label: res.employee?.name || res.employee_name || "Colaborador",
-        });
-      });
-    }
-  }, [id, isEdit]);
+    const loadForm = async () => {
+      setIsInitializing(true);
+
+      try {
+        const [employeesResponse, examResponse] = await Promise.all([
+          getEmployees({ page: 1, perPage: 100 }),
+          isEdit && id ? getMedicalExamById(Number(id)) : Promise.resolve(null),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setEmployeeOptions(
+          employeesResponse.data.map((item) => ({ id: item.id, label: item.name }))
+        );
+
+        if (examResponse) {
+          setForm({
+            employee_id: String(examResponse.employee_id),
+            exam_type: examResponse.exam_type,
+            exam_date: examResponse.exam_date?.slice(0, 10),
+            cid: examResponse.cid || "",
+            fit: !!examResponse.fit,
+            result_attachment_url: examResponse.result_attachment_url || "",
+            documents: examResponse.uploads?.map((upload) => ({
+              id: upload.id,
+              nome_arquivo: upload.nome_arquivo,
+              url_arquivo: upload.url_arquivo,
+            })) || [],
+          });
+
+          setEmployeeSelected({
+            id: examResponse.employee_id,
+            label: examResponse.employee?.name || examResponse.employee_name || "Colaborador",
+          });
+        }
+      } catch {
+        setToast({ open: true, message: "Erro ao carregar exame", type: "error" });
+        if (isEdit) {
+          navigate("/backoffice/exames-medicos");
+        }
+      } finally {
+        if (active) {
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    void loadForm();
+
+    return () => {
+      active = false;
+    };
+  }, [id, isEdit, navigate]);
 
 
 
@@ -159,10 +197,14 @@ export default function MedicalExamFormPage() {
 
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Exame Médico" : "Novo Exame Médico"}</h1>
 
+      {isInitializing ? (
+        <FormPageSkeleton className="px-0" fields={8} />
+      ) : (
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
         <EmployeeAutocompleteField
           value={employeeSelected}
           error={getFieldError(errors, "employee_id")}
+          initialOptions={employeeOptions}
           onChange={(opt) => {
             setEmployeeSelected(opt);
             setForm((prev) => ({ ...prev, employee_id: String(opt?.id || "") }));
@@ -229,6 +271,7 @@ export default function MedicalExamFormPage() {
 
         <FormActions onCancel={() => navigate("/backoffice/exames-medicos")} text={isEdit ? "Atualizar" : "Criar"} />
       </form>
+      )}
 
       <Toast
         open={toast.open}

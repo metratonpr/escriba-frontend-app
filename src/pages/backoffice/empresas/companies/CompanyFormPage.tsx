@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import { FormActions } from "../../../../components/form/FormActions";
 import CompanyGroupAutocompleteField from "../../../../components/form/CompanyGroupAutocompleteField";
 import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTypeAutocompleteField";
 import SectorFormWithTable from "../../../../components/form/SectorFormWithTable";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 
 // Importa apenas os tipos com "type"
 import type { CompanyResponse, CompanyPayload } from "../../../../services/companyService";
@@ -17,6 +17,9 @@ import {
   createCompany,
   updateCompany,
 } from "../../../../services/companyService";
+import { getCompanyGroups } from "../../../../services/companyGroupService";
+import { getCompanyTypes } from "../../../../services/companyTypeService";
+import { getSectors } from "../../../../services/sectorService";
 
 interface AutocompleteOption {
   id: string | number;
@@ -64,37 +67,78 @@ export default function CompanyFormPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
-  const [isLoading, setIsLoading] = useState(isEdit);
+  const [groupOptions, setGroupOptions] = useState<AutocompleteOption[]>([]);
+  const [typeOptions, setTypeOptions] = useState<AutocompleteOption[]>([]);
+  const [sectorOptions, setSectorOptions] = useState<AutocompleteOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-  if (isEdit && id) {
-    getCompanyById(id)
-      .then((companyData: CompanyResponse) => {
-        setForm({
-          name: companyData.name ?? "",
-          cnpj: companyData.cnpj ?? "",
-          phone: companyData.phone ?? "",
-          address: companyData.address ?? "",
-          city: companyData.city ?? "",
-          state: companyData.state ?? "",
-          responsible: companyData.responsible ?? "",
-          email: companyData.email ?? "",
-          company_group_id: companyData.group ? { id: companyData.group.id, label: companyData.group.name } : null,
-          company_type_id: companyData.type ? { id: companyData.type.id, label: companyData.type.name } : null,
-          sectors: (companyData.company_sectors || []).map((s) => ({
-            id: s.sector.id,
-            label: s.sector.name,
-          })),
-        });
-      })
-      .catch((err) => {
-        console.error("Erro ao buscar empresa:", err);
+    let active = true;
+
+    const loadDependencies = async () => {
+      setIsLoading(true);
+
+      try {
+        const [groupsResponse, typesResponse, sectorsResponse, companyData] = await Promise.all([
+          getCompanyGroups({ page: 1, perPage: 100 }),
+          getCompanyTypes({ page: 1, perPage: 100 }),
+          getSectors({ page: 1, perPage: 100 }),
+          isEdit && id ? getCompanyById(id) : Promise.resolve(null),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setGroupOptions(
+          groupsResponse.data.map((group) => ({ id: group.id, label: group.name }))
+        );
+        setTypeOptions(
+          typesResponse.data.map((type) => ({ id: type.id, label: type.name }))
+        );
+        setSectorOptions(
+          sectorsResponse.data.map((sector) => ({ id: sector.id, label: sector.name }))
+        );
+
+        if (companyData) {
+          const company = companyData as CompanyResponse;
+          setForm({
+            name: company.name ?? "",
+            cnpj: company.cnpj ?? "",
+            phone: company.phone ?? "",
+            address: company.address ?? "",
+            city: company.city ?? "",
+            state: company.state ?? "",
+            responsible: company.responsible ?? "",
+            email: company.email ?? "",
+            company_group_id: company.group ? { id: company.group.id, label: company.group.name } : null,
+            company_type_id: company.type ? { id: company.type.id, label: company.type.name } : null,
+            sectors: (company.company_sectors || []).map((item) => ({
+              id: item.sector.id,
+              label: item.sector.name,
+            })),
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar formulario da empresa:", err);
         setToast({ open: true, message: "Erro ao carregar dados da empresa.", type: "error" });
-        navigate("/backoffice/empresas");
-      })
-      .finally(() => setIsLoading(false));
-  }
-}, [id, isEdit, navigate]);
+
+        if (isEdit) {
+          navigate("/backoffice/empresas");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadDependencies();
+
+    return () => {
+      active = false;
+    };
+  }, [id, isEdit, navigate]);
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -136,20 +180,17 @@ export default function CompanyFormPage() {
       }
       setToast({ open: true, message: `Empresa ${isEdit ? "atualizada" : "criada"} com sucesso.`, type: "success" });
       navigate("/backoffice/empresas");
-    } catch (err: any) {
-      if (err.response?.data?.errors) {
-        setErrors(err.response.data.errors);
+    } catch (err: unknown) {
+      const response = (err as { response?: { data?: { errors?: Record<string, string> } } }).response;
+      if (response?.data?.errors) {
+        setErrors(response.data.errors);
       }
       setToast({ open: true, message: "Erro ao salvar empresa. Verifique os campos.", type: "error" });
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="h-96 flex items-center justify-center">
-        <Spinner />
-      </div>
-    );
+    return <FormPageSkeleton fields={10} />;
   }
 
   return (
@@ -163,12 +204,14 @@ export default function CompanyFormPage() {
             onChange={(v) => handleAutocompleteChange("company_group_id", v)}
             error={errors.company_group_id}
             required
+            initialOptions={groupOptions}
           />
           <CompanyTypeAutocompleteField
             value={form.company_type_id}
             onChange={(v) => handleAutocompleteChange("company_type_id", v)}
             error={errors.company_type_id}
             required
+            initialOptions={typeOptions}
           />
           <FormInput id="name" name="name" label="Nome da Empresa" value={form.name} onChange={handleChange} error={errors.name} required />
           <FormInput id="cnpj" name="cnpj" label="CNPJ" value={form.cnpj} onChange={handleChange} error={errors.cnpj} required />
@@ -191,6 +234,7 @@ export default function CompanyFormPage() {
               value={form.sectors}
               onChange={handleSectorsChange}
               error={errors.company_sectors}
+              initialOptions={sectorOptions}
             />
           </div>
         </div>

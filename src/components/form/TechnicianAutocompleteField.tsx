@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getEmployees } from "../../services/employeeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface TechnicianAutocompleteFieldProps {
   label?: string;
@@ -16,32 +17,31 @@ interface TechnicianAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function TechnicianAutocompleteField({
-  label = "Técnico",
+  label = "Tecnico",
   value,
   onChange,
   disabled = false,
   className = "",
   error,
   required = false,
+  initialOptions,
 }: TechnicianAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
-
 
   const fetchTechnicians = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getEmployees({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        const mapped: Option[] = list.map((emp: any) => ({
-          id: emp.id,
-          label: emp.name,
-        }));
-        setOptions(mapped);        
-      } catch {       
+        setOptions(list.map((employee: any) => ({ id: employee.id, label: employee.name })));
+      } catch {
         setOptions([]);
       }
     }, 300),
@@ -49,15 +49,18 @@ export default function TechnicianAutocompleteField({
   );
 
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchTechnicians(query);
     return () => fetchTechnicians.cancel();
-  }, [query, fetchTechnicians]);
+  }, [fetchTechnicians, initialOptions, query, value]);
 
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <FormAutocompleteField

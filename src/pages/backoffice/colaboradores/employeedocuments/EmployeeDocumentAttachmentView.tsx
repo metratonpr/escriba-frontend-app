@@ -1,6 +1,7 @@
 // src/components/backoffice/EmployeeDocumentAttachmentView.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import AttachmentViewerSkeleton from "../../../../components/Layout/ui/AttachmentViewerSkeleton";
 import { getUploadViewById, type UploadViewData } from "../../../../services/viewService.ts";
 import fileService from "../../../../services/FileService.ts";
 
@@ -151,11 +152,7 @@ const EmployeeDocumentAttachmentView: React.FC<Props> = ({
             {/* Área do viewer */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 overflow-hidden">
                 {loading ? (
-                    <div className="h-[300px]" style={{ height: viewerHeight }}>
-                        <div className="w-full h-full flex items-center justify-center">
-                            <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-transparent rounded-full" />
-                        </div>
-                    </div>
+                    <AttachmentViewerSkeleton height={viewerHeight} showMeta={showMeta} />
                 ) : errorMsg ? (
                     <div className="p-4 text-sm text-red-600 text-center">{errorMsg}</div>
                 ) : !fileUrl ? (

@@ -26,10 +26,11 @@ export interface EmployeeDocumentUpload {
   id: string;
   employee_id: string;
   document_id: string;
+  document_version_id?: string | number | null;
   status: "pendente" | "enviado" | "aprovado" | "rejeitado";
   emission_date: string | null;
   due_date: string | null;
-  upload_id: string;
+  upload_id: string | number | null;
   created_at: string;
   updated_at: string;
   employee?: Employee;
@@ -40,12 +41,14 @@ export interface EmployeeDocumentUpload {
 }
 
 export type EmployeeDocumentUploadPayload = {
-  employee_id: string;
-  document_id: string;
+  employee_id: string | number;
+  document_id: string | number;
+  document_version_id: string | number;
   status: "pendente" | "enviado" | "aprovado" | "rejeitado";
   emission_date: string;
   due_date?: string;
-  upload: File;
+  upload_id?: string | number;
+  upload?: File;
 };
 
 export interface PaginatedResponse<T> {

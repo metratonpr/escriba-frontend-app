@@ -61,6 +61,8 @@ interface Props {
   value: CustomAssignment[];
   onChange: (assignments: CustomAssignment[]) => void;
   error?: FieldErrorValue;
+  initialCompanyOptions?: CompanyResponse[];
+  initialJobTitleOptions?: JobTitle[];
 }
 
 function getDefaultStartDate(): string {
@@ -72,7 +74,13 @@ const ASSIGNMENT_STATUS_OPTIONS = [
   { value: "inativo", label: "Inativo" },
 ];
 
-export default function CustomAssignmentsTable({ value, onChange, error }: Props) {
+export default function CustomAssignmentsTable({
+  value,
+  onChange,
+  error,
+  initialCompanyOptions,
+  initialJobTitleOptions,
+}: Props) {
   const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null);
   const [selectedSector, setSelectedSector] = useState<SectorOption | null>(null);
   const [selectedJobTitle, setSelectedJobTitle] = useState<JobTitleOption | null>(null);
@@ -84,10 +92,24 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
   const [companyQuery, setCompanyQuery] = useState("");
   const [sectorQuery, setSectorQuery] = useState("");
   const [jobTitleQuery, setJobTitleQuery] = useState("");
-  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>(() =>
+    (initialCompanyOptions ?? []).map((company) => ({
+      id: company.id,
+      label: company.name,
+      _original: company,
+    }))
+  );
   const [sectorOptions, setSectorOptions] = useState<SectorOption[]>([]);
-  const [jobTitleOptions, setJobTitleOptions] = useState<JobTitleOption[]>([]);
+  const [jobTitleOptions, setJobTitleOptions] = useState<JobTitleOption[]>(() =>
+    (initialJobTitleOptions ?? []).map((jobTitle) => ({
+      id: jobTitle.id,
+      label: jobTitle.name,
+      _original: jobTitle,
+    }))
+  );
   const [sectorLoadError, setSectorLoadError] = useState<string | null>(null);
+  const [, setIsInitialLoadingCompanies] = useState(true);
+  const [, setIsInitialLoadingJobTitles] = useState(true);
   const errorMessage = normalizeFieldError(error);
   const {
     currentPage,
@@ -117,6 +139,8 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
           );
         } catch {
           setCompanyOptions([]);
+        } finally {
+          setIsInitialLoadingCompanies(false);
         }
       }, 300),
     []
@@ -136,6 +160,8 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
           );
         } catch {
           setJobTitleOptions([]);
+        } finally {
+          setIsInitialLoadingJobTitles(false);
         }
       }, 300),
     []
@@ -172,14 +198,36 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
   );
 
   useEffect(() => {
+    if (!companyQuery.trim() && initialCompanyOptions) {
+      setCompanyOptions(
+        initialCompanyOptions.map((company) => ({
+          id: company.id,
+          label: company.name,
+          _original: company,
+        }))
+      );
+      return;
+    }
+
     fetchCompanies(companyQuery);
     return () => fetchCompanies.cancel();
-  }, [companyQuery, fetchCompanies]);
+  }, [companyQuery, fetchCompanies, initialCompanyOptions]);
 
   useEffect(() => {
+    if (!jobTitleQuery.trim() && initialJobTitleOptions) {
+      setJobTitleOptions(
+        initialJobTitleOptions.map((jobTitle) => ({
+          id: jobTitle.id,
+          label: jobTitle.name,
+          _original: jobTitle,
+        }))
+      );
+      return;
+    }
+
     fetchJobTitles(jobTitleQuery);
     return () => fetchJobTitles.cancel();
-  }, [jobTitleQuery, fetchJobTitles]);
+  }, [fetchJobTitles, initialJobTitleOptions, jobTitleQuery]);
 
   useEffect(() => {
     const company = selectedCompany?._original;
@@ -217,7 +265,6 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
 
     return sectorOptions;
   }, [sectorOptions, selectedSector]);
-
   const clearFieldError = (field: keyof AssignmentFieldErrors) => {
     setFieldErrors((prev) => ({
       ...prev,
@@ -250,6 +297,14 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
       return;
     }
 
+    const company = selectedCompany;
+    const sector = selectedSector;
+    const jobTitle = selectedJobTitle;
+
+    if (!company || !sector || !jobTitle) {
+      return;
+    }
+
     if (endDate && new Date(endDate) < new Date(startDate)) {
       setFieldErrors({
         endDate: "A data de fim nao pode ser anterior a data de inicio.",
@@ -257,8 +312,8 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
       return;
     }
 
-    const companySectorId = Number(selectedSector._original?.id ?? selectedSector.id);
-    const jobTitleId = Number(selectedJobTitle.id);
+    const companySectorId = Number(sector._original?.id ?? sector.id);
+    const jobTitleId = Number(jobTitle.id);
 
     const duplicate = value.some(
       (item) =>
@@ -277,10 +332,10 @@ export default function CustomAssignmentsTable({ value, onChange, error }: Props
       ...value,
       {
         company_sector_id: companySectorId,
-        company_name: selectedCompany.label,
-        sector_name: selectedSector.label,
+        company_name: company.label,
+        sector_name: sector.label,
         job_title_id: jobTitleId,
-        job_title_name: selectedJobTitle.label,
+        job_title_name: jobTitle.label,
         status: selectedStatus,
         start_date: startDate,
         end_date: endDate,

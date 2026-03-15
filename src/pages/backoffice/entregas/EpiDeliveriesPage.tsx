@@ -3,7 +3,6 @@ import dayjs from "dayjs";
 import { deleteEpiDelivery, getEpiDeliveries, type PaginatedResponse } from "../../../services/epiDeliveryService";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
-import Spinner from "../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../components/Layout/Feedback/Toast";
@@ -100,10 +99,8 @@ export default function EpiDeliveriesPage() {
     <>
       <Breadcrumbs items={[{ label: "Entregas de EPI", to: "/backoffice/entregas-epis" }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Entregas de EPI"
           createUrl="/backoffice/entregas-epis/nova"
           columns={columns}
@@ -121,7 +118,6 @@ export default function EpiDeliveriesPage() {
           getEditUrl={(id) => `/backoffice/entregas-epis/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -140,5 +136,6 @@ export default function EpiDeliveriesPage() {
     </>
   );
 }
+
 
 

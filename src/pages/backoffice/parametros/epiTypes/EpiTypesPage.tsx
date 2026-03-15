@@ -6,7 +6,6 @@ import {
   type PaginatedResponse,
 } from "../../../../services/epiTypeService";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
@@ -98,10 +97,8 @@ export default function EpiTypesPage() {
         ]}
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-      {loading && <Spinner />}
-
-      {!loading && (
-        <TableTailwind
+              <TableTailwind
+          loading={loading}
           title="Tipos de EPI"
           createUrl="/backoffice/tipos-epi/novo"
           columns={columns}
@@ -119,7 +116,6 @@ export default function EpiTypesPage() {
           getEditUrl={(id) => `/backoffice/tipos-epi/editar/${id}`}
           onDelete={handleAskDelete}
         />
-      )}
 
       <DeleteModal
         isOpen={modalOpen}
@@ -137,3 +133,4 @@ export default function EpiTypesPage() {
     </>
   );
 }
+

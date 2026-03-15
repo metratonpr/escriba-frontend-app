@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
-import Spinner from "../../../../components/Layout/ui/Spinner";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormActions } from "../../../../components/form/FormActions";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
@@ -14,6 +14,9 @@ import {
   getEpiById,
   updateEpi,
 } from "../../../../services/epiService";
+import { getBrands } from "../../../../services/brandService";
+import { getCompanies } from "../../../../services/companyService";
+import { getEpiTypes } from "../../../../services/epiTypeService";
 
 interface Option {
   id: string | number;
@@ -25,6 +28,7 @@ interface EpiFormData {
   epi_type: Option | null;
   brand: Option | null;
   company: Option | null;
+  cost: string;
   ca: string;
   ca_expiration: string;
 }
@@ -40,6 +44,7 @@ export default function EpiFormPage() {
     epi_type: null,
     brand: null,
     company: null,
+    cost: "",
     ca: "",
     ca_expiration: "",
   });
@@ -50,33 +55,72 @@ export default function EpiFormPage() {
     message: "",
     type: "success" as "success" | "error",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<Option[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
+  const [epiTypeOptions, setEpiTypeOptions] = useState<Option[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isEdit && numericId) {
+    let active = true;
+
+    const loadForm = async () => {
       setIsLoading(true);
-      getEpiById(numericId)
-        .then((data) => {
+
+      try {
+        const [epiTypesResponse, brandsResponse, companiesResponse, epiData] = await Promise.all([
+          getEpiTypes({ page: 1, perPage: 100 }),
+          getBrands({ page: 1, perPage: 100 }),
+          getCompanies({ page: 1, perPage: 100 }),
+          isEdit && numericId ? getEpiById(numericId) : Promise.resolve(null),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setEpiTypeOptions(
+          epiTypesResponse.data.map((item) => ({ id: item.id, label: item.name }))
+        );
+        setBrandOptions(
+          brandsResponse.data.map((item) => ({ id: item.id, label: item.name }))
+        );
+        setCompanyOptions(
+          companiesResponse.data.map((item) => ({ id: item.id, label: item.name }))
+        );
+
+        if (epiData) {
           setForm({
-            name: data.name,
-            epi_type: { id: data.epi_type_id, label: data.type?.name ?? "" },
-            brand: { id: data.brand_id, label: data.brand?.name ?? "" },
-            company: { id: data.company_id, label: data.company?.name ?? "" },
-            ca: data.ca,
-            ca_expiration: data.ca_expiration.slice(0, 10),
+            name: epiData.name,
+            epi_type: { id: epiData.epi_type_id, label: epiData.type?.name ?? "" },
+            brand: { id: epiData.brand_id, label: epiData.brand?.name ?? "" },
+            company: { id: epiData.company_id, label: epiData.company?.name ?? "" },
+            cost: epiData.cost != null ? String(epiData.cost) : "",
+            ca: epiData.ca,
+            ca_expiration: epiData.ca_expiration.slice(0, 10),
           });
-        })
-        .catch(() => {
-          setToast({
-            open: true,
-            message: "Erro ao carregar EPI.",
-            type: "error",
-          });
+        }
+      } catch {
+        setToast({
+          open: true,
+          message: "Erro ao carregar EPI.",
+          type: "error",
+        });
+        if (isEdit) {
           navigate("/backoffice/epis");
-        })
-        .finally(() => setIsLoading(false));
-    }
-  }, [numericId]);
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadForm();
+
+    return () => {
+      active = false;
+    };
+  }, [isEdit, navigate, numericId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -91,6 +135,7 @@ export default function EpiFormPage() {
 
     const payload = {
       name: form.name,
+      cost: form.cost.trim() === "" ? undefined : Number(form.cost),
       ca: form.ca,
       ca_expiration: form.ca_expiration,
       brand_id: Number(form.brand?.id ?? 0),
@@ -134,10 +179,8 @@ export default function EpiFormPage() {
         {isEdit ? "Editar EPI" : "Novo EPI"}
       </h1>
 
-      {isEdit && isLoading ? (
-        <div className="h-64 flex items-center justify-center">
-          <Spinner />
-        </div>
+      {isLoading ? (
+        <FormPageSkeleton className="px-0" fields={7} />
       ) : (
         <form
           onSubmit={handleSubmit}
@@ -157,18 +200,33 @@ export default function EpiFormPage() {
             value={form.epi_type}
             onChange={(v) => setForm((prev) => ({ ...prev, epi_type: v }))}
             error={errors.epi_type_id}
+            initialOptions={epiTypeOptions}
           />
 
           <BrandAutocompleteField
             value={form.brand}
             onChange={(v) => setForm((prev) => ({ ...prev, brand: v }))}
             error={errors.brand_id}
+            initialOptions={brandOptions}
           />
 
           <CompanyAutocompleteField
             value={form.company}
             onChange={(v) => setForm((prev) => ({ ...prev, company: v }))}
             error={errors.company_id}
+            initialOptions={companyOptions}
+          />
+
+          <FormInput
+            id="cost"
+            name="cost"
+            label="Custo"
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.cost}
+            onChange={handleChange}
+            error={errors.cost}
           />
 
           <FormInput

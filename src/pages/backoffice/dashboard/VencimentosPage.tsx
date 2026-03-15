@@ -3,7 +3,6 @@ import axios from "axios";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
-import Spinner from "../../../components/Layout/ui/Spinner";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import FormSelectField from "../../../components/form/FormSelectField";
 import {
@@ -275,13 +274,7 @@ export default function VencimentosPage() {
         onClear={() => setSearch("")}
       />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-10">
-          <Spinner />
-        </div>
-      ) : (
-        <TableTailwind columns={columns} data={tableRows} />
-      )}
+      <TableTailwind loading={loading} columns={columns} data={tableRows} />
 
       <Toast
         open={toast.open}

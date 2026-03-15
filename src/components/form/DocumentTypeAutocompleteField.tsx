@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getDocumentTypes } from "../../services/documentTypeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface DocumentTypeAutocompleteFieldProps {
   label?: string;
@@ -15,36 +16,13 @@ interface DocumentTypeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 const MIN_SEARCH_LENGTH = 2;
 const FETCH_LIMIT = 25;
 
-function extractListFromResponse(response: unknown): any[] {
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  if (response && typeof response === "object") {
-    const record = response as Record<string, unknown>;
-    const directData = record.data;
-
-    if (Array.isArray(directData)) {
-      return directData;
-    }
-
-    if (directData && typeof directData === "object") {
-      const nestedData = (directData as Record<string, unknown>).data;
-      if (Array.isArray(nestedData)) {
-        return nestedData;
-      }
-    }
-  }
-
-  return [];
-}
-
-const toUniqueOptions = (items: any[]): Option[] => {
+function toUniqueOptions(items: any[]): Option[] {
   const map = new Map<string, Option>();
 
   items.forEach((item) => {
@@ -64,20 +42,7 @@ const toUniqueOptions = (items: any[]): Option[] => {
   });
 
   return Array.from(map.values());
-};
-
-const mergeSelectedOption = (list: Option[], selected: Option | null): Option[] => {
-  if (!selected?.id) {
-    return list;
-  }
-
-  const selectedId = String(selected.id);
-  if (list.some((item) => String(item.id) === selectedId)) {
-    return list;
-  }
-
-  return [{ id: selectedId, label: selected.label }, ...list];
-};
+}
 
 export default function DocumentTypeAutocompleteField({
   label = "Tipo de Documento",
@@ -87,13 +52,18 @@ export default function DocumentTypeAutocompleteField({
   className = "",
   error,
   required = false,
+  initialOptions,
 }: DocumentTypeAutocompleteFieldProps) {
   const requestIdRef = useRef(0);
   const selectedRef = useRef<Option | null>(value);
   const debounceRef = useRef<number | null>(null);
 
-  const [options, setOptions] = useState<Option[]>([]);
-  const [baseOptions, setBaseOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
+  const [baseOptions, setBaseOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
 
   const loadOptions = useCallback(async (term: string): Promise<Option[]> => {
@@ -103,7 +73,7 @@ export default function DocumentTypeAutocompleteField({
       perPage: FETCH_LIMIT,
     });
 
-    return toUniqueOptions(extractListFromResponse(response));
+    return toUniqueOptions(response.data);
   }, []);
 
   useEffect(() => {
@@ -112,6 +82,20 @@ export default function DocumentTypeAutocompleteField({
   }, [value]);
 
   useEffect(() => {
+    if (!initialOptions) {
+      return;
+    }
+
+    const merged = mergeSelectedOption(initialOptions, selectedRef.current);
+    setBaseOptions(merged);
+    setOptions(merged);
+  }, [initialOptions]);
+
+  useEffect(() => {
+    if (initialOptions) {
+      return;
+    }
+
     let canceled = false;
     const currentRequest = ++requestIdRef.current;
 
@@ -139,7 +123,7 @@ export default function DocumentTypeAutocompleteField({
     return () => {
       canceled = true;
     };
-  }, [loadOptions]);
+  }, [initialOptions, loadOptions]);
 
   useEffect(() => {
     if (debounceRef.current) {
@@ -147,7 +131,6 @@ export default function DocumentTypeAutocompleteField({
     }
 
     const term = query.trim();
-
     if (term.length < MIN_SEARCH_LENGTH) {
       setOptions(mergeSelectedOption(baseOptions, selectedRef.current));
       return;

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import FormAutocompleteField from "./FormAutocompleteField";
 import debounce from "lodash/debounce";
+import FormAutocompleteField from "./FormAutocompleteField";
 import { getOccurrenceTypes } from "../../services/occurrenceTypeService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface OccurrenceTypeAutocompleteFieldProps {
   label?: string;
@@ -16,18 +17,22 @@ interface OccurrenceTypeAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function OccurrenceTypeAutocompleteField({
-  label = "Tipo de Ocorrência",
+  label = "Tipo de Ocorrencia",
   value,
   onChange,
   disabled = false,
   className = "",
   error,
   required = false,
+  initialOptions,
 }: OccurrenceTypeAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -36,11 +41,10 @@ export default function OccurrenceTypeAutocompleteField({
       try {
         const response = await getOccurrenceTypes({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        const mapped: Option[] = list.map((item: any) => ({ id: item.id, label: item.name }));
-        setOptions(mapped);
+        setOptions(list.map((item: any) => ({ id: item.id, label: item.name })));
         setLoadError(null);
       } catch {
-        setLoadError("Erro ao buscar tipos de ocorrência.");
+        setLoadError("Erro ao buscar tipos de ocorrencia.");
         setOptions([]);
       }
     }, 300),
@@ -48,15 +52,18 @@ export default function OccurrenceTypeAutocompleteField({
   );
 
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchOccurrenceTypes(query);
     return () => fetchOccurrenceTypes.cancel();
-  }, [query, fetchOccurrenceTypes]);
+  }, [fetchOccurrenceTypes, initialOptions, query, value]);
 
   useEffect(() => {
-    if (value && !options.some((opt) => opt.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <div className={className}>

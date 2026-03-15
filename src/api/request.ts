@@ -1,6 +1,7 @@
 import type { AxiosResponse, Method } from "axios";
 import http from "./http";
 import { multipartRequest } from "./multipartRequest";
+import { logApiRequest } from "./requestDebug";
 import { normalizeApiResponse } from "./responseNormalizer";
 
 /**
@@ -15,18 +16,16 @@ export async function request<T = unknown>(
 ): Promise<T> {
   try {
     if (data instanceof FormData) {
-      console.log(`Multipart request para: ${url}`, {
-        method,
-        params,
-      });
       return multipartRequest<T>(method, url, data, params);
     }
 
-    console.log(`JSON request para: ${url}`, {
+    logApiRequest(
       method,
+      url,
       params,
-      body: method !== "GET" ? data : undefined,
-    });
+      method !== "GET" ? data : undefined,
+      "application/json"
+    );
 
     const config = {
       url,

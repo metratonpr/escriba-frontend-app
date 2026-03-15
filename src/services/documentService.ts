@@ -1,6 +1,6 @@
 // src/services/documentService.ts
 import { request } from "../api/request";
-import { API_DOCUMENTS } from "../api/apiConfig";
+import { API_DOCUMENTS, API_DOCUMENTS_WITH_VERSIONS } from "../api/apiConfig";
 
 export type DocumentCategory = "employee" | "company" | "general";
 
@@ -15,6 +15,17 @@ export interface DocumentVersionResponse {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+}
+
+export interface DocumentWithVersionsResponse {
+  id: number | string;
+  name: string;
+  code: string;
+  versions: Array<{
+    id: number | string;
+    version: string;
+    code: string;
+  }>;
 }
 
 // Versões manipuladas pelo formulário (envio)
@@ -84,6 +95,31 @@ export const getDocuments = async (
   return await request<PaginatedResponse<Document>>(
     "GET",
     API_DOCUMENTS,
+    {},
+    {
+      page,
+      per_page: perPage,
+      search,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    }
+  );
+};
+
+export const getDocumentsWithVersions = async (
+  options: GetDocumentsOptions = {}
+): Promise<PaginatedResponse<DocumentWithVersionsResponse>> => {
+  const {
+    page = 1,
+    perPage = 25,
+    search = "",
+    sortBy = "name",
+    sortOrder = "asc",
+  } = options;
+
+  return await request<PaginatedResponse<DocumentWithVersionsResponse>>(
+    "GET",
+    API_DOCUMENTS_WITH_VERSIONS,
     {},
     {
       page,

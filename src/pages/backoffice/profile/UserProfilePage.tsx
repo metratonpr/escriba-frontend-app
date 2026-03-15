@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
-import Spinner from "../../../components/Layout/ui/Spinner";
+import FormPageSkeleton from "../../../components/Layout/ui/FormPageSkeleton";
 import { FormActions } from "../../../components/form/FormActions";
 import { FormInput } from "../../../components/form/FormInput";
 import {
@@ -107,8 +107,9 @@ export default function UserProfilePage() {
         message: response.message || "Perfil atualizado com sucesso.",
         type: "success",
       });
-    } catch (error: any) {
-      setErrors(error?.response?.data?.errors ?? {});
+    } catch (error: unknown) {
+      const response = (error as { response?: { data?: { errors?: Record<string, string> } } }).response;
+      setErrors(response?.data?.errors ?? {});
       setToast({
         open: true,
         message: "Erro ao atualizar perfil.",
@@ -143,9 +144,7 @@ export default function UserProfilePage() {
       )}
 
       {isLoading ? (
-        <div className="h-56 flex items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={6} />
       ) : (
         <form
           onSubmit={handleSubmit}

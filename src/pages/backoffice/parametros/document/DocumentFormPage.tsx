@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
@@ -9,14 +10,15 @@ import DocumentTypeAutocompleteField from "../../../../components/form/DocumentT
 import DocumentIssuerAutocompleteField from "../../../../components/form/DocumentIssuerAutocompleteField";
 import FormSelectField from "../../../../components/form/FormSelectField";
 import FormSwitchField from "../../../../components/form/FormSwitchField";
-import Spinner from "../../../../components/Layout/ui/Spinner";
+import DocumentVersionsField from "../../../../components/form/DocumentVersionsField";
 import {
-  getDocumentById,
   createDocument,
+  getDocumentById,
   updateDocument,
   type DocumentCategory,
 } from "../../../../services/documentService";
-import DocumentVersionsField from "../../../../components/form/DocumentVersionsField";
+import { getDocumentTypes } from "../../../../services/documentTypeService";
+import { getDocumentIssuers } from "../../../../services/documentIssuerService";
 import { getFieldError } from "../../../../utils/errorUtils";
 
 interface Option {
@@ -44,48 +46,88 @@ export default function DocumentFormPage() {
     category: "general" as DocumentCategory,
     is_required: false,
   });
-
   const [type, setType] = useState<Option | null>(null);
   const [issuer, setIssuer] = useState<Option | null>(null);
+  const [documentTypeOptions, setDocumentTypeOptions] = useState<Option[]>([]);
+  const [documentIssuerOptions, setDocumentIssuerOptions] = useState<Option[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [versionErrors, setVersionErrors] = useState<Record<number, Record<string, string>>>({});
+  const [versionErrors, setVersionErrors] = useState<Record<number, Record<string, string>>>(
+    {}
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
-  const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DocumentTab>("dados");
 
   useEffect(() => {
-    if (!isEdit || !id) {
-      return;
-    }
+    let active = true;
 
-    setIsLoading(true);
-    getDocumentById(id)
-      .then((doc) => {
-        setForm({
-          code: doc.code,
-          name: doc.name,
-          description: doc.description ?? "",
-          category: doc.category,
-          is_required: doc.is_required,
-        });
+    const loadForm = async () => {
+      setIsLoading(true);
 
-        setType({ id: doc.document_type_id, label: doc.type?.name ?? `Tipo ${doc.document_type_id}` });
-        setIssuer({ id: doc.document_issuer_id, label: doc.issuer?.name ?? `Órgão ${doc.document_issuer_id}` });
+      try {
+        const [typesResponse, issuersResponse, document] = await Promise.all([
+          getDocumentTypes({ page: 1, perPage: 100 }),
+          getDocumentIssuers({ page: 1, perPage: 100 }),
+          isEdit && id ? getDocumentById(id) : Promise.resolve(null),
+        ]);
 
-        setVersions(
-          (doc.versions ?? []).map((item) => ({
-            code: item.code,
-            description: item.description ?? "",
-            version: item.version,
-          }))
+        if (!active) {
+          return;
+        }
+
+        setDocumentTypeOptions(
+          typesResponse.data.map((item) => ({ id: item.id, label: item.name }))
         );
-      })
-      .catch(() => {
+        setDocumentIssuerOptions(
+          issuersResponse.data.map((item) => ({ id: item.id, label: item.name }))
+        );
+
+        if (document) {
+          setForm({
+            code: document.code,
+            name: document.name,
+            description: document.description ?? "",
+            category: document.category,
+            is_required: document.is_required,
+          });
+          setType({
+            id: document.document_type_id,
+            label: document.type?.name ?? `Tipo ${document.document_type_id}`,
+          });
+          setIssuer({
+            id: document.document_issuer_id,
+            label: document.issuer?.name ?? `Orgao ${document.document_issuer_id}`,
+          });
+          setVersions(
+            (document.versions ?? []).map((item) => ({
+              code: item.code,
+              description: item.description ?? "",
+              version: item.version,
+            }))
+          );
+        }
+      } catch {
         setToast({ open: true, message: "Erro ao carregar documento.", type: "error" });
-        navigate("/backoffice/documentos");
-      })
-      .finally(() => setIsLoading(false));
+        if (isEdit) {
+          navigate("/backoffice/documentos");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadForm();
+
+    return () => {
+      active = false;
+    };
   }, [id, isEdit, navigate]);
 
   const handleChange = (
@@ -157,7 +199,7 @@ export default function DocumentFormPage() {
     <div className="mx-auto max-w-4xl p-4">
       <Breadcrumbs
         items={[
-          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Parametros", to: "/backoffice/parametros" },
           { label: "Documentos", to: "/backoffice/documentos" },
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
@@ -165,10 +207,8 @@ export default function DocumentFormPage() {
 
       <h1 className="mb-6 text-2xl font-bold">{isEdit ? "Editar Documento" : "Novo Documento"}</h1>
 
-      {isEdit && isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Spinner />
-        </div>
+      {isLoading ? (
+        <FormPageSkeleton className="px-0" fields={10} />
       ) : (
         <form onSubmit={handleSubmit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
           <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -193,7 +233,7 @@ export default function DocumentFormPage() {
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                 }`}
               >
-                Versões
+                Versoes
               </button>
             </nav>
           </div>
@@ -201,7 +241,7 @@ export default function DocumentFormPage() {
           {activeTab === "dados" && (
             <div className="grid gap-6 md:grid-cols-2">
               <FormInput
-                label="Código"
+                label="Codigo"
                 name="code"
                 value={form.code}
                 onChange={handleChange}
@@ -218,7 +258,7 @@ export default function DocumentFormPage() {
               />
 
               <FormTextArea
-                label="Descrição"
+                label="Descricao"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
@@ -234,14 +274,14 @@ export default function DocumentFormPage() {
                   onChange={handleChange}
                   error={errors.category}
                   options={[
-                    { value: "employee", label: "Funcionário" },
+                    { value: "employee", label: "Funcionario" },
                     { value: "company", label: "Empresa" },
                     { value: "general", label: "Geral" },
                   ]}
                 />
 
                 <FormSwitchField
-                  label="Obrigatório"
+                  label="Obrigatorio"
                   name="is_required"
                   checked={form.is_required}
                   error={getFieldError(errors, "is_required")}
@@ -260,12 +300,14 @@ export default function DocumentFormPage() {
                 onChange={setType}
                 error={getFieldError(errors, "document_type_id")}
                 required
+                initialOptions={documentTypeOptions}
               />
               <DocumentIssuerAutocompleteField
                 value={issuer}
                 onChange={setIssuer}
                 error={getFieldError(errors, "document_issuer_id")}
                 required
+                initialOptions={documentIssuerOptions}
               />
             </div>
           )}

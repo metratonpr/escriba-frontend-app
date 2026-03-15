@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import {
   getCompanyTypeById,
   createCompanyType,
@@ -10,7 +11,6 @@ import {
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
-import Spinner from "../../../../components/Layout/ui/Spinner";
 
 export default function CompanyTypeFormPage() {
   const { id } = useParams();
@@ -67,9 +67,7 @@ export default function CompanyTypeFormPage() {
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Editar Tipo de Empresa" : "Novo Tipo de Empresa"}</h1>
 
       {isEdit && isLoading ? (
-        <div className="h-64 flex items-center justify-center">
-          <Spinner />
-        </div>
+        <FormPageSkeleton className="px-0" fields={4} />
       ) : (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
           <FormInput label="Nome" name="name" value={form.name} onChange={handleChange} error={errors.name} required />

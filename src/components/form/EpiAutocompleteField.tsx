@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getEpis } from "../../services/epiService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface EpiAutocompleteFieldProps {
   label?: string;
@@ -16,6 +17,7 @@ interface EpiAutocompleteFieldProps {
   className?: string;
   error?: string;
   required?: boolean;
+  initialOptions?: Option[];
 }
 
 export default function EpiAutocompleteField({
@@ -26,24 +28,20 @@ export default function EpiAutocompleteField({
   className = "",
   error,
   required = false,
+  initialOptions,
 }: EpiAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Fetch debounced para evitar múltiplas requisições em digitação
   const fetchEpis = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getEpis({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-
-        const mapped: Option[] = list.map((epi: any) => ({
-          id: epi.id,
-          label: epi.name,
-        }));
-
-        setOptions(mapped);
+        setOptions(list.map((epi: any) => ({ id: epi.id, label: epi.name })));
         setLoadError(null);
       } catch {
         setLoadError("Erro ao buscar EPIs.");
@@ -53,18 +51,19 @@ export default function EpiAutocompleteField({
     []
   );
 
-  // Executa a busca com base na query atual
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchEpis(query);
     return () => fetchEpis.cancel();
-  }, [query, fetchEpis]);
+  }, [fetchEpis, initialOptions, query, value]);
 
-  // Garante que o valor selecionado esteja na lista, mesmo se vier de fora
   useEffect(() => {
-    if (value && !options.find((o) => o.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <div className={className}>

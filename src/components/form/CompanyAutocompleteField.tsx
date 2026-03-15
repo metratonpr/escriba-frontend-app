@@ -1,13 +1,13 @@
-// src/components/form/CompanyAutocompleteField.tsx
 import { useCallback, useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getCompanies } from "../../services/companyService";
+import {
+  mergeSelectedOption,
+  type AutocompleteOption,
+} from "../../utils/autocompleteUtils";
 
-interface Option {
-  id: string | number;
-  label: string;
-}
+type Option = AutocompleteOption;
 
 interface CompanyAutocompleteFieldProps {
   label?: string;
@@ -16,6 +16,7 @@ interface CompanyAutocompleteFieldProps {
   disabled?: boolean;
   className?: string;
   error?: string;
+  initialOptions?: Option[];
 }
 
 export default function CompanyAutocompleteField({
@@ -25,8 +26,11 @@ export default function CompanyAutocompleteField({
   disabled = false,
   className = "",
   error,
+  initialOptions,
 }: CompanyAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState<Option[]>(() =>
+    mergeSelectedOption(initialOptions ?? [], value)
+  );
   const [query, setQuery] = useState("");
 
   const fetchCompanies = useCallback(
@@ -43,16 +47,18 @@ export default function CompanyAutocompleteField({
   );
 
   useEffect(() => {
+    if (!query.trim() && initialOptions) {
+      setOptions(mergeSelectedOption(initialOptions, value));
+      return;
+    }
+
     fetchCompanies(query);
     return () => fetchCompanies.cancel();
-  }, [query, fetchCompanies]);
+  }, [fetchCompanies, initialOptions, query, value]);
 
-  // Garante que o valor atual esteja presente nas opções
   useEffect(() => {
-    if (value && !options.find((opt) => opt.id === value.id)) {
-      setOptions((prev) => [...prev, value]);
-    }
-  }, [value, options]);
+    setOptions((prev) => mergeSelectedOption(prev, value));
+  }, [value]);
 
   return (
     <FormAutocompleteField
