@@ -555,7 +555,6 @@ export default function VencimentosPage() {
                       fileName={selectedAttachment.fileName}
                       viewUrl={selectedAttachment.viewUrl}
                       downloadUrl={selectedAttachment.downloadUrl}
-                      showOpenInNewTab={false}
                       onClose={handleCloseViewer}
                     />
                   )}

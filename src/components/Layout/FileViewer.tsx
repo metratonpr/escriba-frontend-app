@@ -8,7 +8,6 @@ interface FileViewerProps {
   viewUrl?: string | null;
   downloadUrl?: string | null;
   embedded?: boolean;
-  showOpenInNewTab?: boolean;
   showDownload?: boolean;
   onClose?: () => void;
 }
@@ -30,11 +29,11 @@ const FileViewer: React.FC<FileViewerProps> = ({
   viewUrl,
   downloadUrl,
   embedded = false,
-  showOpenInNewTab = true,
   showDownload = true,
   onClose,
 }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,8 +42,15 @@ const FileViewer: React.FC<FileViewerProps> = ({
 
   const normalizedFileId =
     typeof fileId === "number" && Number.isInteger(fileId) && fileId > 0 ? fileId : null;
-  const isImage = useMemo(() => isImageFile(fileName), [fileName]);
-  const isPdf = useMemo(() => isPdfFile(fileName), [fileName]);
+  const isImage = useMemo(
+    () => (mimeType ? mimeType.startsWith("image/") : isImageFile(fileName)),
+    [fileName, mimeType]
+  );
+  const isPdf = useMemo(
+    () => (mimeType ? mimeType === "application/pdf" : isPdfFile(fileName)),
+    [fileName, mimeType]
+  );
+  const supportsInlinePreview = isImage || isPdf;
   const containerHeightClassName = embedded ? "h-full min-h-[24rem]" : "h-screen";
 
   useEffect(() => {
@@ -62,8 +68,10 @@ const FileViewer: React.FC<FileViewerProps> = ({
         setLoading(true);
         setLoadError("");
         setActionError("");
+        setMimeType(null);
 
-        const nextBlobUrl = await fileService.getFileUrl(normalizedFileId, viewUrl);
+        const previewData = await fileService.getFilePreviewData(normalizedFileId, viewUrl);
+        const nextBlobUrl = previewData.url;
 
         if (!active) {
           fileService.revokeFileUrl(nextBlobUrl);
@@ -72,12 +80,14 @@ const FileViewer: React.FC<FileViewerProps> = ({
 
         currentBlobUrl = nextBlobUrl;
         setBlobUrl(nextBlobUrl);
+        setMimeType(previewData.mimeType);
       } catch (loadError) {
         if (!active) {
           return;
         }
 
         setBlobUrl(null);
+        setMimeType(null);
         setLoadError(formatViewerError(loadError));
       } finally {
         if (active) {
@@ -96,20 +106,6 @@ const FileViewer: React.FC<FileViewerProps> = ({
       }
     };
   }, [normalizedFileId, viewUrl, reloadKey]);
-
-  const handleOpenInNewTab = async () => {
-    try {
-      if (blobUrl) {
-        window.open(blobUrl, "_blank", "noopener,noreferrer");
-        return;
-      }
-
-      setActionError("");
-      await fileService.openFileInNewTab(normalizedFileId, viewUrl);
-    } catch (openError) {
-      setActionError(formatViewerError(openError));
-    }
-  };
 
   const handleDownload = async () => {
     try {
@@ -238,39 +234,14 @@ const FileViewer: React.FC<FileViewerProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {showOpenInNewTab && (
-              <button
-                type="button"
-                onClick={() => void handleOpenInNewTab()}
-                className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
-              >
-                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                Nova aba
-              </button>
-            )}
             {showDownload && (
               <button
                 type="button"
                 onClick={() => void handleDownload()}
                 disabled={downloading}
-                className="inline-flex items-center rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                {downloading ? "Baixando..." : "Download"}
+                {downloading ? "Baixando..." : "Baixar arquivo"}
               </button>
             )}
             {onClose && (
@@ -326,29 +297,18 @@ const FileViewer: React.FC<FileViewerProps> = ({
                   Pre-visualizacao nao disponivel
                 </h3>
                 <p className="mb-6 text-gray-500">
-                  Use os botoes acima para abrir ou baixar o arquivo.
+                  Este visualizador renderiza somente PDF e imagem no frontend.
                 </p>
-                <div className="flex justify-center gap-3">
-                  {showOpenInNewTab && (
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenInNewTab()}
-                      className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
-                    >
-                      Abrir em nova aba
-                    </button>
-                  )}
-                  {showDownload && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDownload()}
-                      disabled={downloading}
-                      className="rounded-lg bg-green-500 px-4 py-2 text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {downloading ? "Baixando..." : "Download"}
-                    </button>
-                  )}
-                </div>
+                {showDownload && (
+                  <button
+                    type="button"
+                    onClick={() => void handleDownload()}
+                    disabled={downloading}
+                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {downloading ? "Baixando..." : "Baixar arquivo"}
+                  </button>
+                )}
               </div>
             </div>
           )}

@@ -3,6 +3,11 @@ import { getStoredToken } from "./authService";
 
 const DEFAULT_BLOB_FILE_NAME = "arquivo";
 
+export interface FilePreviewData {
+  url: string;
+  mimeType: string | null;
+}
+
 const normalizeUrl = (value?: string | null): string | null => {
   if (typeof value !== "string") {
     return null;
@@ -67,7 +72,9 @@ class FileService {
     return getFileDownloadUrl(fileId);
   }
 
-  private async fetchBlobFromUrl(url: string): Promise<Blob> {
+  private async fetchFileFromUrl(
+    url: string
+  ): Promise<{ blob: Blob; mimeType: string | null }> {
     const response = await fetch(url, {
       method: "GET",
       headers: this.getAuthHeaders(),
@@ -77,18 +84,37 @@ class FileService {
       throw new Error(`Erro ${response.status}: ${response.statusText}`);
     }
 
-    return response.blob();
+    const blob = await response.blob();
+    const responseMimeType = response.headers.get("content-type");
+    const normalizedMimeType = responseMimeType?.split(";")[0]?.trim() || blob.type || null;
+
+    return {
+      blob,
+      mimeType: normalizedMimeType,
+    };
   }
 
-  async getFileBlob(fileId?: number | string | null, viewUrl?: string | null): Promise<string> {
+  async getFilePreviewData(
+    fileId?: number | string | null,
+    viewUrl?: string | null
+  ): Promise<FilePreviewData> {
     const resolvedViewUrl = this.resolveViewUrl(fileId, viewUrl);
 
     if (!resolvedViewUrl) {
       throw new Error("URL de visualizacao indisponivel.");
     }
 
-    const blob = await this.fetchBlobFromUrl(resolvedViewUrl);
-    return URL.createObjectURL(blob);
+    const { blob, mimeType } = await this.fetchFileFromUrl(resolvedViewUrl);
+
+    return {
+      url: URL.createObjectURL(blob),
+      mimeType,
+    };
+  }
+
+  async getFileBlob(fileId?: number | string | null, viewUrl?: string | null): Promise<string> {
+    const previewData = await this.getFilePreviewData(fileId, viewUrl);
+    return previewData.url;
   }
 
   async getFileUrl(fileId?: number | string | null, viewUrl?: string | null): Promise<string> {
@@ -126,7 +152,7 @@ class FileService {
       throw new Error("URL de download indisponivel.");
     }
 
-    const blob = await this.fetchBlobFromUrl(resolvedDownloadUrl);
+    const { blob } = await this.fetchFileFromUrl(resolvedDownloadUrl);
     const blobUrl = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
 
