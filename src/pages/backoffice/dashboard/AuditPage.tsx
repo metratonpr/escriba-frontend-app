@@ -86,6 +86,18 @@ export default function AuditPage() {
     void loadAudit();
   }, []);
 
+  useEffect(() => {
+    if (pendingLogoLoads <= 0) {
+      return;
+    }
+
+    const fallback = window.setTimeout(() => {
+      setPendingLogoLoads(0);
+    }, 6000);
+
+    return () => window.clearTimeout(fallback);
+  }, [pendingLogoLoads]);
+
   const sectionTitle = useMemo(() => {
     if (!groups.length) {
       return "Auditoria";
@@ -108,8 +120,24 @@ export default function AuditPage() {
       <DashboardSectionCard title="Auditoria" subtitle="Registros e rastreabilidade">
         <div className="relative min-h-[300px]">
           {shouldShowSkeleton && (
-            <div className="pointer-events-none absolute inset-0">
-              <FormPageSkeleton className="px-0" fields={5} />
+            <div className="absolute inset-0 flex flex-col justify-center">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 justify-items-center px-2">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <article
+                    key={`skeleton-${index}`}
+                    className="flex w-full max-w-[210px] flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex aspect-square h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-100">
+                      <div className="h-full w-full rounded-xl bg-gray-200 opacity-70" />
+                    </div>
+                    <div className="flex w-full flex-col gap-2">
+                      <span className="h-3 w-5/6 rounded bg-gray-200 opacity-70" />
+                      <span className="h-3 w-4/6 rounded bg-gray-200 opacity-70" />
+                      <span className="h-3 w-3/5 rounded bg-gray-200 opacity-70" />
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           )}
 
@@ -124,8 +152,9 @@ export default function AuditPage() {
           ) : (
             <section
               aria-label={sectionTitle}
+              aria-hidden={shouldShowSkeleton}
               className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 justify-items-center ${
-                shouldShowSkeleton ? "opacity-0" : "opacity-100"
+                shouldShowSkeleton ? "opacity-0 pointer-events-none" : "opacity-100"
               }`}
             >
               {groups.map((group) => (
@@ -140,9 +169,9 @@ export default function AuditPage() {
                       handleGroupNavigation(group);
                     }
                   }}
-                  className="flex w-full max-w-[170px] flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="flex w-full max-w-[220px] flex-col items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
                     {group.has_logo && group.logo_url && !failedLogos[group.id] ? (
                       <ProtectedImage
                         src={group.logo_url}
