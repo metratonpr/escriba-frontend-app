@@ -20,46 +20,88 @@ const detailTabs: Array<{ key: TabKey; label: string }> = [
   { key: "employees", label: "Funcionários" },
 ];
 
+const getSearchLabel = (tab: TabKey) => {
+  switch (tab) {
+    case "documents":
+      return "Buscar documento";
+    case "events":
+      return "Buscar evento";
+    case "sectors":
+      return "Buscar setor";
+    case "employees":
+      return "Buscar funcionário";
+  }
+};
+
 function CompanyDetailSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <span className="h-14 w-14 rounded-xl bg-slate-200 skeleton-shimmer" />
-        <div className="flex-1 space-y-2">
-          <span className="h-3 w-3/5 rounded-full bg-slate-200 skeleton-shimmer" />
-          <span className="h-2.5 w-1/3 rounded-full bg-slate-200 skeleton-shimmer" />
-          <span className="h-2 w-1/4 rounded-full bg-slate-200 skeleton-shimmer" />
-        </div>
-        <span className="h-3 w-32 rounded-full bg-slate-200 skeleton-shimmer" />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: detailTabs.length }).map((_, index) => (
-          <span
-            key={`tab-skeleton-${index}`}
-            className="h-10 w-32 rounded-t-lg border-t-2 border-gray-200 bg-slate-200 skeleton-shimmer"
-          />
-        ))}
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div
-            key={`card-skeleton-${index}`}
-            className="rounded-2xl border border-gray-200 bg-white/60 p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="h-3 w-32 rounded-full bg-slate-200 skeleton-shimmer" />
-              <span className="h-3 w-12 rounded-full bg-slate-200 skeleton-shimmer" />
+    <section className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex aspect-square h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50">
+              <span className="h-full w-full rounded-xl bg-slate-200 skeleton-shimmer" />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <span className="h-3 w-full rounded-full bg-slate-200 skeleton-shimmer" />
-              <span className="h-3 w-full rounded-full bg-slate-200 skeleton-shimmer" />
-              <span className="h-3 w-5/6 rounded-full bg-slate-200 skeleton-shimmer" />
-              <span className="h-3 w-4/6 rounded-full bg-slate-200 skeleton-shimmer" />
+            <div className="text-sm text-gray-600 space-y-1">
+              <span className="block h-3 w-16 rounded-full bg-slate-200 skeleton-shimmer" />
+              <span className="block h-4 w-44 rounded-full bg-slate-200 skeleton-shimmer" />
+              <span className="block h-3 w-32 rounded-full bg-slate-200 skeleton-shimmer" />
             </div>
           </div>
-        ))}
+        </div>
+      </header>
+
+      <div>
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex flex-wrap gap-2">
+            {detailTabs.map((tab) => (
+              <span
+                key={`tab-${tab.key}`}
+                className={`h-10 w-40 rounded-t-lg border-b-2 border-transparent bg-slate-200/80`}
+              />
+            ))}
+          </nav>
+        </div>
+
+        <div className="space-y-4 pt-6">
+          <div className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+                <span className="h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
+                <span className="h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
+              </div>
+              <div className="w-full text-xs text-gray-500 sm:w-auto">
+                <span className="block h-3 w-28 rounded-full bg-slate-200 skeleton-shimmer" />
+                <span className="mt-1 block h-10 w-full rounded-md bg-slate-200 skeleton-shimmer" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="h-3 w-24 rounded-full bg-slate-200 skeleton-shimmer" />
+              <span className="h-3 w-16 rounded-full bg-slate-200 skeleton-shimmer" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <article
+                  key={`skeleton-document-${index}`}
+                  className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="h-4 w-32 rounded-full bg-slate-200 skeleton-shimmer" />
+                    <span className="h-3 w-16 rounded-full bg-slate-200 skeleton-shimmer" />
+                  </div>
+                  <div className="mt-2 space-y-2 text-xs text-gray-500">
+                    <span className="block h-3 w-44 rounded-full bg-slate-200 skeleton-shimmer" />
+                    <span className="block h-3 w-40 rounded-full bg-slate-200 skeleton-shimmer" />
+                    <span className="block h-3 w-32 rounded-full bg-slate-200 skeleton-shimmer" />
+                    <span className="block h-3 w-24 rounded-full bg-slate-200 skeleton-shimmer" />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -81,6 +123,8 @@ export default function CompanyAuditDetailPage() {
     stateCompany?.logo_url ? 1 : 0
   );
   const [activeTab, setActiveTab] = useState<TabKey>("documents");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const companyDocuments = detail?.company_documents ?? [];
   const documentEntries = useMemo(() => {
@@ -96,12 +140,104 @@ export default function CompanyAuditDetailPage() {
     }));
   }, [companyDocuments]);
 
-  const eventEntries = detail?.events ?? [];
+  const filteredDocumentEntries = useMemo(() => {
+    if (!globalSearch.trim()) {
+      return documentEntries;
+    }
 
-  const [sectorView, setSectorView] = useState<"cards" | "table">("cards");
+    const query = globalSearch.trim().toLowerCase();
+    return documentEntries.filter((entry) => {
+      const haystack = `${entry.name} ${entry.status} ${entry.type} ${entry.issuer}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [documentEntries, globalSearch]);
+
+  const eventEntries = detail?.events ?? [];
+  const filteredEventEntries = useMemo(() => {
+    if (!globalSearch.trim()) {
+      return eventEntries;
+    }
+
+    const query = globalSearch.trim().toLowerCase();
+    return eventEntries.filter((event) => {
+      const haystack = `${event.name} ${event.event_type} ${event.location} ${event.role}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [eventEntries, globalSearch]);
+  const detailEmployees = detail?.employees ?? [];
+  const filteredEmployees = useMemo(() => {
+    if (!globalSearch.trim()) {
+      return detailEmployees;
+    }
+
+    const query = globalSearch.trim().toLowerCase();
+    return detailEmployees.filter((employee) => {
+      const haystack = `${employee.name} ${employee.cpf} ${employee.rg}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [detailEmployees, globalSearch]);
+
   const [sectorSearch, setSectorSearch] = useState("");
   const [sectorPage, setSectorPage] = useState(1);
   const [sectorPageSize, setSectorPageSize] = useState(5);
+
+  const handleGlobalSearchChange = (value: string) => {
+    setGlobalSearch(value);
+    setSectorPage(1);
+  };
+
+  const handleSectorSearchChange = (value: string) => {
+    setSectorSearch(value);
+    setSectorPage(1);
+  };
+
+  useEffect(() => {
+    setGlobalSearch("");
+  }, [activeTab]);
+
+  const renderTabControls = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    placeholder = "Digite para filtrar ..."
+  ) => (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold ${
+            viewMode === "cards"
+              ? "border border-blue-600 bg-blue-50 text-blue-600"
+              : "border border-gray-200 bg-white text-gray-600"
+          }`}
+          onClick={() => setViewMode("cards")}
+        >
+          Cartões
+        </button>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold ${
+            viewMode === "table"
+              ? "border border-blue-600 bg-blue-50 text-blue-600"
+              : "border border-gray-200 bg-white text-gray-600"
+          }`}
+          onClick={() => setViewMode("table")}
+        >
+          Tabela
+        </button>
+      </div>
+      <label className="w-full text-xs text-gray-500 sm:w-auto">
+        {label}
+        <input
+          type="search"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="mt-1 w-full min-w-[180px] rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-600 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      </label>
+    </div>
+  );
 
   const detailSectors = detail?.sectors ?? [];
   const filteredSectors = useMemo(() => {
@@ -220,34 +356,36 @@ export default function CompanyAuditDetailPage() {
     </div>
   ) : detail ? (
     <section className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex aspect-square h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50">
-            {companyLogoUrl ? (
-              <ProtectedImage
-                src={companyLogoUrl}
-                alt={`Logo da empresa ${companyName}`}
-                className="h-full w-full object-contain p-2"
-                onReady={handleLogoReady}
-                onFetchError={handleLogoReady}
-              />
-            ) : (
-              <img
-                src="/images/placeholderfoto.jpg"
-                alt={`Logo da empresa ${companyName}`}
-                className="h-full w-full object-contain p-2"
-              />
-            )}
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex aspect-square h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50">
+              {companyLogoUrl ? (
+                <ProtectedImage
+                  src={companyLogoUrl}
+                  alt={`Logo da empresa ${companyName}`}
+                  className="h-full w-full object-contain p-2"
+                  onReady={handleLogoReady}
+                  onFetchError={handleLogoReady}
+                />
+              ) : (
+                <img
+                  src="/images/placeholderfoto.jpg"
+                  alt={`Logo da empresa ${companyName}`}
+                  className="h-full w-full object-contain p-2"
+                />
+              )}
+            </div>
+            <div className="text-sm text-gray-600">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Empresa</p>
+              <p className="text-lg font-semibold text-gray-900">{companyName}</p>
+              {companyCnpj ? <p className="text-xs text-gray-500">CNPJ: {companyCnpj}</p> : null}
+            </div>
           </div>
-          <div className="text-sm text-gray-600">
-            <p className="text-xs uppercase tracking-wide text-gray-400">Empresa</p>
-            <p className="text-lg font-semibold text-gray-900">{companyName}</p>
-            {companyCnpj ? <p className="text-xs text-gray-500">CNPJ: {companyCnpj}</p> : null}
-          </div>
+          {detail.company.responsible ? (
+            <p className="text-xs text-gray-500">Responsável: {detail.company.responsible}</p>
+          ) : null}
         </div>
-        {detail.company.responsible ? (
-          <p className="text-xs text-right text-gray-500">Responsável: {detail.company.responsible}</p>
-        ) : null}
       </header>
 
       <div>
@@ -273,115 +411,145 @@ export default function CompanyAuditDetailPage() {
         <div className="space-y-4 pt-6">
           {activeTab === "documents" ? (
             <div className="space-y-3">
+              {renderTabControls(getSearchLabel("documents"), globalSearch, handleGlobalSearchChange)}
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-wide text-gray-400">Documentos</p>
-                <span className="text-xs text-gray-400">{documentEntries.length} registro(s)</span>
+                <span className="text-xs text-gray-400">{filteredDocumentEntries.length} registro(s)</span>
               </div>
-              <div className="space-y-3">
-                {documentEntries.length === 0 ? (
-                  <p className="text-sm text-gray-500">Nenhum documento registrado.</p>
-                ) : (
-                  documentEntries.map((entry) => (
-                    <article
-                      key={`document-${entry.id}`}
-                      className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900">{entry.name}</p>
-                        <span className="text-[11px] text-gray-500 uppercase">{entry.status}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-gray-500">
-                        Tipo: {entry.type} · Emissor: {entry.issuer}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Emissão: {entry.issuance ?? "—"} • Vencimento: {entry.due ?? "—"}
-                      </p>
-                      <p className="text-xs text-blue-600">
-                        {entry.hasFile ? "Arquivo disponível" : "Nenhum arquivo vinculado"}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </div>
+              {viewMode === "cards" ? (
+                <div className="space-y-3">
+                  {filteredDocumentEntries.length === 0 ? (
+                    <p className="text-sm text-gray-500">Nenhum documento registrado.</p>
+                  ) : (
+                    filteredDocumentEntries.map((entry) => (
+                      <article
+                        key={`document-${entry.id}`}
+                        className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-gray-900">{entry.name}</p>
+                          <span className="text-[11px] text-gray-500 uppercase">{entry.status}</span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          Tipo: {entry.type} · Emissor: {entry.issuer}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Emissão: {entry.issuance ?? "—"} • Vencimento: {entry.due ?? "—"}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          {entry.hasFile ? "Arquivo disponível" : "Nenhum arquivo vinculado"}
+                        </p>
+                      </article>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/80">
+                  <table className="w-full text-left text-sm text-gray-600">
+                    <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-2 font-medium text-gray-900">Documento</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Status</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Tipo</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Emissor</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Vencimento</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Arquivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDocumentEntries.map((entry) => (
+                        <tr
+                          key={`document-table-${entry.id}`}
+                          className="border-b border-gray-200 bg-white last:border-b-0"
+                        >
+                          <td className="px-4 py-2 font-medium text-gray-900">{entry.name}</td>
+                          <td className="px-4 py-2 text-xs text-gray-700 uppercase">{entry.status}</td>
+                          <td className="px-4 py-2">{entry.type}</td>
+                          <td className="px-4 py-2">{entry.issuer}</td>
+                          <td className="px-4 py-2">{entry.due ?? "—"}</td>
+                          <td className="px-4 py-2 text-xs text-blue-600">{entry.hasFile ? "Arquivo" : "Sem arquivo"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : activeTab === "events" ? (
             <div className="space-y-3">
+              {renderTabControls(getSearchLabel("events"), globalSearch, handleGlobalSearchChange)}
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-wide text-gray-400">Eventos</p>
-                <span className="text-xs text-gray-400">{eventEntries.length} registro(s)</span>
+                <span className="text-xs text-gray-400">{filteredEventEntries.length} registro(s)</span>
               </div>
-              <div className="space-y-3">
-                {eventEntries.length === 0 ? (
-                  <p className="text-sm text-gray-500">Nenhum evento registrado.</p>
-                ) : (
-                  eventEntries.map((event) => (
-                    <article
-                      key={`event-${event.id}`}
-                      className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900">{event.name}</p>
-                        <span className="text-[11px] text-gray-500 uppercase">{event.event_type}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-gray-500">
-                        Local: {event.location} · Responsável: {event.responsible}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Período: {event.start_date} até {event.end_date}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Papel: {event.role} · Inclusão: {event.joined_at}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </div>
+              {viewMode === "cards" ? (
+                <div className="space-y-3">
+                  {filteredEventEntries.length === 0 ? (
+                    <p className="text-sm text-gray-500">Nenhum evento registrado.</p>
+                  ) : (
+                    filteredEventEntries.map((event) => (
+                      <article
+                        key={`event-${event.id}`}
+                        className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-gray-900">{event.name}</p>
+                          <span className="text-[11px] text-gray-500 uppercase">{event.event_type}</span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          Local: {event.location} · Responsável: {event.responsible}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Período: {event.start_date} até {event.end_date}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Papel: {event.role} · Inclusão: {event.joined_at}
+                        </p>
+                      </article>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/80">
+                  <table className="w-full text-left text-sm text-gray-600">
+                    <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-2 font-medium text-gray-900">Evento</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Tipo</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Local</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Período</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Papel</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEventEntries.map((event) => (
+                        <tr
+                          key={`event-table-${event.id}`}
+                          className="border-b border-gray-200 bg-white last:border-b-0"
+                        >
+                          <td className="px-4 py-2 font-medium text-gray-900">{event.name}</td>
+                          <td className="px-4 py-2">{event.event_type}</td>
+                          <td className="px-4 py-2">{event.location}</td>
+                          <td className="px-4 py-2">
+                            {event.start_date} até {event.end_date}
+                          </td>
+                          <td className="px-4 py-2">
+                            {event.role} · {event.responsible}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : activeTab === "sectors" ? (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold ${
-                      sectorView === "cards"
-                        ? "border border-blue-600 bg-blue-50 text-blue-600"
-                        : "border border-gray-200 bg-white text-gray-600"
-                    }`}
-                    onClick={() => setSectorView("cards")}
-                  >
-                    Cartões
-                  </button>
-                  <button
-                    type="button"
-                    className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold ${
-                      sectorView === "table"
-                        ? "border border-blue-600 bg-blue-50 text-blue-600"
-                        : "border border-gray-200 bg-white text-gray-600"
-                    }`}
-                    onClick={() => setSectorView("table")}
-                  >
-                    Tabela
-                  </button>
-                </div>
-                <label className="w-full text-xs text-gray-500 sm:w-auto">
-                  Buscar por setor
-                  <input
-                    type="search"
-                    value={sectorSearch}
-                    onChange={(event) => {
-                      setSectorSearch(event.target.value);
-                      setSectorPage(1);
-                    }}
-                    placeholder="Buscar setor"
-                    className="mt-1 w-full min-w-[180px] rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-600 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </label>
-              </div>
+              {renderTabControls("Buscar por setor", sectorSearch, handleSectorSearchChange, "Buscar setor")}
 
               {filteredSectors.length === 0 ? (
                 <p className="text-sm text-gray-500">Nenhum setor encontrado.</p>
-              ) : sectorView === "cards" ? (
+              ) : viewMode === "cards" ? (
                 <div className="space-y-3">
                   {filteredSectors.map((sector) => (
                     <article
@@ -486,33 +654,64 @@ export default function CompanyAuditDetailPage() {
             </div>
           ) : (
             <div className="space-y-3">
+              {renderTabControls(getSearchLabel("employees"), globalSearch, handleGlobalSearchChange)}
               <div className="flex items-center justify-between">
                 <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários</p>
-                <span className="text-xs text-gray-400">{detail.employees.length} registro(s)</span>
+                <span className="text-xs text-gray-400">{filteredEmployees.length} registro(s)</span>
               </div>
-              <div className="space-y-3">
-                {detail.employees.length === 0 ? (
-                  <p className="text-sm text-gray-500">Nenhum colaborador encontrado.</p>
-                ) : (
-                  detail.employees.map((employee) => (
-                    <article
-                      key={`employee-${employee.id}`}
-                      className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{employee.name}</p>
-                        <span className="text-[11px] text-gray-500">{employee.cpf}</span>
-                      </div>
-                      <div className="mt-2 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
-                        <p>RG: {employee.rg}</p>
-                        <p>Status: {employee.assignments[0]?.status ?? ""}</p>
-                        <p>Função: {employee.assignments[0]?.job_title ?? ""}</p>
-                        <p>Documentos: {employee.documents.length}</p>
-                      </div>
-                    </article>
-                  ))
-                )}
-              </div>
+              {viewMode === "cards" ? (
+                <div className="space-y-3">
+                  {filteredEmployees.length === 0 ? (
+                    <p className="text-sm text-gray-500">Nenhum colaborador encontrado.</p>
+                  ) : (
+                    filteredEmployees.map((employee) => (
+                      <article
+                        key={`employee-${employee.id}`}
+                        className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-900">{employee.name}</p>
+                          <span className="text-[11px] text-gray-500">{employee.cpf}</span>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
+                          <p>RG: {employee.rg}</p>
+                          <p>Status: {employee.assignments[0]?.status ?? "—"}</p>
+                          <p>Função: {employee.assignments[0]?.job_title ?? "—"}</p>
+                          <p>Documentos: {employee.documents.length}</p>
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/80 text-xs">
+                  <table className="w-full text-left text-sm text-gray-600">
+                    <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-2 font-medium text-gray-900">Funcionário</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">CPF</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Função</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Status</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Documentos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEmployees.map((employee) => (
+                        <tr
+                          key={`employee-table-${employee.id}`}
+                          className="border-b border-gray-200 bg-white last:border-b-0"
+                        >
+                          <td className="px-4 py-2 font-medium text-gray-900">{employee.name}</td>
+                          <td className="px-4 py-2">{employee.cpf}</td>
+                          <td className="px-4 py-2">{employee.assignments[0]?.job_title ?? "—"}</td>
+                          <td className="px-4 py-2 uppercase">{employee.assignments[0]?.status ?? "—"}</td>
+                          <td className="px-4 py-2">{employee.documents.length}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -530,7 +729,7 @@ export default function CompanyAuditDetailPage() {
 
       <div className="relative">
         {shouldShowSkeleton && (
-          <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm">
+          <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-white p-6 shadow-sm">
             <CompanyDetailSkeleton />
           </div>
         )}

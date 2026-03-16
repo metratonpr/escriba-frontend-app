@@ -24,7 +24,7 @@ type LocationState = {
 
 function CompanyCardsSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4">
       {Array.from({ length: count }).map((_, index) => (
         <article
           key={`company-card-skeleton-${index}`}
@@ -81,6 +81,8 @@ export default function GroupCompaniesPage() {
   );
   const [companyView, setCompanyView] = useState<"card" | "table">("card");
   const [pendingImageLoads, setPendingImageLoads] = useState(0);
+  const [groupLogoReady, setGroupLogoReady] = useState(false);
+  const [loadedCompanyLogos, setLoadedCompanyLogos] = useState<Record<number, boolean>>({});
   const navigate = useNavigate();
 
   const companies = useMemo<CompanyResponse[]>(
@@ -88,8 +90,22 @@ export default function GroupCompaniesPage() {
     [group]
   );
 
-  const handleImageLoadComplete = useCallback(() => {
+  const handleCompanyLogoStatus = useCallback((companyId: number, status: "success" | "error") => {
     setPendingImageLoads((prev) => Math.max(prev - 1, 0));
+
+    // once the image is handled (success or error) remember it as resolved
+    setLoadedCompanyLogos((prev) => {
+      if (prev[companyId]) {
+        return prev;
+      }
+      return { ...prev, [companyId]: true };
+    });
+  }, []);
+
+  const handleGroupLogoStatus = useCallback((status: "success" | "error") => {
+    setPendingImageLoads((prev) => Math.max(prev - 1, 0));
+
+    setGroupLogoReady(true);
   }, []);
 
   useEffect(() => {
@@ -147,29 +163,23 @@ export default function GroupCompaniesPage() {
   }, [group, groupId]);
 
   useEffect(() => {
-    if (!group) {
+    setLoadedCompanyLogos({});
+    setGroupLogoReady(false);
+  }, [group?.id]);
+
+  useEffect(() => {
+    if (!group || companyView !== "card") {
       setPendingImageLoads(0);
       return;
     }
 
-    const groupLogoCount = group.logo_url ? 1 : 0;
-    setPendingImageLoads(groupLogoCount);
-  }, [group]);
+    const groupPending = group.logo_url && !groupLogoReady ? 1 : 0;
+    const notLoadedCompaniesCount = (group.companies ?? []).filter(
+      (company) => company.logo_url && !loadedCompanyLogos[company.id]
+    ).length;
 
-  useEffect(() => {
-    if (!group || companyView !== "card") {
-      return;
-    }
-
-    const companyLogoCount = (group.companies ?? []).filter((company) => Boolean(company.logo_url))
-      .length;
-
-    if (companyLogoCount === 0) {
-      return;
-    }
-
-    setPendingImageLoads((prev) => prev + companyLogoCount);
-  }, [companyView, group]);
+    setPendingImageLoads(groupPending + notLoadedCompaniesCount);
+  }, [group, companyView, groupLogoReady, loadedCompanyLogos]);
 
   useEffect(() => {
     if (pendingImageLoads <= 0) {
@@ -180,7 +190,7 @@ export default function GroupCompaniesPage() {
     return () => clearTimeout(fallback);
   }, [pendingImageLoads]);
 
-  const shouldShowSkeleton = pendingImageLoads > 0;
+  const shouldShowSkeleton = companyView === "card" && pendingImageLoads > 0;
 
   return (
     <div className="space-y-6 p-4">
@@ -209,8 +219,8 @@ export default function GroupCompaniesPage() {
                     src={group.logo_url}
                     alt={`Logo do grupo ${group.name}`}
                     className="h-full w-full object-contain p-2"
-                    onReady={handleImageLoadComplete}
-                    onFetchError={handleImageLoadComplete}
+                    onReady={() => handleGroupLogoStatus("success")}
+                    onFetchError={() => handleGroupLogoStatus("error")}
                   />
                 ) : (
                   <img
@@ -231,15 +241,15 @@ export default function GroupCompaniesPage() {
           </header>
 
           <div className="relative">
-            {shouldShowSkeleton && (
-              <div className="pointer-events-none absolute inset-0 rounded-2xl border border-gray-200 bg-white/80 p-6">
-                {companyView === "card" ? (
-                  <CompanyCardsSkeleton />
-                ) : (
-                  <CompanyTableSkeleton rows={4} />
-                )}
-              </div>
-            )}
+          {shouldShowSkeleton && (
+            <div className="pointer-events-none absolute inset-x-0 top-6 bottom-0 rounded-2xl border border-gray-200 bg-white/80 p-6">
+              {companyView === "card" ? (
+                <CompanyCardsSkeleton />
+              ) : (
+                <CompanyTableSkeleton rows={4} />
+              )}
+            </div>
+          )}
 
             <section
               aria-hidden={shouldShowSkeleton}
@@ -314,8 +324,8 @@ export default function GroupCompaniesPage() {
                               src={company.logo_url}
                               alt={`Logo da empresa ${company.name}`}
                               className="h-full w-full object-contain p-2 transition-opacity duration-150 opacity-100"
-                              onReady={handleImageLoadComplete}
-                              onFetchError={handleImageLoadComplete}
+                              onReady={() => handleCompanyLogoStatus(company.id, "success")}
+                              onFetchError={() => handleCompanyLogoStatus(company.id, "error")}
                             />
                           ) : (
                             <img
