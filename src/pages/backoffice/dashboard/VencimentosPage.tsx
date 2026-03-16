@@ -6,6 +6,7 @@ import { getFileDownloadUrl, getFileViewUrl } from "../../../api/apiConfig";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import FileViewer from "../../../components/Layout/FileViewer";
+import FormPageSkeleton from "../../../components/Layout/ui/FormPageSkeleton";
 import SearchBar from "../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
 import FormSelectField from "../../../components/form/FormSelectField";
@@ -498,25 +499,28 @@ export default function VencimentosPage() {
         </div>
       </div>
 
-      <TableTailwind
-        loading={loading}
-        title="Vencimentos"
-        columns={columns}
-        data={tableRows}
-        renderActions={(row) =>
-          getHasAvailableFile(row) ? (
-            <button
-              type="button"
-              onClick={() => handleViewDocument(row)}
-              aria-label="Visualizar documento"
-              title="Visualizar documento"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Eye size={16} />
-            </button>
-          ) : null
-        }
-      />
+      {loading ? (
+        <FormPageSkeleton className="mt-4 px-0" fields={6} />
+      ) : (
+        <TableTailwind
+          title="Vencimentos"
+          columns={columns}
+          data={tableRows}
+          renderActions={(row) =>
+            getHasAvailableFile(row) ? (
+              <button
+                type="button"
+                onClick={() => handleViewDocument(row)}
+                aria-label="Visualizar documento"
+                title="Visualizar documento"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Eye size={16} />
+              </button>
+            ) : null
+          }
+        />
+      )}
 
       <Transition appear show={selectedAttachment !== null} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={handleCloseViewer}>

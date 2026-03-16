@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
+import ProtectedImage from "../../../../components/Layout/ProtectedImage";
 import FormAutocompleteField from "../../../../components/form/FormAutocompleteField";
 import { FormActions } from "../../../../components/form/FormActions";
 import { FormInput } from "../../../../components/form/FormInput";
@@ -476,8 +477,11 @@ export default function EmployeeForm() {
   );
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  const [isPhotoPreviewLoading, setIsPhotoPreviewLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<EmployeeFormTab>("details");
   const [epiDeliveries, setEpiDeliveries] = useState<EmployeeEpiDelivery[]>([]);
+  const normalizedPhotoUrl = form.existingPhotoUrl ? form.existingPhotoUrl.trim() : "";
+  const hasNormalizedPhotoUrl = Boolean(normalizedPhotoUrl);
 
   useEffect(() => {
     let active = true;
@@ -621,28 +625,37 @@ export default function EmployeeForm() {
   }, [documentSearchQuery, initialDocumentOptions, isInitializing]);
 
   useEffect(() => {
-    if (form.photoFile) {
-      const objectUrl = URL.createObjectURL(form.photoFile);
-      setPhotoLoadFailed(false);
-      setPhotoPreviewUrl(objectUrl);
-
-      return () => {
-        URL.revokeObjectURL(objectUrl);
-      };
-    }
-
-    if (!form.photoMarkedForRemoval && form.existingPhotoUrl && !photoLoadFailed) {
-      setPhotoPreviewUrl(form.existingPhotoUrl);
+    if (!form.photoFile) {
+      setPhotoPreviewUrl("");
       return;
     }
 
-    setPhotoPreviewUrl("");
-  }, [
-    form.existingPhotoUrl,
-    form.photoFile,
-    form.photoMarkedForRemoval,
-    photoLoadFailed,
-  ]);
+    const objectUrl = URL.createObjectURL(form.photoFile);
+    setPhotoLoadFailed(false);
+    setPhotoPreviewUrl(objectUrl);
+    setIsPhotoPreviewLoading(false);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [form.photoFile]);
+
+  useEffect(() => {
+    if (form.photoFile) {
+      setPhotoLoadFailed(false);
+      setIsPhotoPreviewLoading(false);
+      return;
+    }
+
+    if (form.photoMarkedForRemoval || !hasNormalizedPhotoUrl) {
+      setPhotoLoadFailed(false);
+      setIsPhotoPreviewLoading(false);
+      return;
+    }
+
+    setPhotoLoadFailed(false);
+    setIsPhotoPreviewLoading(true);
+  }, [form.photoFile, form.photoMarkedForRemoval, hasNormalizedPhotoUrl]);
 
   const findDocumentOption = (
     documentId?: string | number | null
@@ -932,7 +945,7 @@ export default function EmployeeForm() {
     }
   };
 
-  const photoButtonLabel = photoPreviewUrl ? "Trocar foto" : "Selecionar foto";
+    const photoButtonLabel = photoPreviewUrl ? "Trocar foto" : "Selecionar foto";
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -943,9 +956,9 @@ export default function EmployeeForm() {
         ]}
       />
 
-      {isInitializing ? (
-        <FormPageSkeleton className="px-0" fields={10} />
-      ) : (
+        {isInitializing ? (
+          <FormPageSkeleton className="px-0" fields={10} />
+        ) : (
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6"
@@ -1012,7 +1025,7 @@ export default function EmployeeForm() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div className="space-y-3">
-                <div className="aspect-square overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+                <div className="aspect-square w-full max-w-[240px] overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 sm:mx-0 mx-auto">
                   {photoPreviewUrl ? (
                     <img
                       src={photoPreviewUrl}
@@ -1024,6 +1037,33 @@ export default function EmployeeForm() {
                         }
                       }}
                     />
+                  ) : hasNormalizedPhotoUrl && !photoLoadFailed ? (
+                    <div className="relative h-full w-full">
+                      <ProtectedImage
+                        src={normalizedPhotoUrl}
+                        alt="Foto do colaborador"
+                        className={`h-full w-full object-cover transition-opacity duration-150 ${
+                          isPhotoPreviewLoading ? "opacity-0" : "opacity-100"
+                        }`}
+                        onFetchError={() => {
+                          setPhotoLoadFailed(true);
+                          setIsPhotoPreviewLoading(false);
+                        }}
+                        onReady={(status) => {
+                          setIsPhotoPreviewLoading(false);
+                          if (status === "error") {
+                            setPhotoLoadFailed(true);
+                          } else {
+                            setPhotoLoadFailed(false);
+                          }
+                        }}
+                      />
+                      {isPhotoPreviewLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm text-gray-500 dark:text-gray-400">
+                          Carregando foto...
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <img
                       src={EMPLOYEE_PHOTO_PLACEHOLDER}

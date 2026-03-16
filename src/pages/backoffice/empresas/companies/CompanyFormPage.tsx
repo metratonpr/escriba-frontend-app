@@ -15,6 +15,7 @@ import DocumentWithVersionField from "../../../../components/form/DocumentWithVe
 import FileUpload, {
   type UploadFile as FileUploadItem,
 } from "../../../../components/form/FileUpload";
+import ProtectedImage from "../../../../components/Layout/ProtectedImage";
 
 // Importa apenas os tipos com "type"
 import type {
@@ -27,6 +28,7 @@ import {
   createCompany,
   updateCompany,
 } from "../../../../services/companyService";
+import fileService from "../../../../services/FileService";
 import { getCompanyGroups } from "../../../../services/companyGroupService";
 import { getCompanyTypes } from "../../../../services/companyTypeService";
 import { getSectors } from "../../../../services/sectorService";
@@ -260,6 +262,12 @@ export default function CompanyFormPage() {
     message: "",
     type: "success",
   });
+  const [isOpeningLogo, setIsOpeningLogo] = useState(false);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
+  const [isLogoPreviewLoading, setIsLogoPreviewLoading] = useState(true);
+  const normalizedLogoUrl = form.existingLogoUrl ? form.existingLogoUrl.trim() : "";
+  const hasNormalizedLogoUrl = Boolean(normalizedLogoUrl);
   const [groupOptions, setGroupOptions] = useState<AutocompleteOption[]>([]);
   const [typeOptions, setTypeOptions] = useState<AutocompleteOption[]>([]);
   const [sectorOptions, setSectorOptions] = useState<AutocompleteOption[]>([]);
@@ -395,6 +403,39 @@ export default function CompanyFormPage() {
   }, [id, isEdit, navigate]);
 
   useEffect(() => {
+    if (!form.logoFile) {
+      setLogoPreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(form.logoFile);
+    setLogoPreviewUrl(objectUrl);
+    setLogoLoadFailed(false);
+    setIsLogoPreviewLoading(false);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [form.logoFile]);
+
+  useEffect(() => {
+    if (form.logoFile) {
+      setLogoLoadFailed(false);
+      setIsLogoPreviewLoading(false);
+      return;
+    }
+
+    if (!hasNormalizedLogoUrl) {
+      setLogoLoadFailed(false);
+      setIsLogoPreviewLoading(false);
+      return;
+    }
+
+    setLogoLoadFailed(false);
+    setIsLogoPreviewLoading(true);
+  }, [form.logoFile, hasNormalizedLogoUrl]);
+
+  useEffect(() => {
     const normalizedQuery = documentSearchQuery.trim().toLowerCase();
     if (!normalizedQuery) {
       setDocumentOptions(allDocumentOptions);
@@ -452,6 +493,27 @@ export default function CompanyFormPage() {
     const nextFile = e.target.files?.[0] ?? null;
     setForm((prev) => ({ ...prev, logoFile: nextFile }));
     e.target.value = "";
+  };
+
+  const logoButtonLabel = form.logoFile ? "Trocar logo" : "Enviar logo";
+
+  const handleOpenExistingLogo = async () => {
+    if (!form.existingLogoUrl) {
+      return;
+    }
+
+    try {
+      setIsOpeningLogo(true);
+      await fileService.openFileInNewTab(undefined, form.existingLogoUrl);
+    } catch (error) {
+      setToast({
+        open: true,
+        message: "Erro ao abrir o logo atual.",
+        type: "error",
+      });
+    } finally {
+      setIsOpeningLogo(false);
+    }
   };
 
   const handleAddDocument = () => {
@@ -774,62 +836,115 @@ export default function CompanyFormPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <CompanyGroupAutocompleteField
-            value={form.company_group_id}
-            onChange={(v) => handleAutocompleteChange("company_group_id", v)}
-            error={getFieldError(errors, "company_group_id")}
-            required
-            initialOptions={groupOptions}
-          />
-          <CompanyTypeAutocompleteField
-            value={form.company_type_id}
-            onChange={(v) => handleAutocompleteChange("company_type_id", v)}
-            error={getFieldError(errors, "company_type_id")}
-            required
-            initialOptions={typeOptions}
-          />
-          <FormInput id="name" name="name" label="Nome da Empresa" value={form.name} onChange={handleChange} error={errors.name} required />
-          <FormInput id="cnpj" name="cnpj" label="CNPJ" value={form.cnpj} onChange={handleChange} error={errors.cnpj} required />
-          <FormInput id="phone" name="phone" label="Telefone" value={form.phone} onChange={handleChange} error={errors.phone} />
-          <FormInput id="email" name="email" label="E-mail de Contato" type="email" value={form.email} onChange={handleChange} error={errors.email} required />
-          <FormInput id="responsible" name="responsible" label="Responsável" value={form.responsible} onChange={handleChange} error={errors.responsible} required />
-          <FormInput id="address" name="address" label="Endereço" value={form.address} onChange={handleChange} error={errors.address} />
-          <FormInput id="city" name="city" label="Cidade" value={form.city} onChange={handleChange} error={errors.city} />
-          <FormSelectField
-            name="state"
-            label="Estado"
-            value={form.state}
-            onChange={handleChange}
-            options={STATES}
-            error={errors.state}
-            required
-          />
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-gray-900 dark:text-white">
-              Logo
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-              className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-            {form.logoFile ? (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Arquivo selecionado: {form.logoFile.name}
-              </p>
-            ) : form.existingLogoUrl ? (
-              <a
-                href={form.existingLogoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block text-sm text-blue-600 hover:underline"
-              >
-                Ver logo atual
-              </a>
-            ) : null}
-          </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div className="space-y-3">
+                  <div className="flex aspect-square w-full max-w-[240px] items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 sm:mx-0 mx-auto">
+                    {logoPreviewUrl ? (
+                      <img
+                        src={logoPreviewUrl}
+                        alt="Logo da empresa"
+                        className="h-full w-full object-contain p-4"
+                      />
+                    ) : hasNormalizedLogoUrl && !logoLoadFailed ? (
+                      <div className="relative h-full w-full">
+                        <ProtectedImage
+                          src={normalizedLogoUrl}
+                          alt="Logo da empresa"
+                          className={`h-full w-full object-contain p-4 transition-opacity duration-150 ${
+                            isLogoPreviewLoading ? "opacity-0" : "opacity-100"
+                          }`}
+                          onFetchError={() => {
+                            setLogoLoadFailed(true);
+                            setIsLogoPreviewLoading(false);
+                          }}
+                          onReady={(status) => {
+                            setIsLogoPreviewLoading(false);
+                            if (status === "error") {
+                              setLogoLoadFailed(true);
+                            }
+                          }}
+                        />
+                        {isLogoPreviewLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm text-gray-500 dark:text-gray-400">
+                            Carregando logo...
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-6 text-center text-sm text-gray-500 dark:text-gray-300">
+                        Nenhum logo selecionado
+                      </div>
+                    )}
+                  </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex cursor-pointer items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    {logoButtonLabel}
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
+                  </label>
+
+                  {form.logoFile ? (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      Arquivo selecionado: {form.logoFile.name}
+                    </p>
+                  ) : form.existingLogoUrl ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenExistingLogo}
+                      disabled={isOpeningLogo}
+                      className="mt-2 inline-block text-sm text-blue-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isOpeningLogo ? "Abrindo logo..." : "Ver logo atual"}
+                    </button>
+                  ) : null}
+                </div>
+
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  JPG, JPEG, PNG ou WEBP até 5MB.
+                </p>
+
+                {getFieldError(errors, "logo") ? (
+                  <p className="text-sm text-red-600">{getFieldError(errors, "logo")}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <CompanyGroupAutocompleteField
+                  value={form.company_group_id}
+                  onChange={(v) => handleAutocompleteChange("company_group_id", v)}
+                  error={getFieldError(errors, "company_group_id")}
+                  required
+                  initialOptions={groupOptions}
+                />
+                <CompanyTypeAutocompleteField
+                  value={form.company_type_id}
+                  onChange={(v) => handleAutocompleteChange("company_type_id", v)}
+                  error={getFieldError(errors, "company_type_id")}
+                  required
+                  initialOptions={typeOptions}
+                />
+                <FormInput id="name" name="name" label="Nome da Empresa" value={form.name} onChange={handleChange} error={errors.name} required />
+                <FormInput id="cnpj" name="cnpj" label="CNPJ" value={form.cnpj} onChange={handleChange} error={errors.cnpj} required />
+                <FormInput id="phone" name="phone" label="Telefone" value={form.phone} onChange={handleChange} error={errors.phone} />
+                <FormInput id="email" name="email" label="E-mail de Contato" type="email" value={form.email} onChange={handleChange} error={errors.email} required />
+                <FormInput id="responsible" name="responsible" label="Responsável" value={form.responsible} onChange={handleChange} error={errors.responsible} required />
+                <FormInput id="address" name="address" label="Endereço" value={form.address} onChange={handleChange} error={errors.address} />
+                <FormInput id="city" name="city" label="Cidade" value={form.city} onChange={handleChange} error={errors.city} />
+                <FormSelectField
+                  name="state"
+                  label="Estado"
+                  value={form.state}
+                  onChange={handleChange}
+                  options={STATES}
+                  error={errors.state}
+                  required
+                />
+              </div>
             </div>
           </section>
         ) : null}

@@ -13,6 +13,7 @@ import {
   getCompanyGroupById,
   updateCompanyGroup,
 } from "../../../../services/companyGroupService";
+import fileService from "../../../../services/FileService";
 import { getFieldError, type FieldErrors } from "../../../../utils/errorUtils";
 
 type CompanyGroupFormState = {
@@ -43,6 +44,8 @@ const INITIAL_FORM_STATE: CompanyGroupFormState = {
   existingLogoUrl: "",
   removeLogo: false,
 };
+
+const COMPANY_GROUP_LOGO_PLACEHOLDER = "/images/placeholderfoto.jpg";
 
 function buildCompanyGroupFormData(form: CompanyGroupFormState): FormData {
   const formData = new FormData();
@@ -84,6 +87,7 @@ export default function CompanyGroupFormPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
+  const [isLogoPreviewLoading, setIsLogoPreviewLoading] = useState(false);
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Parametros", to: "/backoffice/parametros" },
@@ -124,18 +128,55 @@ export default function CompanyGroupFormPage() {
     if (form.logoFile) {
       const objectUrl = URL.createObjectURL(form.logoFile);
       setLogoPreviewUrl(objectUrl);
+      setIsLogoPreviewLoading(false);
 
       return () => {
         URL.revokeObjectURL(objectUrl);
       };
     }
 
-    if (!form.removeLogo && form.existingLogoUrl) {
-      setLogoPreviewUrl(form.existingLogoUrl);
+    if (form.removeLogo || !form.existingLogoUrl) {
+      setLogoPreviewUrl("");
+      setIsLogoPreviewLoading(false);
       return;
     }
 
     setLogoPreviewUrl("");
+    setIsLogoPreviewLoading(true);
+
+    let isActive = true;
+    let blobUrl: string | null = null;
+
+    void (async () => {
+      try {
+        const { url } = await fileService.getFilePreviewData(undefined, form.existingLogoUrl);
+
+        if (!isActive) {
+          fileService.revokeFileUrl(url);
+          return;
+        }
+
+        blobUrl = url;
+        setLogoPreviewUrl(url);
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setLogoPreviewUrl("");
+      } finally {
+        if (isActive) {
+          setIsLogoPreviewLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+      if (blobUrl) {
+        fileService.revokeFileUrl(blobUrl);
+      }
+    };
   }, [form.existingLogoUrl, form.logoFile, form.removeLogo]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -249,7 +290,7 @@ export default function CompanyGroupFormPage() {
         {isEdit ? "Editar Grupo de Empresa" : "Novo Grupo de Empresa"}
       </h1>
 
-      {isEdit && isLoading ? (
+      {isEdit && (isLoading || isLogoPreviewLoading) ? (
         <FormPageSkeleton className="px-0" fields={5} />
       ) : (
         <form onSubmit={handleSubmit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">

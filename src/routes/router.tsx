@@ -7,8 +7,10 @@ import EventosDashboard from '../pages/backoffice/eventos/EventosDashboard'
 import ParametrosDashboard from '../pages/backoffice/parametros/ParametrosDashboard'
 import UserProfilePage from '../pages/backoffice/profile/UserProfilePage'
 import DashboardPage from '../pages/backoffice/dashboard/DashboardPage'
+import AuditPage from '../pages/backoffice/dashboard/AuditPage'
 import VencimentosPage from '../pages/backoffice/dashboard/VencimentosPage'
 import DashboardAttachmentViewerPage from '../pages/backoffice/dashboard/DashboardAttachmentViewerPage'
+import GroupCompaniesPage from '../pages/backoffice/dashboard/GroupCompaniesPage'
 import CompanyGroupsPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupsPage'
 import CompanyGroupFormPage from '../pages/backoffice/parametros/companyGroups/CompanyGroupFormPage'
 import CompanyTypesPage from '../pages/backoffice/parametros/companyType/CompanyTypesPage'
@@ -91,6 +93,10 @@ export const router = createBrowserRouter([
         ),
         children: [
             { path: 'dashboard', element: <DashboardPage /> },
+            { path: 'dashboard/auditoria', element: <AuditPage /> },
+            { path: 'dashboard/auditoria/grupo/:groupId', element: <GroupCompaniesPage /> },
+            { path: 'auditoria', element: <AuditPage /> },
+            { path: 'auditoria/grupo/:groupId', element: <GroupCompaniesPage /> },
             { path: 'dashboard/vencimentos', element: <VencimentosPage /> },
             { path: 'dashboard/vencimentos/visualizar-anexo/:attachmentId', element: <DashboardAttachmentViewerPage /> },
             { path: 'dashboard/documentos-a-vencer', element: <VencimentosPage /> },

@@ -276,7 +276,7 @@ export default function DashboardPage() {
     () => toTopInvolvedEmployeeRows(kpis?.occurrences.top_involved_employees ?? []),
     [kpis]
   );
-  const modelRows = useMemo(() => toModelRows(kpis?.models.items ?? []), [kpis]);
+  const modelRows = useMemo(() => toModelRows(kpis?.models?.items ?? []), [kpis]);
 
   const topEventsColumns: Column<TopEventRow>[] = [
     {
@@ -541,10 +541,16 @@ export default function DashboardPage() {
               </button>
             );
           })}
+          <Link
+            to="/backoffice/auditoria"
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+          >
+            Auditoria
+          </Link>
         </nav>
       </div>
 
-      {loading && !kpis ? (
+      {loading ? (
         <DashboardPageSkeleton />
       ) : !kpis ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">

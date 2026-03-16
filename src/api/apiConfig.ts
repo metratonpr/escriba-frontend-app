@@ -46,6 +46,7 @@ export const API_OCCURRENCE_DOCUMENT_VERSION_UPLOADS = `${BASE_URL}/occurrence-d
 export const API_DOCUMENTS_EXPIRING_SOON = `${BASE_URL}/documents/expiring-soon`;
 export const API_DOCUMENTS_EXPIRED = `${BASE_URL}/documents/expired`;
 export const API_KPIS_SYSTEM = `${BASE_URL}/kpis/system`;
+export const API_DASHBOARD_AUDIT = `${BASE_URL}/auditoria`;
 export const API_FILE_VIEW = `${BASE_URL}/view`;
 export const API_FILE_DOWNLOAD = `${BASE_URL}/download`;
 
