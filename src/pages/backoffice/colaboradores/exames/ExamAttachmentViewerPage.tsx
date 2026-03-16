@@ -1,47 +1,71 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import FileViewer from "../../../../components/Layout/FileViewer";
+
+type ExamAttachmentState = {
+  attachment?: {
+    id: number;
+    nome_arquivo: string;
+  };
+};
 
 export default function ExamAttachmentViewerPage() {
   const { examId, attachmentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const attachment = (location.state as any)?.attachment;
+  const attachment = (location.state as ExamAttachmentState | null)?.attachment;
 
-  if (!attachment || !attachment.id) {
+  if (!attachment && !attachmentId) {
     return (
       <div className="p-4 text-center text-red-600">
-        Anexo não encontrado ou inválido. Volte e tente novamente.
+        Anexo nao encontrado ou invalido. Volte e tente novamente.
+      </div>
+    );
+  }
+
+  const fileId = attachment?.id || Number(attachmentId);
+  const fileName = attachment?.nome_arquivo || `attachment-${attachmentId}`;
+
+  if (!fileId) {
+    return (
+      <div className="p-4 text-center text-red-600">
+        ID do anexo invalido. Volte e tente novamente.
       </div>
     );
   }
 
   return (
-    <div className="h-[90vh] p-4 flex flex-col">
+    <div className="flex h-[90vh] flex-col p-4">
       <Breadcrumbs
         items={[
           { label: "Backoffice", to: "/backoffice" },
           {
-            label: "Exame Médico",
-            to: `/backoffice/exames-medicos/editar/${examId}`,
+            label: "Exame Medico",
+            to: examId
+              ? `/backoffice/exames-medicos/editar/${examId}`
+              : "/backoffice/exames-medicos",
           },
           { label: "Visualizar Anexo", to: "#" },
         ]}
       />
 
-      <h1 className="text-xl font-semibold mb-4 truncate">{attachment.nome_arquivo}</h1>
+      <h1 className="mb-4 truncate text-xl font-semibold">{fileName}</h1>
 
-      <div className="flex-1 border rounded overflow-hidden">
-        <FileViewer fileId={attachmentId ? Number(attachmentId) : attachment.id} fileName={attachment.nome_arquivo} />
+      <div className="flex-1 overflow-hidden rounded border">
+        <FileViewer fileId={fileId} fileName={fileName} />
       </div>
 
       <div className="mt-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() =>
+            examId
+              ? navigate(`/backoffice/exames-medicos/editar/${examId}`)
+              : navigate("/backoffice/exames-medicos")
+          }
           className="text-sm text-blue-600 hover:underline"
         >
-          ← Voltar
+          {"<- Voltar"}
         </button>
       </div>
     </div>

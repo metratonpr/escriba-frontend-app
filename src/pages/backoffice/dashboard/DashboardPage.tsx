@@ -581,35 +581,6 @@ export default function DashboardPage() {
           </form>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-            Atalhos:
-          </span>
-          {DAYS_OPTIONS.map((option) => {
-            const isActive = parsedWindow === option.value;
-            return (
-              <button
-                key={`window-${option.value}`}
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setDaysInput(String(option.value));
-                  if (daysError) {
-                    setDaysError("");
-                  }
-                  void loadDashboard(option.value);
-                }}
-                className={`h-8 rounded-full px-3 text-xs font-semibold transition ${
-                  isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                } disabled:cursor-not-allowed disabled:opacity-60`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
       </section>
 
       <div className="rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
@@ -694,34 +665,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 </DashboardSectionCard>
-
-                <DashboardSectionCard title="Distribuições chave" subtitle="Corte rápido">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="mb-2 text-sm font-semibold text-gray-700">Eventos por tipo</h3>
-                      <DistributionList
-                        items={eventByTypeDistribution}
-                        emptyMessage="Nenhum evento por tipo encontrado."
-                        barClassName="bg-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        Ocorrências por status
-                      </h3>
-                      <DistributionList
-                        items={occurrenceStatusDistribution}
-                        emptyMessage="Nenhuma ocorrência por status."
-                        barClassName="bg-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </DashboardSectionCard>
               </div>
-
-              <DashboardSectionCard title="Top eventos por participantes">
-                <TableTailwind columns={topEventsColumns} data={topEventsRows} />
-              </DashboardSectionCard>
             </>
           )}
 

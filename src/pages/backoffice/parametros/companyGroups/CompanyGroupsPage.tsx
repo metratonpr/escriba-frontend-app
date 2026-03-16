@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
+import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
+import Toast from "../../../../components/Layout/Feedback/Toast";
+import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
+import SearchBar from "../../../../components/Layout/ui/SearchBar";
+import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import {
-  getCompanyGroups,
   deleteCompanyGroup,
+  getCompanyGroups,
   type CompanyGroup,
   type PaginatedResponse,
 } from "../../../../services/companyGroupService";
-import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
-import SearchBar from "../../../../components/Layout/ui/SearchBar";
-import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
-import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
-import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function CompanyGroupsPage() {
   const [data, setData] = useState<PaginatedResponse<CompanyGroup>>({
@@ -28,7 +28,6 @@ export default function CompanyGroupsPage() {
     message: "",
     type: "success" as "success" | "error",
   });
-
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -44,27 +43,30 @@ export default function CompanyGroupsPage() {
   };
 
   useEffect(() => {
-    loadGroups();
+    void loadGroups();
   }, [search, page, perPage]);
 
-  const handleSearch = (q: string) => {
-    setSearch(q.trim());
+  const handleSearch = (query: string) => {
+    setSearch(query.trim());
     setPage(1);
   };
 
   const handleAskDelete = (id: string) => {
-    const item = data.data.find((d) => d.id === id);
+    const item = data.data.find((group) => group.id === id);
     setSelectedId(id);
     setSelectedName(item?.name ?? null);
     setModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      return;
+    }
+
     try {
       await deleteCompanyGroup(selectedId);
       await loadGroups();
-      setToast({ open: true, message: `Grupo "${selectedName}" excluído com sucesso.`, type: "success" });
+      setToast({ open: true, message: `Grupo "${selectedName}" excluido com sucesso.`, type: "success" });
     } catch {
       setToast({ open: true, message: `Erro ao excluir grupo "${selectedName}".`, type: "error" });
     } finally {
@@ -76,7 +78,13 @@ export default function CompanyGroupsPage() {
 
   const columns: Column<CompanyGroup>[] = [
     { label: "Nome", field: "name", sortable: true },
-    { label: "Responsável", field: "responsible", sortable: true },
+    {
+      label: "Logo",
+      field: "has_logo",
+      render: (row) => (row.has_logo ? "Com logo" : "Sem logo"),
+      sortable: true,
+    },
+    { label: "Responsavel", field: "responsible", sortable: true },
     { label: "Email", field: "contact_email" },
   ];
 
@@ -84,30 +92,30 @@ export default function CompanyGroupsPage() {
     <>
       <Breadcrumbs
         items={[
-          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "Parametros", to: "/backoffice/parametros" },
           { label: "Grupos de Empresa", to: "/backoffice/grupos-empresa" },
         ]}
       />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
-              <TableTailwind
-          loading={loading}
-          title="Grupos de Empresas"
-          createUrl="/backoffice/grupos-empresa/novo"
-          columns={columns}
-          data={data.data}
-          pagination={{
-            total: data.total,
-            perPage: data.per_page,
-            currentPage: page,
-            onPageChange: setPage,
-            onPerPageChange: (pp) => {
-              setPerPage(pp);
-              setPage(1);
-            },
-          }}
-          getEditUrl={(id) => `/backoffice/grupos-empresa/editar/${id}`}
-          onDelete={handleAskDelete}
-        />
+      <TableTailwind
+        loading={loading}
+        title="Grupos de Empresas"
+        createUrl="/backoffice/grupos-empresa/novo"
+        columns={columns}
+        data={data.data}
+        pagination={{
+          total: data.total,
+          perPage: data.per_page,
+          currentPage: page,
+          onPageChange: setPage,
+          onPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage);
+            setPage(1);
+          },
+        }}
+        getEditUrl={(id) => `/backoffice/grupos-empresa/editar/${id}`}
+        onDelete={handleAskDelete}
+      />
 
       <DeleteModal
         isOpen={modalOpen}
@@ -126,4 +134,3 @@ export default function CompanyGroupsPage() {
     </>
   );
 }
-

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   getCompanyDocumentUploads,
   deleteCompanyDocumentUpload,
@@ -15,6 +17,7 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 type ToastType = "success" | "error";
 
 export default function CompanyDocumentUploadPage() {
+  const navigate = useNavigate();
   const [data, setData] = useState<PaginatedResponse<CompanyDocumentUpload>>({
     data: [],
     total: 0,
@@ -100,6 +103,23 @@ export default function CompanyDocumentUploadPage() {
     }
   };
 
+  const getViewableAttachment = (row: CompanyDocumentUpload) => {
+    if (row.upload?.has_file !== true) {
+      return null;
+    }
+
+    const attachmentId = Number(row.upload?.id ?? row.upload_id ?? 0);
+    if (!Number.isInteger(attachmentId) || attachmentId <= 0) {
+      return null;
+    }
+
+    return {
+      id: attachmentId,
+      nome_arquivo: row.upload?.nome_arquivo ?? `attachment-${attachmentId}`,
+      url_arquivo: row.upload?.url_arquivo ?? "",
+    };
+  };
+
   const columns: Column<CompanyDocumentUpload>[] = [
     {
       label: "Empresa",
@@ -156,6 +176,29 @@ export default function CompanyDocumentUploadPage() {
               setPerPage(pp);
               setPage(1);
             },
+          }}
+          renderActions={(row) => {
+            const attachment = getViewableAttachment(row);
+
+            if (!attachment) {
+              return null;
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`, {
+                    state: { attachment },
+                  })
+                }
+                aria-label="Visualizar anexo"
+                title="Visualizar anexo"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
+                <Eye size={16} />
+              </button>
+            );
           }}
           getEditUrl={(id) => `/backoffice/empresas/documentos/editar/${id}`}
           onDelete={handleAskDelete}

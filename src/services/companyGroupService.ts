@@ -1,13 +1,20 @@
 // src/services/companyGroupService.ts
 import { API_COMPANY_GROUPS } from "../api/apiConfig";
+import { multipartRequest } from "../api/multipartRequest";
 import { request } from "../api/request";
 
 export interface CompanyGroup {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   responsible: string;
   contact_email: string;
+  logo_path?: string | null;
+  logo_url?: string | null;
+  has_logo?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export type CompanyGroupPayload = {
@@ -15,6 +22,8 @@ export type CompanyGroupPayload = {
   description?: string;
   responsible: string;
   contact_email: string;
+  logo?: File | null;
+  remove_logo?: boolean;
 };
 
 export interface PaginatedResponse<T> {
@@ -63,23 +72,25 @@ export const getCompanyGroups = async (
 /**
  * Obter grupo de empresa pelo ID
  */
-export const getCompanyGroupById = (id: string): Promise<CompanyGroup> =>
+export const getCompanyGroupById = (id: string | number): Promise<CompanyGroup> =>
   request<CompanyGroup>('GET', `${API_COMPANY_GROUPS}/${id}`);
 
 /**
  * Criar novo grupo de empresa
  */
-export const createCompanyGroup = (data: CompanyGroupPayload): Promise<CompanyGroup> =>
-  request<CompanyGroup>('POST', API_COMPANY_GROUPS, data);
+export const createCompanyGroup = (data: FormData): Promise<CompanyGroup> =>
+  multipartRequest<CompanyGroup>('POST', API_COMPANY_GROUPS, data);
 
 /**
  * Atualizar grupo de empresa existente
  */
-export const updateCompanyGroup = (id: string, data: CompanyGroupPayload): Promise<CompanyGroup> =>
-  request<CompanyGroup>('PUT', `${API_COMPANY_GROUPS}/${id}`, data);
+export const updateCompanyGroup = (id: string | number, data: FormData): Promise<CompanyGroup> => {
+  data.append("_method", "PUT");
+  return multipartRequest<CompanyGroup>('POST', `${API_COMPANY_GROUPS}/${id}`, data);
+};
 
 /**
  * Excluir grupo de empresa
  */
-export const deleteCompanyGroup = (id: string): Promise<void> =>
+export const deleteCompanyGroup = (id: string | number): Promise<void> =>
   request<void>('DELETE', `${API_COMPANY_GROUPS}/${id}`);

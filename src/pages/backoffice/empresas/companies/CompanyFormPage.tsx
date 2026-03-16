@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -61,6 +61,11 @@ type CompanyDocumentFormItem = {
   upload: CompanyUploadRef | null;
   files: FileUploadItem[];
 };
+
+type PersistedAttachment = Extract<
+  FileUploadItem,
+  { id: number; nome_arquivo: string; url_arquivo: string }
+>;
 
 interface CompanyFormState {
   company_group_id: AutocompleteOption | null;
@@ -130,6 +135,20 @@ function isPersistedAttachment(file: FileUploadItem): file is Extract<
   { id: number; nome_arquivo: string; url_arquivo: string }
 > {
   return !(file instanceof File);
+}
+
+function getFirstViewablePersistedAttachment(
+  files: FileUploadItem[]
+): PersistedAttachment | null {
+  return (
+    files.find(
+      (file): file is PersistedAttachment =>
+        isPersistedAttachment(file) &&
+        file.has_file === true &&
+        Number.isInteger(Number(file.id)) &&
+        Number(file.id) > 0
+    ) ?? null
+  );
 }
 
 function isDocumentReadyToSubmit(document: CompanyDocumentFormItem): boolean {
@@ -412,9 +431,7 @@ export default function CompanyFormPage() {
       );
   const persistedAttachments = editingDocument?.files.filter(
     isPersistedAttachment
-  ) as Array<
-    Extract<FileUploadItem, { id: number; nome_arquivo: string; url_arquivo: string }>
-  >;
+  ) as PersistedAttachment[];
   const pendingAttachments =
     editingDocument?.files.filter(isPendingFile) ?? [];
 
@@ -1048,6 +1065,9 @@ export default function CompanyFormPage() {
                         const persistedFiles = document.files.filter(
                           isPersistedAttachment
                         );
+                        const viewableAttachment = getFirstViewablePersistedAttachment(
+                          document.files
+                        );
                         const pendingFiles = document.files.filter(isPendingFile);
                         const attachmentCount =
                           persistedFiles.length + pendingFiles.length;
@@ -1107,6 +1127,26 @@ export default function CompanyFormPage() {
                             </td>
                             <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">
                               <div className="inline-flex items-center gap-2">
+                                {viewableAttachment ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      navigate(
+                                        id
+                                          ? `/backoffice/empresas/editar/${id}/visualizar-anexo/${viewableAttachment.id}`
+                                          : `/backoffice/empresas/documentos/visualizar-anexo/${viewableAttachment.id}`,
+                                        {
+                                          state: { attachment: viewableAttachment },
+                                        }
+                                      )
+                                    }
+                                    aria-label={`Visualizar documento ${index + 1}`}
+                                    title="Visualizar"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                ) : null}
                                 <button
                                   type="button"
                                   onClick={() => handleEditDocument(document.localId)}

@@ -1,6 +1,6 @@
 // src/pages/backoffice/colaboradores/employee/EmployeeForm.tsx
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -162,6 +162,20 @@ function isPendingFile(file: FileUploadItem): file is File {
 
 function isPersistedAttachment(file: FileUploadItem): file is PersistedAttachment {
   return !(file instanceof File);
+}
+
+function getFirstViewablePersistedAttachment(
+  files: FileUploadItem[]
+): PersistedAttachment | null {
+  return (
+    files.find(
+      (file): file is PersistedAttachment =>
+        isPersistedAttachment(file) &&
+        file.has_file === true &&
+        Number.isInteger(Number(file.id)) &&
+        Number(file.id) > 0
+    ) ?? null
+  );
 }
 
 function isDocumentReadyToSubmit(document: EmployeeDocumentFormItem): boolean {
@@ -1500,6 +1514,9 @@ export default function EmployeeForm() {
                       ) : (
                         form.documents.map((document, index) => {
                           const persistedFiles = document.files.filter(isPersistedAttachment);
+                          const viewableAttachment = getFirstViewablePersistedAttachment(
+                            document.files
+                          );
                           const pendingFiles = document.files.filter(isPendingFile);
                           const attachmentCount = persistedFiles.length + pendingFiles.length;
                           const isEditingDocument = document.localId === activeDocumentLocalId;
@@ -1544,6 +1561,26 @@ export default function EmployeeForm() {
                               </td>
                               <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">
                                 <div className="inline-flex items-center gap-2">
+                                  {viewableAttachment ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        navigate(
+                                          id
+                                            ? `/backoffice/colaboradores/editar/${id}/visualizar-anexo/${viewableAttachment.id}`
+                                            : `/backoffice/colaboradores/documentos/visualizar-anexo/${viewableAttachment.id}`,
+                                          {
+                                            state: { attachment: viewableAttachment },
+                                          }
+                                        )
+                                      }
+                                      aria-label={`Visualizar documento ${index + 1}`}
+                                      title="Visualizar"
+                                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                    >
+                                      <Eye size={16} />
+                                    </button>
+                                  ) : null}
                                   <button
                                     type="button"
                                     onClick={() => {

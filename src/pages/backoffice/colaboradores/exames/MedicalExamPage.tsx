@@ -1,4 +1,6 @@
 import  { useEffect, useState } from "react";
+import { Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   getMedicalExams,
   deleteMedicalExam,
@@ -12,6 +14,7 @@ import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 
 export default function MedicalExamPage() {
+  const navigate = useNavigate();
   const [data, setData] = useState<PaginatedResponse<MedicalExam>>({ data: [], total: 0, page: 1, per_page: 10 });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -70,6 +73,12 @@ export default function MedicalExamPage() {
     }
   };
 
+  const getViewableAttachment = (exam: MedicalExam) =>
+    exam.uploads?.find((attachment) => {
+      const attachmentId = Number(attachment.id);
+      return attachment.has_file === true && Number.isInteger(attachmentId) && attachmentId > 0;
+    }) ?? null;
+
   const columns: Column<MedicalExam>[] = [
     { label: "Colaborador", field: "employee_name" },
     { label: "Tipo", field: "exam_type" },
@@ -112,6 +121,29 @@ export default function MedicalExamPage() {
               setPerPage(pp);
               setPage(1);
             },
+          }}
+          renderActions={(row) => {
+            const attachment = getViewableAttachment(row);
+
+            if (!attachment) {
+              return null;
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/backoffice/exames-medicos/editar/${row.id}/visualizar-anexo/${attachment.id}`, {
+                    state: { attachment },
+                  })
+                }
+                aria-label="Visualizar anexo"
+                title="Visualizar anexo"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
+                <Eye size={16} />
+              </button>
+            );
           }}
           getEditUrl={(id) => `/backoffice/exames-medicos/editar/${id}`}
           onDelete={handleAskDelete}
