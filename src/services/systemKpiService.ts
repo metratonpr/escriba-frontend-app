@@ -85,6 +85,84 @@ export interface SystemOccurrenceKpis {
   closure_time_days: KpiNumericStats;
 }
 
+export interface SystemEmployeeKpis {
+  summary: {
+    total_employees: number;
+    new_employees_in_window: number;
+    without_assignments: number;
+  };
+  by_assignment_status: LabelTotalItem[];
+  by_job_title: LabelTotalItem[];
+}
+
+export interface CompanyGroupSummaryItem {
+  company_group_id: number;
+  company_group_name: string;
+  companies_total: number;
+}
+
+export interface CompanyTypeSummaryItem {
+  company_type_id: number;
+  company_type_name: string;
+  companies_total: number;
+}
+
+export interface CompanySectorSummaryItem {
+  sector_id: number;
+  sector_name: string;
+  companies_total: number;
+}
+
+export interface SystemCompanyKpis {
+  summary: {
+    total_companies: number;
+    with_sectors: number;
+    with_sectors_percent: number;
+  };
+  by_group: CompanyGroupSummaryItem[];
+  by_type: CompanyTypeSummaryItem[];
+  top_sectors: CompanySectorSummaryItem[];
+}
+
+export interface SystemDocumentKpis {
+  summary: {
+    total_documents: number;
+    required_documents: number;
+    optional_documents: number;
+  };
+  by_category: LabelTotalItem[];
+  by_type: LabelTotalItem[];
+  validity_days: KpiNumericStats;
+}
+
+export interface SystemMedicalExamKpis {
+  summary: {
+    total_exams: number;
+    upcoming_exams: number;
+    past_exams: number;
+    window_exams: number;
+  };
+  by_type: LabelTotalItem[];
+}
+
+export interface SystemEpiDeliveryKpis {
+  summary: {
+    total_deliveries: number;
+    deliveries_in_window: number;
+    total_items: number;
+  };
+  top_items: {
+    epi_id: number;
+    epi_name: string;
+    quantity_total: number;
+  }[];
+}
+
+export interface SystemKpiFilters {
+  company_group_id: number | null;
+  company_id: number | null;
+}
+
 export interface ModelSummaryKpis {
   total_models: number;
   active_records_total: number;
@@ -107,8 +185,15 @@ export interface SystemModelKpis {
 export interface SystemKpiResponse {
   generated_at: string;
   window_days: number;
+  time_window: string | null;
+  filters: SystemKpiFilters;
   events: SystemEventKpis;
   occurrences: SystemOccurrenceKpis;
+  employees: SystemEmployeeKpis;
+  companies: SystemCompanyKpis;
+  documents: SystemDocumentKpis;
+  medical_exams: SystemMedicalExamKpis;
+  epi_deliveries: SystemEpiDeliveryKpis;
   models: SystemModelKpis;
 }
 

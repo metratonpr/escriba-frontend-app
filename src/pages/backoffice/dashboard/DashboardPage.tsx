@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import axios from "axios";
-import { BarChart3, Boxes, ChevronDown, FileClock, RotateCw, ShieldAlert, Users } from "lucide-react";
+import { BarChart3, Boxes, ChevronDown, FileClock, ShieldAlert, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
@@ -11,11 +11,6 @@ import DistributionList, {
   type DistributionListItem,
 } from "../../../components/dashboard/DistributionList";
 import KpiStatCard from "../../../components/dashboard/KpiStatCard";
-import {
-  getDocumentsExpiringSoon,
-  getExpiredDocuments,
-  type DocumentDeadlineIndicator,
-} from "../../../services/documentReportService";
 import {
   getSystemKpis,
   type LabelTotalItem,
@@ -30,7 +25,6 @@ import {
   convertToBrazilianDateFormat,
   convertToBrazilianDateTimeFormat,
 } from "../../../utils/formatUtils";
-import { getDaysUntil, matchesExpiringRange } from "../../../utils/deadlineUtils";
 
 type ToastType = "success" | "error" | "info";
 type DashboardSection = "overview" | "events" | "occurrences" | "models";
@@ -153,9 +147,6 @@ export default function DashboardPage() {
   const [daysError, setDaysError] = useState("");
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [kpis, setKpis] = useState<SystemKpiResponse | null>(null);
-  const [expiringRows, setExpiringRows] = useState<DocumentDeadlineIndicator[]>([]);
-  const [expiringRangeRows, setExpiringRangeRows] = useState<DocumentDeadlineIndicator[]>([]);
-  const [expiredRows, setExpiredRows] = useState<DocumentDeadlineIndicator[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<DashboardToastState>({
     open: false,
@@ -168,18 +159,9 @@ export default function DashboardPage() {
     setDaysError("");
 
     try {
-      const [systemKpis, expiringSoon, expiringDistribution, expired] = await Promise.all([
-        getSystemKpis({ days }),
-        getDocumentsExpiringSoon({ days }),
-        getDocumentsExpiringSoon({ days: 365 }),
-        getExpiredDocuments(),
-      ]);
+      const systemKpis = await getSystemKpis({ days });
 
       setKpis(systemKpis);
-      setExpiringRows(expiringSoon);
-      setExpiringRangeRows(expiringDistribution);
-      setExpiredRows(expired);
-      setDaysInput(String(systemKpis.window_days));
     } catch (error) {
       const fallbackMessage = "Erro ao carregar indicadores do dashboard.";
       let message = fallbackMessage;
@@ -210,76 +192,40 @@ export default function DashboardPage() {
     void loadDashboard(60);
   }, [loadDashboard]);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const parsedDays = parseDaysInput(daysInput);
-
-    if (parsedDays === null) {
-      setDaysError("Informe um número inteiro entre 1 e 365.");
-      return;
-    }
-
-    void loadDashboard(parsedDays);
-  };
-
-  const documentKpis = useMemo(() => {
-    const upTo30 = expiringRangeRows.filter((row) =>
-      matchesExpiringRange(getDaysUntil(row.due_date), "up_to_30")
-    ).length;
-    const from31To60 = expiringRangeRows.filter((row) =>
-      matchesExpiringRange(getDaysUntil(row.due_date), "from_31_to_60")
-    ).length;
-    const from61To90 = expiringRangeRows.filter((row) =>
-      matchesExpiringRange(getDaysUntil(row.due_date), "from_61_to_90")
-    ).length;
-    const above90 = expiringRangeRows.filter((row) =>
-      matchesExpiringRange(getDaysUntil(row.due_date), "above_90")
-    ).length;
-
-    return {
-      expiring: expiringRows.length,
-      expired: expiredRows.length,
-      upTo30,
-      from31To60,
-      from61To90,
-      above90,
-      trackedTotal: expiringRangeRows.length + expiredRows.length,
-    };
-  }, [expiringRangeRows, expiringRows.length, expiredRows.length]);
-
   const rates = useMemo(() => {
     if (!kpis) {
       return {
-        expiredShare: 0,
         eventCompletion: 0,
         occurrenceClosure: 0,
       };
     }
 
     return {
-      expiredShare: getPercent(documentKpis.expired, documentKpis.trackedTotal),
       eventCompletion: getPercent(kpis.events.totals.completed, kpis.events.totals.total),
       occurrenceClosure: getPercent(kpis.occurrences.totals.closed, kpis.occurrences.totals.total),
     };
-  }, [documentKpis.expired, documentKpis.trackedTotal, kpis]);
+  }, [kpis]);
 
   const strategicInsights = useMemo(() => {
     if (!kpis) {
       return [];
     }
 
+    const presenceRatePercent = kpis.events.participations?.presence_rate_percent ?? 0;
+    const percentWithSectors = kpis.companies?.summary?.with_sectors_percent ?? 0;
+
     return [
       {
-        id: "risk",
-        title: "Risco documental",
-        value: `${rates.expiredShare}%`,
-        text: "Participacao dos documentos vencidos no volume monitorado.",
+        id: "companies",
+        title: "Empresas com setores",
+        value: `${percentWithSectors.toFixed(1)}%`,
+        text: "Cobertura de setores pelos cadastros ativos.",
       },
       {
         id: "events",
         title: "Conclusão de eventos",
         value: `${rates.eventCompletion}%`,
-        text: "Percentual de eventos concluído no historico total.",
+        text: "Percentual de eventos concluídos no histórico total.",
       },
       {
         id: "occurrences",
@@ -290,11 +236,11 @@ export default function DashboardPage() {
       {
         id: "presence",
         title: "Taxa de presença em eventos",
-        value: `${kpis.events.participations.presence_rate_percent.toFixed(2)}%`,
+        value: `${presenceRatePercent.toFixed(2)}%`,
         text: "Presença registrada em participações de eventos.",
       },
     ];
-  }, [kpis, rates.eventCompletion, rates.expiredShare, rates.occurrenceClosure]);
+  }, [kpis, rates.eventCompletion, rates.occurrenceClosure]);
 
   const eventByTypeDistribution = useMemo<DistributionListItem[]>(() => {
     const rows = kpis?.events.by_type ?? [];
@@ -449,7 +395,6 @@ export default function DashboardPage() {
   const generatedAtLabel = kpis?.generated_at
     ? convertToBrazilianDateTimeFormat(kpis.generated_at)
     : "";
-  const parsedWindow = Number(daysInput);
 
   return (
     <div className="space-y-6 p-4">
@@ -477,27 +422,27 @@ export default function DashboardPage() {
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <HeroMetric
             icon={<FileClock size={18} />}
-            label="Documentos a vencer"
-            value={documentKpis.expiring}
-            helperText={`Intervalo ativo: ${daysInput} dias`}
-          />
-          <HeroMetric
-            icon={<ShieldAlert size={18} />}
-            label="Documentos vencidos"
-            value={documentKpis.expired}
-            helperText="Volume total vencido"
+            label="Documentos totais"
+            value={kpis?.documents?.summary?.total_documents ?? 0}
+            helperText={`Obrigatórios: ${kpis?.documents?.summary?.required_documents ?? 0} · Opcionais: ${kpis?.documents?.summary?.optional_documents ?? 0}`}
           />
           <HeroMetric
             icon={<BarChart3 size={18} />}
-            label="Eventos em andamento"
-            value={kpis?.events.totals.ongoing ?? 0}
-            helperText={`Conclusão: ${rates.eventCompletion}%`}
+            label="Eventos no ciclo"
+            value={kpis?.events.totals.total ?? 0}
+            helperText={`Criados: ${kpis?.events.totals.created_in_window ?? 0}`}
+          />
+          <HeroMetric
+            icon={<ShieldAlert size={18} />}
+            label="Ocorrências registradas"
+            value={kpis?.occurrences.totals.total ?? 0}
+            helperText={`Abertas: ${kpis?.occurrences.totals.open ?? 0}`}
           />
           <HeroMetric
             icon={<Users size={18} />}
-            label="Ocorrências abertas"
-            value={kpis?.occurrences.totals.open ?? 0}
-            helperText={`Encerramento: ${rates.occurrenceClosure}%`}
+            label="Colaboradores ativos"
+            value={kpis?.employees?.summary?.total_employees ?? 0}
+            helperText={`Novos: ${kpis?.employees?.summary?.new_employees_in_window ?? 0}`}
           />
         </div>
       </section>
@@ -516,10 +461,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="grid w-full grid-cols-1 gap-3 md:grid-cols-[220px_auto_auto] md:items-end lg:w-auto"
-          >
+          <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-[220px_auto] md:items-end lg:w-auto">
             <div className="w-full">
               <label
                 htmlFor="days"
@@ -538,6 +480,12 @@ export default function DashboardPage() {
                     if (daysError) {
                       setDaysError("");
                     }
+                    const parsed = parseDaysInput(event.target.value);
+                    if (parsed === null) {
+                      setDaysError("Informe um número inteiro entre 1 e 365.");
+                      return;
+                    }
+                    void loadDashboard(parsed);
                   }}
                   aria-invalid={Boolean(daysError)}
                   aria-describedby={daysError ? "days-error" : undefined}
@@ -563,22 +511,13 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 md:self-end"
-            >
-              <RotateCw size={15} className={loading ? "animate-spin" : ""} />
-              Atualizar indicadores
-            </button>
-
             <Link
               to="/backoffice/dashboard/vencimentos"
               className="inline-flex h-11 items-center justify-center self-end rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:self-end"
             >
               Abrir vencimentos
             </Link>
-          </form>
+          </div>
         </div>
 
       </section>
@@ -633,39 +572,37 @@ export default function DashboardPage() {
                 </div>
               </DashboardSectionCard>
 
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <DashboardSectionCard
-                  title="Documentos em foco"
-                  subtitle={`Janela de ${kpis.window_days} dias`}
-                >
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <KpiStatCard
-                      title="Até 30 dias"
-                      value={documentKpis.upTo30}
-                      helperText="Vencimento no curto prazo"
-                      tone="amber"
-                    />
-                    <KpiStatCard
-                      title="31 a 60 dias"
-                      value={documentKpis.from31To60}
-                      helperText="Faixa intermediária"
-                      tone="blue"
-                    />
-                    <KpiStatCard
-                      title="61 a 90 dias"
-                      value={documentKpis.from61To90}
-                      helperText="Médio prazo"
-                      tone="emerald"
-                    />
-                    <KpiStatCard
-                      title="Acima de 90 dias"
-                      value={documentKpis.above90}
-                      helperText="Faixa estendida"
-                      tone="slate"
-                    />
-                  </div>
-                </DashboardSectionCard>
-              </div>
+              <DashboardSectionCard
+                title="Documentos em foco"
+                subtitle={`Janela de ${kpis.window_days} dias`}
+              >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <KpiStatCard
+                    title="Obrigatórios"
+                    value={kpis.documents.summary.required_documents}
+                    helperText={`Total: ${kpis.documents.summary.total_documents}`}
+                    tone="blue"
+                  />
+                  <KpiStatCard
+                    title="Opcionais"
+                    value={kpis.documents.summary.optional_documents}
+                    helperText="Flexíveis"
+                    tone="emerald"
+                  />
+                  <KpiStatCard
+                    title="Validade média"
+                    value={kpis.documents.validity_days.average ?? 0}
+                    helperText="Dias"
+                    tone="amber"
+                  />
+                  <KpiStatCard
+                    title="Registros normais"
+                    value={kpis.documents.validity_days.total}
+                    helperText="Amostra"
+                    tone="slate"
+                  />
+                </div>
+              </DashboardSectionCard>
             </>
           )}
 
