@@ -18,10 +18,16 @@ export interface Event {
   id: string | number;
   name: string;
   event_type_id: string | number;
+  company_id?: string | number | null;
+  company?: {
+    id: string | number;
+    name: string;
+  };
   total_hours?: number | null;
   event_type?: {
     id: string | number;
-    nome_tipo_evento: string;
+    nome_tipo_evento?: string;
+    name?: string;
   };
   start_date: string;
   end_date: string;

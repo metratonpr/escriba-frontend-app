@@ -8,12 +8,12 @@ import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton"
 import { FormActions } from "../../../../components/form/FormActions";
 import { FormInput } from "../../../../components/form/FormInput";
 import { FormTextArea } from "../../../../components/form/FormTextArea";
+import ImageUploadPreview from "../../../../components/form/ImageUploadPreview";
 import {
   createCompanyGroup,
   getCompanyGroupById,
   updateCompanyGroup,
 } from "../../../../services/companyGroupService";
-import fileService from "../../../../services/FileService";
 import { getFieldError, type FieldErrors } from "../../../../utils/errorUtils";
 
 type CompanyGroupFormState = {
@@ -86,8 +86,6 @@ export default function CompanyGroupFormPage() {
     type: "success" as "success" | "error",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
-  const [isLogoPreviewLoading, setIsLogoPreviewLoading] = useState(false);
 
   const breadcrumbs: BreadcrumbItem[] = [
     { label: "Parametros", to: "/backoffice/parametros" },
@@ -124,70 +122,12 @@ export default function CompanyGroupFormPage() {
       .finally(() => setIsLoading(false));
   }, [id, isEdit, navigate]);
 
-  useEffect(() => {
-    if (form.logoFile) {
-      const objectUrl = URL.createObjectURL(form.logoFile);
-      setLogoPreviewUrl(objectUrl);
-      setIsLogoPreviewLoading(false);
-
-      return () => {
-        URL.revokeObjectURL(objectUrl);
-      };
-    }
-
-    if (form.removeLogo || !form.existingLogoUrl) {
-      setLogoPreviewUrl("");
-      setIsLogoPreviewLoading(false);
-      return;
-    }
-
-    setLogoPreviewUrl("");
-    setIsLogoPreviewLoading(true);
-
-    let isActive = true;
-    let blobUrl: string | null = null;
-
-    void (async () => {
-      try {
-        const { url } = await fileService.getFilePreviewData(undefined, form.existingLogoUrl);
-
-        if (!isActive) {
-          fileService.revokeFileUrl(url);
-          return;
-        }
-
-        blobUrl = url;
-        setLogoPreviewUrl(url);
-      } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setLogoPreviewUrl("");
-      } finally {
-        if (isActive) {
-          setIsLogoPreviewLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      isActive = false;
-      if (blobUrl) {
-        fileService.revokeFileUrl(blobUrl);
-      }
-    };
-  }, [form.existingLogoUrl, form.logoFile, form.removeLogo]);
-
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextFile = event.target.files?.[0] ?? null;
-    event.target.value = "";
-
+  const handleLogoChange = (nextFile: File | null) => {
     if (!nextFile) {
       return;
     }
@@ -272,15 +212,17 @@ export default function CompanyGroupFormPage() {
     }
   };
 
-  const hasLogoPreview = Boolean(logoPreviewUrl);
-  const showSecondaryLogoButton = Boolean(form.logoFile || form.existingLogoUrl);
+  const normalizedLogoUrl = form.existingLogoUrl ? form.existingLogoUrl.trim() : "";
+  const hasExistingLogo = Boolean(normalizedLogoUrl);
+  const hasLogoPreview = Boolean(form.logoFile || hasExistingLogo);
   const logoButtonLabel = hasLogoPreview ? "Trocar logo" : "Enviar logo";
-  const secondaryLogoButtonLabel =
+  const removeButtonLabel =
     form.removeLogo && form.existingLogoUrl && !form.logoFile
       ? "Restaurar logo"
       : form.logoFile && form.existingLogoUrl && !form.removeLogo
         ? "Descartar nova logo"
         : "Remover logo";
+  const removeAction = form.removeLogo ? handleRestoreLogo : handleRemoveLogo;
 
   return (
     <div className="mx-auto max-w-4xl p-4">
@@ -290,68 +232,42 @@ export default function CompanyGroupFormPage() {
         {isEdit ? "Editar Grupo de Empresa" : "Novo Grupo de Empresa"}
       </h1>
 
-      {isEdit && (isLoading || isLogoPreviewLoading) ? (
+      {isEdit && isLoading ? (
         <FormPageSkeleton className="px-0" fields={5} />
       ) : (
         <form onSubmit={handleSubmit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
           <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <div className="space-y-3">
-              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-                {hasLogoPreview ? (
-                  <img
-                    src={logoPreviewUrl}
-                    alt="Logo do grupo de empresa"
-                    className="h-full w-full object-contain p-4"
-                  />
-                ) : (
-                  <div className="px-6 text-center text-sm text-gray-500 dark:text-gray-300">
-                    Nenhuma logo selecionada
-                  </div>
-                )}
+              <div className="space-y-3">
+                <ImageUploadPreview
+                  file={form.logoFile}
+                  existingImageUrl={form.removeLogo ? undefined : normalizedLogoUrl}
+                  onFileChange={handleLogoChange}
+                  buttonLabel={logoButtonLabel}
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  previewAlt="Logo do grupo de empresa"
+                  overlayText="Carregando logo..."
+                  previewWrapperClassName="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+                  imageClassName="h-full w-full object-contain p-4"
+                  onRemove={removeAction}
+                  removeButtonLabel={removeButtonLabel}
+                  removeButtonDisabled={!form.logoFile && !form.existingLogoUrl}
+                  details={
+                    <>
+                      {form.logoFile ? (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Arquivo selecionado: {form.logoFile.name}
+                        </p>
+                      ) : null}
+                      {form.removeLogo && !form.logoFile ? (
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          A logo atual sera removida ao salvar.
+                        </p>
+                      ) : null}
+                    </>
+                  }
+                  error={getFieldError(errors, "logo")}
+                />
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <label className="inline-flex cursor-pointer items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                  {logoButtonLabel}
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleLogoChange}
-                  />
-                </label>
-
-                {showSecondaryLogoButton ? (
-                  <button
-                    type="button"
-                    onClick={form.removeLogo ? handleRestoreLogo : handleRemoveLogo}
-                    className="inline-flex items-center rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                  >
-                    {secondaryLogoButtonLabel}
-                  </button>
-                ) : null}
-              </div>
-
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                JPG, JPEG, PNG ou WEBP ate 5MB.
-              </p>
-
-              {form.logoFile ? (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Arquivo selecionado: {form.logoFile.name}
-                </p>
-              ) : null}
-
-              {form.removeLogo && !form.logoFile ? (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  A logo atual sera removida ao salvar.
-                </p>
-              ) : null}
-
-              {getFieldError(errors, "logo") ? (
-                <p className="text-sm text-red-600">{getFieldError(errors, "logo")}</p>
-              ) : null}
-            </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <FormInput

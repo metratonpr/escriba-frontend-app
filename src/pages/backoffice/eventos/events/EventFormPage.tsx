@@ -8,13 +8,19 @@ import { FormTextArea } from "../../../../components/form/FormTextArea";
 import { FormActions } from "../../../../components/form/FormActions";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import EventTypeAutocompleteField from "../../../../components/form/EventTypeAutocompleteField";
+import CompanyAutocompleteField from "../../../../components/form/CompanyAutocompleteField";
+import MediaUploadViewer, {
+  MediaUploadItem,
+} from "../../../../components/media/MediaUploadViewer";
 import { createEvent, getEventById, updateEvent } from "../../../../services/eventService";
 import { getEventTypes } from "../../../../services/eventTypeService";
+import { getCompanies } from "../../../../services/companyService";
 import FormParticipantsTable from "../../../../components/form/FormParticipantsTable";
 import EventAttendanceByDay from "../../../../components/form/EventAttendanceByDay";
 import type { Participant } from "../../../../types/participant";
 
-type EventFormTab = "details" | "participants" | "attendance";
+type EventFormTab = "details" | "participants" | "attendance" | "media";
+type AutocompleteOption = { id: string | number; label: string };
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -42,6 +48,9 @@ export default function EventFormPage() {
   const [eventTypeOptions, setEventTypeOptions] = useState<
     { id: string | number; label: string }[]
   >([]);
+  const [companyOption, setCompanyOption] = useState<AutocompleteOption | null>(null);
+  const [companyOptions, setCompanyOptions] = useState<AutocompleteOption[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaUploadItem[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({
     open: false,
@@ -58,8 +67,9 @@ export default function EventFormPage() {
       setIsLoading(true);
 
       try {
-        const [eventTypesResponse, eventData] = await Promise.all([
+        const [eventTypesResponse, companiesResponse, eventData] = await Promise.all([
           getEventTypes({ page: 1, perPage: 100 }),
+          getCompanies({ page: 1, perPage: 100 }),
           isEdit && id ? getEventById(id) : Promise.resolve(null),
         ]);
 
@@ -73,6 +83,11 @@ export default function EventFormPage() {
             label: item.nome_tipo_evento,
           }))
         );
+        const mappedCompanies = companiesResponse.data.map((item) => ({
+          id: item.id,
+          label: item.name,
+        }));
+        setCompanyOptions(mappedCompanies);
 
         if (eventData) {
           setForm({
@@ -106,9 +121,29 @@ export default function EventFormPage() {
           if (eventData.event_type) {
             setEventTypeOption({
               id: eventData.event_type.id,
-              label: eventData.event_type.nome_tipo_evento,
+              label: eventData.event_type.name ?? eventData.event_type.nome_tipo_evento ?? "",
             });
           }
+          const companyId = eventData.company?.id ?? eventData.company_id;
+          if (companyId) {
+            const fallbackLabel =
+              eventData.company?.name ??
+              mappedCompanies.find(
+                (company) => String(company.id) === String(companyId)
+              )?.label ??
+              `Empresa ${companyId}`;
+            setCompanyOption({
+              id: companyId,
+              label: fallbackLabel,
+            });
+          }
+          const normalizedMedia = (eventData.media ?? []).map((media) => ({
+            id: `remote-${media.id}`,
+            name: media.original_name,
+            previewUrl: media.url,
+            mimeType: media.mime_type,
+          }));
+          setMediaItems(normalizedMedia);
         }
       } catch {
         setToast({ open: true, message: "Erro ao carregar evento.", type: "error" });
@@ -146,11 +181,17 @@ export default function EventFormPage() {
         emitir_certificado: participant.emitir_certificado !== false,
       }));
 
+      const mediaFiles = mediaItems
+        .map((item) => item.file)
+        .filter((file): file is File => Boolean(file));
+
       const payload = {
         ...form,
         participants: participantsPayload,
         total_hours: Number.isNaN(parsedTotalHours) ? null : parsedTotalHours,
         event_type_id: String(eventTypeOption?.id || form.event_type_id),
+        company_id: companyOption?.id,
+        media: mediaFiles,
       };
 
       if (isEdit) {
@@ -192,7 +233,7 @@ export default function EventFormPage() {
     <div className="max-w-4xl mx-auto p-4">
       <Breadcrumbs
         items={[
-          { label: "Parâmetros", to: "/backoffice/parametros" },
+          { label: "ParÃ¢metros", to: "/backoffice/parametros" },
           { label: "Eventos", to: "/backoffice/eventos" },
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
@@ -237,13 +278,33 @@ export default function EventFormPage() {
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                 }`}
               >
-                Lista de presença
+                Lista de presenÃ§a
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("media")}
+                className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "media"
+                    ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                }`}
+              >
+                Arquivos
               </button>
             </nav>
           </div>
 
           {activeTab === "details" ? (
             <>
+              <div className="grid grid-cols-1 gap-4">
+                <CompanyAutocompleteField
+                  value={companyOption}
+                  onChange={(option) => setCompanyOption(option)}
+                  error={errors.company_id}
+                  initialOptions={companyOptions}
+                />
+              </div>
+
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div className="space-y-4 lg:col-span-2">
                   <FormInput
@@ -256,7 +317,7 @@ export default function EventFormPage() {
                   />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <FormInput
-                      label="Carga horária (h)"
+                      label="Carga horÃ¡ria (h)"
                       name="total_hours"
                       type="number"
                       min={0}
@@ -266,14 +327,14 @@ export default function EventFormPage() {
                       error={errors.total_hours}
                     />
                     <FormDatePickerField
-                      label="Data de início"
+                      label="Data de inÃ­cio"
                       name="start_date"
                       value={form.start_date}
                       onChange={handleChange}
                       error={errors.start_date}
                     />
                     <FormDatePickerField
-                      label="Data de término"
+                      label="Data de tÃ©rmino"
                       name="end_date"
                       value={form.end_date}
                       onChange={handleChange}
@@ -282,7 +343,7 @@ export default function EventFormPage() {
                   </div>
                 </div>
 
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-4">
                   <EventTypeAutocompleteField
                     value={eventTypeOption}
                     onChange={setEventTypeOption}
@@ -301,7 +362,7 @@ export default function EventFormPage() {
                   error={errors.location}
                 />
                 <FormInput
-                  label="Responsável"
+                  label="ResponsÃ¡vel"
                   name="responsible"
                   value={form.responsible}
                   onChange={handleChange}
@@ -317,14 +378,14 @@ export default function EventFormPage() {
                 error={errors.speakers}
               />
               <FormTextArea
-                label="Público-alvo"
+                label="PÃºblico-alvo"
                 name="target_audience"
                 value={form.target_audience}
                 onChange={handleChange}
                 error={errors.target_audience}
               />
               <FormTextArea
-                label="Observações"
+                label="ObservaÃ§Ãµes"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
@@ -341,9 +402,9 @@ export default function EventFormPage() {
                 error={errors.participants}
               />
             </div>
-          ) : (
+          ) : activeTab === "attendance" ? (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Lista de presença por dia</h2>
+              <h2 className="text-lg font-semibold">Lista de presenÃ§a por dia</h2>
               <EventAttendanceByDay
                 eventId={isEdit ? Number(id) : undefined}
                 startDate={form.start_date}
@@ -351,7 +412,11 @@ export default function EventFormPage() {
                 participants={form.participants}
               />
             </div>
-          )}
+          ) : activeTab === "media" ? (
+            <div className="space-y-4">
+              <MediaUploadViewer items={mediaItems} onChange={setMediaItems} />
+            </div>
+          ) : null}
 
           <FormActions
             onCancel={() => navigate("/backoffice/eventos")}

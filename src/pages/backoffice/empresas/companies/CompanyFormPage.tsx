@@ -15,7 +15,7 @@ import DocumentWithVersionField from "../../../../components/form/DocumentWithVe
 import FileUpload, {
   type UploadFile as FileUploadItem,
 } from "../../../../components/form/FileUpload";
-import ProtectedImage from "../../../../components/Layout/ProtectedImage";
+import ImageUploadPreview from "../../../../components/form/ImageUploadPreview";
 
 // Importa apenas os tipos com "type"
 import type {
@@ -263,11 +263,6 @@ export default function CompanyFormPage() {
     type: "success",
   });
   const [isOpeningLogo, setIsOpeningLogo] = useState(false);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
-  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
-  const [isLogoPreviewLoading, setIsLogoPreviewLoading] = useState(true);
-  const normalizedLogoUrl = form.existingLogoUrl ? form.existingLogoUrl.trim() : "";
-  const hasNormalizedLogoUrl = Boolean(normalizedLogoUrl);
   const [groupOptions, setGroupOptions] = useState<AutocompleteOption[]>([]);
   const [typeOptions, setTypeOptions] = useState<AutocompleteOption[]>([]);
   const [sectorOptions, setSectorOptions] = useState<AutocompleteOption[]>([]);
@@ -403,39 +398,6 @@ export default function CompanyFormPage() {
   }, [id, isEdit, navigate]);
 
   useEffect(() => {
-    if (!form.logoFile) {
-      setLogoPreviewUrl("");
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(form.logoFile);
-    setLogoPreviewUrl(objectUrl);
-    setLogoLoadFailed(false);
-    setIsLogoPreviewLoading(false);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [form.logoFile]);
-
-  useEffect(() => {
-    if (form.logoFile) {
-      setLogoLoadFailed(false);
-      setIsLogoPreviewLoading(false);
-      return;
-    }
-
-    if (!hasNormalizedLogoUrl) {
-      setLogoLoadFailed(false);
-      setIsLogoPreviewLoading(false);
-      return;
-    }
-
-    setLogoLoadFailed(false);
-    setIsLogoPreviewLoading(true);
-  }, [form.logoFile, hasNormalizedLogoUrl]);
-
-  useEffect(() => {
     const normalizedQuery = documentSearchQuery.trim().toLowerCase();
     if (!normalizedQuery) {
       setDocumentOptions(allDocumentOptions);
@@ -489,13 +451,52 @@ export default function CompanyFormPage() {
     setForm((prev) => ({ ...prev, sectors: value }));
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const nextFile = e.target.files?.[0] ?? null;
+  const handleLogoChange = (nextFile: File | null) => {
+    if (!nextFile) {
+      return;
+    }
+
+    if (!ACCEPTED_LOGO_TYPES.includes(nextFile.type)) {
+      setToast((prev) => ({ ...prev, open: true, message: "O logo deve estar nos formatos JPG, JPEG, PNG ou WEBP.", type: "error" }));
+      return;
+    }
+
+    if (nextFile.size > MAX_LOGO_SIZE_MB * 1024 * 1024) {
+      setToast((prev) => ({ ...prev, open: true, message: `O logo nao pode exceder ${MAX_LOGO_SIZE_MB}MB.`, type: "error" }));
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, logo: "" }));
     setForm((prev) => ({ ...prev, logoFile: nextFile }));
-    e.target.value = "";
   };
 
-  const logoButtonLabel = form.logoFile ? "Trocar logo" : "Enviar logo";
+  const handleRemoveLogo = () => {
+    setForm((prev) => ({
+      ...prev,
+      logoFile: null,
+      removeLogo: Boolean(prev.existingLogoUrl),
+    }));
+  };
+
+  const handleRestoreLogo = () => {
+    setForm((prev) => ({
+      ...prev,
+      removeLogo: false,
+    }));
+  };
+
+  const normalizedLogoUrl = form.existingLogoUrl ? form.existingLogoUrl.trim() : "";
+  const hasExistingLogo = Boolean(normalizedLogoUrl);
+  const hasLogoPreview = Boolean(form.logoFile || hasExistingLogo);
+  const logoButtonLabel = hasLogoPreview ? "Trocar logo" : "Enviar logo";
+  const shouldShowExistingLogo = Boolean(hasExistingLogo && !form.removeLogo);
+  const removeButtonLabel =
+    form.removeLogo && form.existingLogoUrl && !form.logoFile
+      ? "Restaurar logo"
+      : form.logoFile && form.existingLogoUrl && !form.removeLogo
+      ? "Descartar nova logo"
+      : "Remover logo";
+  const removeAction = form.removeLogo ? handleRestoreLogo : handleRemoveLogo;
 
   const handleOpenExistingLogo = async () => {
     if (!form.existingLogoUrl) {
@@ -838,79 +839,44 @@ export default function CompanyFormPage() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div className="space-y-3">
-                  <div className="flex aspect-square w-full max-w-[240px] items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 sm:mx-0 mx-auto">
-                    {logoPreviewUrl ? (
-                      <img
-                        src={logoPreviewUrl}
-                        alt="Logo da empresa"
-                        className="h-full w-full object-contain p-4"
-                      />
-                    ) : hasNormalizedLogoUrl && !logoLoadFailed ? (
-                      <div className="relative h-full w-full">
-                        <ProtectedImage
-                          src={normalizedLogoUrl}
-                          alt="Logo da empresa"
-                          className={`h-full w-full object-contain p-4 transition-opacity duration-150 ${
-                            isLogoPreviewLoading ? "opacity-0" : "opacity-100"
-                          }`}
-                          onFetchError={() => {
-                            setLogoLoadFailed(true);
-                            setIsLogoPreviewLoading(false);
-                          }}
-                          onReady={(status) => {
-                            setIsLogoPreviewLoading(false);
-                            if (status === "error") {
-                              setLogoLoadFailed(true);
-                            }
-                          }}
-                        />
-                        {isLogoPreviewLoading && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm text-gray-500 dark:text-gray-400">
-                            Carregando logo...
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="px-6 text-center text-sm text-gray-500 dark:text-gray-300">
-                        Nenhum logo selecionado
-                      </div>
-                    )}
-                  </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex cursor-pointer items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                    {logoButtonLabel}
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={handleLogoChange}
-                    />
-                  </label>
-
-                  {form.logoFile ? (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      Arquivo selecionado: {form.logoFile.name}
-                    </p>
-                  ) : form.existingLogoUrl ? (
-                    <button
-                      type="button"
-                      onClick={handleOpenExistingLogo}
-                      disabled={isOpeningLogo}
-                      className="mt-2 inline-block text-sm text-blue-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isOpeningLogo ? "Abrindo logo..." : "Ver logo atual"}
-                    </button>
-                  ) : null}
-                </div>
-
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  JPG, JPEG, PNG ou WEBP até 5MB.
-                </p>
-
-                {getFieldError(errors, "logo") ? (
-                  <p className="text-sm text-red-600">{getFieldError(errors, "logo")}</p>
-                ) : null}
+                <ImageUploadPreview
+                  file={form.logoFile}
+                  existingImageUrl={shouldShowExistingLogo ? normalizedLogoUrl : undefined}
+                  onFileChange={handleLogoChange}
+                  buttonLabel={logoButtonLabel}
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  previewAlt="Logo da empresa"
+                  overlayText="Carregando logo..."
+                  imageClassName="h-full w-full object-contain p-4 transition-opacity duration-150"
+                  onRemove={removeAction}
+                  removeButtonLabel={removeButtonLabel}
+                  removeButtonDisabled={!form.logoFile && !form.existingLogoUrl}
+                  details={
+                    <>
+                      {form.logoFile ? (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Arquivo selecionado: {form.logoFile.name}
+                        </p>
+                      ) : null}
+                      {form.removeLogo && !form.logoFile ? (
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          A logo atual sera removida ao salvar.
+                        </p>
+                      ) : null}
+                      {!form.logoFile && !form.removeLogo && form.existingLogoUrl ? (
+                        <button
+                          type="button"
+                          onClick={handleOpenExistingLogo}
+                          disabled={isOpeningLogo}
+                          className="inline-block text-sm text-blue-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {isOpeningLogo ? "Abrindo logo..." : "Ver logo atual"}
+                        </button>
+                      ) : null}
+                    </>
+                  }
+                  error={getFieldError(errors, "logo")}
+                />
               </div>
 
               <div className="space-y-6 grid grid-cols-1 gap-6 md:grid-cols-2">

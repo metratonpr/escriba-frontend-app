@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { Eye } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
+import FileViewer from "../../../components/Layout/FileViewer";
 import ProtectedImage from "../../../components/Layout/ProtectedImage";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import { getCompanyAuditDetail, type CompanyAuditDetail } from "../../../services/auditService";
@@ -49,6 +52,17 @@ function CompanyDetailSkeleton() {
             </div>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+            <span className="h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
+            <span className="h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
+          </div>
+          <label className="w-full max-w-[260px] text-xs text-gray-500">
+            <span className="block h-3 w-20 rounded-full bg-slate-200 skeleton-shimmer" />
+            <span className="mt-1 block h-10 w-full rounded-md bg-slate-200 skeleton-shimmer" />
+          </label>
+        </div>
       </header>
 
       <div>
@@ -57,7 +71,7 @@ function CompanyDetailSkeleton() {
             {detailTabs.map((tab) => (
               <span
                 key={`tab-${tab.key}`}
-                className={`h-10 w-40 rounded-t-lg border-b-2 border-transparent bg-slate-200/80`}
+                className="h-10 w-40 rounded-t-lg border-b-2 border-transparent bg-slate-200/80"
               />
             ))}
           </nav>
@@ -108,6 +122,7 @@ function CompanyDetailSkeleton() {
 export default function CompanyAuditDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const stateCompany = (location.state as LocationState | null)?.company ?? null;
 
   const [detail, setDetail] = useState<CompanyAuditDetail | null>(null);
@@ -137,8 +152,20 @@ export default function CompanyAuditDetailPage() {
       type: document.document?.type ?? "—",
       issuer: document.document?.issuer ?? "—",
       hasFile: Boolean(document.has_file),
+      uploadId: document.upload?.id ?? null,
+      source: document,
     }));
   }, [companyDocuments]);
+
+  const [selectedAttachment, setSelectedAttachment] = useState<{ fileId: number; fileName: string } | null>(null);
+  const handleViewDocument = (document: CompanyDocumentAudit) => {
+    if (!document.upload?.id) {
+      return;
+    }
+
+    const fileName = document.upload.file_name ?? document.document?.name ?? "Documento";
+    setSelectedAttachment({ fileId: document.upload.id, fileName });
+  };
 
   const filteredDocumentEntries = useMemo(() => {
     if (!globalSearch.trim()) {
@@ -193,6 +220,8 @@ export default function CompanyAuditDetailPage() {
 
   useEffect(() => {
     setGlobalSearch("");
+    setSectorSearch("");
+    setSectorPage(1);
   }, [activeTab]);
 
   const renderTabControls = (
@@ -360,19 +389,21 @@ export default function CompanyAuditDetailPage() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <div className="flex aspect-square h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50">
-              {companyLogoUrl ? (
-                <ProtectedImage
-                  src={companyLogoUrl}
-                  alt={`Logo da empresa ${companyName}`}
-                  className="h-full w-full object-contain p-2"
-                  onReady={handleLogoReady}
-                  onFetchError={handleLogoReady}
-                />
-              ) : (
+            {companyLogoUrl ? (
+              <ProtectedImage
+                src={companyLogoUrl}
+                alt={`Logo da empresa ${companyName}`}
+                className="h-full w-full object-contain p-2"
+                onFetchError={handleLogoReady}
+                onReady={handleLogoReady}
+              />
+            ) : (
                 <img
                   src="/images/placeholderfoto.jpg"
                   alt={`Logo da empresa ${companyName}`}
                   className="h-full w-full object-contain p-2"
+                  onLoad={handleLogoReady}
+                  onError={handleLogoReady}
                 />
               )}
             </div>
@@ -417,7 +448,7 @@ export default function CompanyAuditDetailPage() {
                 <span className="text-xs text-gray-400">{filteredDocumentEntries.length} registro(s)</span>
               </div>
               {viewMode === "cards" ? (
-                <div className="space-y-3">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {filteredDocumentEntries.length === 0 ? (
                     <p className="text-sm text-gray-500">Nenhum documento registrado.</p>
                   ) : (
@@ -436,9 +467,22 @@ export default function CompanyAuditDetailPage() {
                         <p className="text-xs text-gray-400">
                           Emissão: {entry.issuance ?? "—"} • Vencimento: {entry.due ?? "—"}
                         </p>
-                        <p className="text-xs text-blue-600">
-                          {entry.hasFile ? "Arquivo disponível" : "Nenhum arquivo vinculado"}
-                        </p>
+                        {entry.hasFile ? (
+                          <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
+                            <span>Arquivo disponível</span>
+                            <button
+                              type="button"
+                              onClick={() => handleViewDocument(entry.source)}
+                              aria-label={`Visualizar ${entry.name}`}
+                              title="Visualizar arquivo"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-xs text-blue-600">Nenhum arquivo vinculado</p>
+                        )}
                       </article>
                     ))
                   )}
@@ -467,7 +511,24 @@ export default function CompanyAuditDetailPage() {
                           <td className="px-4 py-2">{entry.type}</td>
                           <td className="px-4 py-2">{entry.issuer}</td>
                           <td className="px-4 py-2">{entry.due ?? "—"}</td>
-                          <td className="px-4 py-2 text-xs text-blue-600">{entry.hasFile ? "Arquivo" : "Sem arquivo"}</td>
+                          <td className="px-4 py-2 text-xs">
+                            {entry.uploadId ? (
+                              <div className="flex items-center gap-2 text-blue-600">
+                                <span>Arquivo disponível</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewDocument(entry.source)}
+                                  aria-label={`Visualizar ${entry.name}`}
+                                  title="Visualizar arquivo"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-blue-600">Sem arquivo</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -727,18 +788,54 @@ export default function CompanyAuditDetailPage() {
     <div className="space-y-6 p-4">
       <Breadcrumbs items={breadcrumbItems} />
 
-      <div className="relative">
-        {shouldShowSkeleton && (
-          <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-white p-6 shadow-sm">
-            <CompanyDetailSkeleton />
-          </div>
-        )}
-        <div
-          className={`${shouldShowSkeleton ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-        >
-          {detailContent}
-        </div>
+      <div>
+        {shouldShowSkeleton ? <CompanyDetailSkeleton /> : detailContent}
       </div>
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar documento"}
+                  </Dialog.Title>
+
+                  {selectedAttachment ? (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  ) : null}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
       <Toast
         open={toast.open}

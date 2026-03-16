@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import debounce from "lodash/debounce";
 import FormAutocompleteField from "./FormAutocompleteField";
 import { getCompanies } from "../../services/companyService";
@@ -32,13 +32,15 @@ export default function CompanyAutocompleteField({
     mergeSelectedOption(initialOptions ?? [], value)
   );
   const [query, setQuery] = useState("");
+  const valueRef = useRef(value);
 
   const fetchCompanies = useCallback(
     debounce(async (term: string) => {
       try {
         const response = await getCompanies({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        setOptions(list.map((company: any) => ({ id: company.id, label: company.name })));
+        const mapped = list.map((company: any) => ({ id: company.id, label: company.name }));
+        setOptions((prev) => mergeSelectedOption(mapped, valueRef.current));
       } catch {
         setOptions([]);
       }
@@ -58,6 +60,7 @@ export default function CompanyAutocompleteField({
 
   useEffect(() => {
     setOptions((prev) => mergeSelectedOption(prev, value));
+    valueRef.current = value;
   }, [value]);
 
   return (
