@@ -6,6 +6,8 @@ export interface MediaUploadItem {
   previewUrl?: string;
   mimeType?: string;
   file?: File;
+  sizeBytes?: number;
+  remoteUrl?: string;
 }
 
 interface MediaUploadViewerProps {
@@ -14,6 +16,7 @@ interface MediaUploadViewerProps {
   perPage?: number;
   title?: string;
   description?: string;
+  readOnly?: boolean;
 }
 
 const DEFAULT_PER_PAGE = 3;
@@ -24,12 +27,34 @@ export default function MediaUploadViewer({
   perPage = DEFAULT_PER_PAGE,
   title = "Arquivos do evento",
   description = "Envie imagens, vídeos ou documentos que devem acompanhar o registro.",
+  readOnly = false,
 }: MediaUploadViewerProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const createdPreviewsRef = useRef(new Set<string>());
+  const [remotePreviews, setRemotePreviews] = useState<Record<string, string>>({});
 
   const totalPages = Math.max(1, Math.ceil(items.length / perPage));
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes) return null;
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) {
+      value /= 1024;
+      index += 1;
+    }
+    return `${value.toFixed(1)} ${units[index]}`;
+  };
+
+  const fileCategory = (mime?: string) => {
+    if (!mime) return null;
+    const category = mime.split("/")[0];
+    if (category === "video") return "Vídeo";
+    if (category === "image") return "Imagem";
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -67,6 +92,65 @@ export default function MediaUploadViewer({
     createdPreviewsRef.current.delete(url);
   };
 
+  useEffect(() => {
+    setRemotePreviews((prev) => {
+      const activeIds = new Set(items.map((item) => item.id));
+      const next = { ...prev };
+      let changed = false;
+
+      Object.keys(prev).forEach((id) => {
+        if (!activeIds.has(id)) {
+          cleanupPreview(prev[id]);
+          delete next[id];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+
+    const controllers: AbortController[] = [];
+
+    items.forEach((item) => {
+      if (!item.remoteUrl || remotePreviews[item.id]) {
+        return;
+      }
+
+      const controller = new AbortController();
+      controllers.push(controller);
+
+      fetch(item.remoteUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Falha ao carregar mídia.");
+          }
+          return response.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          registerPreview(url);
+          setRemotePreviews((prev) => ({ ...prev, [item.id]: url }));
+        })
+        .catch(() => {
+          // Falha silenciosa, a URL original fica disponível como fallback
+        });
+    });
+
+    return () => {
+      controllers.forEach((controller) => controller.abort());
+    };
+  }, [items, remotePreviews]);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) {
@@ -101,6 +185,16 @@ export default function MediaUploadViewer({
       return true;
     });
 
+    const remotePreviewUrl = remotePreviews[id];
+    if (remotePreviewUrl) {
+      cleanupPreview(remotePreviewUrl);
+      setRemotePreviews((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+
     onChange(updated);
     setCurrentPage((prev) => {
       const nextTotal = Math.max(1, Math.ceil(updated.length / perPage));
@@ -113,38 +207,32 @@ export default function MediaUploadViewer({
   };
 
   const renderPreview = (item: MediaUploadItem) => {
-    if (item.previewUrl && item.mimeType?.startsWith("image/")) {
+    const previewUrl = remotePreviews[item.id] ?? item.previewUrl;
+
+    if (previewUrl && item.mimeType?.startsWith("image/")) {
       return (
         <img
           loading="lazy"
-          src={item.previewUrl}
+          src={previewUrl}
           alt={item.name}
-          className="h-32 w-32 object-cover"
+          className="h-full w-full object-contain"
         />
       );
     }
 
-    if (item.previewUrl && item.mimeType?.startsWith("video/")) {
+    if (previewUrl && item.mimeType?.startsWith("video/")) {
       return (
         <video
-          src={item.previewUrl}
-          className="h-32 w-32 rounded-xl object-cover"
+          src={previewUrl}
+          className="h-full w-full object-contain"
           muted
           controls
         />
       );
     }
 
-    if (item.previewUrl) {
-      return (
-        <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-gray-900/5 text-xs text-gray-500">
-          {item.name}
-        </div>
-      );
-    }
-
     return (
-      <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-gray-900/5 text-xs text-gray-500">
+      <div className="flex h-full w-full items-center justify-center rounded-xl bg-gray-900/5 text-xs text-gray-500">
         {item.name}
       </div>
     );
@@ -168,25 +256,56 @@ export default function MediaUploadViewer({
             Nenhum arquivo carregado.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {currentItems.map((item) => (
-              <article
-                key={item.id}
-                className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 p-3"
-              >
-                {renderPreview(item)}
-                <div className="flex w-full flex-col items-center text-center text-xs text-gray-500">
-                  <p className="truncate text-sm font-semibold text-gray-700">{item.name}</p>
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(item.id)}
-                    className="mt-2 text-xs font-semibold text-red-600 hover:text-red-800"
-                  >
-                    Remover
-                  </button>
-                </div>
-              </article>
-            ))}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {currentItems.map((item) => {
+              const typeLabel = fileCategory(item.mimeType);
+              const sizeLabel = formatBytes(item.sizeBytes);
+              return (
+                <article
+                  key={item.id}
+                  className="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative h-52 w-full overflow-hidden rounded-t-2xl bg-gray-100">
+                    {renderPreview(item)}
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/70 via-black/50 to-transparent opacity-0 transition group-hover:opacity-100">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-800">
+                        <svg
+                          className="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        {item.mimeType?.startsWith("video/") ? "Assistir" : "Visualizar"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 px-4 pb-4 pt-3">
+                    <p className="truncate text-sm font-semibold text-gray-800">{item.name}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      {typeLabel && (
+                        <span className="rounded-full border border-gray-200 px-2 py-0.5">{typeLabel}</span>
+                      )}
+                      {sizeLabel && (
+                        <span className="rounded-full border border-gray-200 px-2 py-0.5">
+                          {sizeLabel}
+                        </span>
+                      )}
+                    </div>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(item.id)}
+                        className="mt-2 text-xs font-semibold text-red-600 hover:text-red-800"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
@@ -215,17 +334,19 @@ export default function MediaUploadViewer({
         </div>
       </div>
 
-      <label className="block rounded-2xl border border-dashed border-blue-500/30 bg-blue-50/60 px-4 py-5 text-center transition hover:border-blue-400 focus-within:border-blue-600 focus-within:ring focus-within:ring-blue-200">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          onChange={handleFileChange}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-        <p className="text-sm font-semibold text-blue-600">Clique ou arraste arquivos</p>
-        <p className="text-xs text-blue-600/80">JPG, JPEG, PNG, WEBP, MP4 até 50MB.</p>
-      </label>
+      {!readOnly && (
+        <label className="relative block rounded-2xl border border-dashed border-blue-500/30 bg-blue-50/60 px-4 py-5 text-center transition hover:border-blue-400 focus-within:border-blue-600 focus-within:ring focus-within:ring-blue-200">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+          <p className="text-sm font-semibold text-blue-600">Clique ou arraste arquivos</p>
+          <p className="text-xs text-blue-600/80">JPG, JPEG, PNG, WEBP, MP4 até 50MB.</p>
+        </label>
+      )}
     </section>
   );
 }

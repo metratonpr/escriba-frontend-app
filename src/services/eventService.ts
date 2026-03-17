@@ -11,6 +11,7 @@ export interface EventMedia {
   original_name: string;
   size_bytes?: number | null;
   url: string;
+  has_file?: boolean | null;
   created_at: string;
 }
 
@@ -132,14 +133,22 @@ export const getEvents = async (options: GetEventsOptions = {}): Promise<Paginat
 export const getEventById = (id: string): Promise<Event> =>
   request<Event>("GET", `${API_EVENTS}/${id}`);
 
-export const createEvent = (data: EventPayload): Promise<Event> =>
+export const createEvent = (data: EventPayload | FormData): Promise<Event> =>
   request<Event>("POST", API_EVENTS, data);
 
 export const createCompleteEvent = (data: EventCompletePayload): Promise<EventCompleteResponse> =>
   request<EventCompleteResponse>("POST", API_EVENTS_COMPLETE, data);
 
-export const updateEvent = (id: string, data: EventPayload): Promise<Event> =>
-  request<Event>("PUT", `${API_EVENTS}/${id}`, data);
+export const updateEvent = (id: string, data: EventPayload | FormData): Promise<Event> => {
+  if (data instanceof FormData) {
+    if (!data.has("_method")) {
+      data.append("_method", "PUT");
+    }
+    return request<Event>("POST", `${API_EVENTS}/${id}`, data);
+  }
+
+  return request<Event>("PUT", `${API_EVENTS}/${id}`, data);
+};
 
 export const deleteEvent = (id: string): Promise<void> =>
   request<void>("DELETE", `${API_EVENTS}/${id}`);

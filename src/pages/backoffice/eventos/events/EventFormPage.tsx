@@ -9,9 +9,8 @@ import { FormActions } from "../../../../components/form/FormActions";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import EventTypeAutocompleteField from "../../../../components/form/EventTypeAutocompleteField";
 import CompanyAutocompleteField from "../../../../components/form/CompanyAutocompleteField";
-import MediaUploadViewer, {
-  MediaUploadItem,
-} from "../../../../components/media/MediaUploadViewer";
+import MediaUploadViewer from "../../../../components/media/MediaUploadViewer";
+import type { MediaUploadItem } from "../../../../components/media/MediaUploadViewer";
 import { createEvent, getEventById, updateEvent } from "../../../../services/eventService";
 import { getEventTypes } from "../../../../services/eventTypeService";
 import { getCompanies } from "../../../../services/companyService";
@@ -19,7 +18,7 @@ import FormParticipantsTable from "../../../../components/form/FormParticipantsT
 import EventAttendanceByDay from "../../../../components/form/EventAttendanceByDay";
 import type { Participant } from "../../../../types/participant";
 
-type EventFormTab = "details" | "participants" | "attendance" | "media";
+type EventFormTab = "details" | "participants" | "attendance" | "album";
 type AutocompleteOption = { id: string | number; label: string };
 
 export default function EventFormPage() {
@@ -137,12 +136,16 @@ export default function EventFormPage() {
               label: fallbackLabel,
             });
           }
-          const normalizedMedia = (eventData.media ?? []).map((media) => ({
-            id: `remote-${media.id}`,
-            name: media.original_name,
-            previewUrl: media.url,
-            mimeType: media.mime_type,
-          }));
+          const normalizedMedia = (eventData.media ?? [])
+            .filter((media) => media.has_file === true)
+            .map((media) => ({
+              id: `remote-${media.id}`,
+              name: media.original_name,
+              previewUrl: media.url,
+              remoteUrl: media.url,
+              mimeType: media.mime_type,
+              sizeBytes: media.size_bytes ?? undefined,
+            }));
           setMediaItems(normalizedMedia);
         }
       } catch {
@@ -185,19 +188,54 @@ export default function EventFormPage() {
         .map((item) => item.file)
         .filter((file): file is File => Boolean(file));
 
-      const payload = {
-        ...form,
-        participants: participantsPayload,
-        total_hours: Number.isNaN(parsedTotalHours) ? null : parsedTotalHours,
-        event_type_id: String(eventTypeOption?.id || form.event_type_id),
-        company_id: companyOption?.id,
-        media: mediaFiles,
-      };
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("event_type_id", String(eventTypeOption?.id ?? form.event_type_id ?? ""));
+      if (companyOption?.id !== undefined && companyOption.id !== null && companyOption.id !== "") {
+        formData.append("company_id", String(companyOption.id));
+      }
+      formData.append(
+        "total_hours",
+        parsedTotalHours == null || Number.isNaN(parsedTotalHours)
+          ? ""
+          : String(parsedTotalHours)
+      );
+      formData.append("start_date", form.start_date);
+      formData.append("end_date", form.end_date);
+      formData.append("location", form.location);
+      formData.append("responsible", form.responsible);
+      formData.append("speakers", form.speakers);
+      formData.append("target_audience", form.target_audience);
+      formData.append("notes", form.notes);
+      participantsPayload.forEach((participant, index) => {
+        const prefix = `participants[${index}]`;
+        const appendParticipantValue = (field: string, value: unknown) => {
+          if (value === undefined || value === null || value === "") {
+            return;
+          }
+
+          formData.append(`${prefix}[${field}]`, String(value));
+        };
+
+        appendParticipantValue("id", participant.id);
+        appendParticipantValue("event_id", participant.event_id);
+        appendParticipantValue("employee_id", participant.employee_id);
+        appendParticipantValue("certificate_number", participant.certificate_number);
+        appendParticipantValue("presence", participant.presence);
+        appendParticipantValue("evaluation", participant.evaluation);
+        formData.append(
+          `${prefix}[emitir_certificado]`,
+          participant.emitir_certificado ? "1" : "0"
+        );
+      });
+      mediaFiles.forEach((file) => {
+        formData.append("media[]", file);
+      });
 
       if (isEdit) {
-        await updateEvent(id!, payload);
+        await updateEvent(id!, formData);
       } else {
-        await createEvent(payload);
+        await createEvent(formData);
       }
 
       setToast({
@@ -233,7 +271,7 @@ export default function EventFormPage() {
     <div className="max-w-4xl mx-auto p-4">
       <Breadcrumbs
         items={[
-          { label: "ParÃ¢metros", to: "/backoffice/parametros" },
+          { label: "Parâmetros", to: "/backoffice/parametros" },
           { label: "Eventos", to: "/backoffice/eventos" },
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
@@ -278,18 +316,18 @@ export default function EventFormPage() {
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                 }`}
               >
-                Lista de presenÃ§a
+                Lista de presença
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("media")}
+                onClick={() => setActiveTab("album")}
                 className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
-                  activeTab === "media"
+                  activeTab === "album"
                     ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                 }`}
               >
-                Arquivos
+                Álbum
               </button>
             </nav>
           </div>
@@ -317,7 +355,7 @@ export default function EventFormPage() {
                   />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <FormInput
-                      label="Carga horÃ¡ria (h)"
+                      label="Carga horária (h)"
                       name="total_hours"
                       type="number"
                       min={0}
@@ -327,14 +365,14 @@ export default function EventFormPage() {
                       error={errors.total_hours}
                     />
                     <FormDatePickerField
-                      label="Data de inÃ­cio"
+                      label="Data de início"
                       name="start_date"
                       value={form.start_date}
                       onChange={handleChange}
                       error={errors.start_date}
                     />
                     <FormDatePickerField
-                      label="Data de tÃ©rmino"
+                      label="Data de término"
                       name="end_date"
                       value={form.end_date}
                       onChange={handleChange}
@@ -362,7 +400,7 @@ export default function EventFormPage() {
                   error={errors.location}
                 />
                 <FormInput
-                  label="ResponsÃ¡vel"
+                  label="Responsável"
                   name="responsible"
                   value={form.responsible}
                   onChange={handleChange}
@@ -378,14 +416,14 @@ export default function EventFormPage() {
                 error={errors.speakers}
               />
               <FormTextArea
-                label="PÃºblico-alvo"
+                label="Público-alvo"
                 name="target_audience"
                 value={form.target_audience}
                 onChange={handleChange}
                 error={errors.target_audience}
               />
               <FormTextArea
-                label="ObservaÃ§Ãµes"
+                label="Observações"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
@@ -404,7 +442,7 @@ export default function EventFormPage() {
             </div>
           ) : activeTab === "attendance" ? (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Lista de presenÃ§a por dia</h2>
+              <h2 className="text-lg font-semibold">Lista de presença por dia</h2>
               <EventAttendanceByDay
                 eventId={isEdit ? Number(id) : undefined}
                 startDate={form.start_date}
@@ -412,8 +450,12 @@ export default function EventFormPage() {
                 participants={form.participants}
               />
             </div>
-          ) : activeTab === "media" ? (
+          ) : activeTab === "album" ? (
             <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Álbum do evento</h2>
+              <p className="text-xs text-gray-500">
+                Revise as mídias já existentes e envie novos arquivos direto por aqui.
+              </p>
               <MediaUploadViewer items={mediaItems} onChange={setMediaItems} />
             </div>
           ) : null}
@@ -434,3 +476,4 @@ export default function EventFormPage() {
     </div>
   );
 }
+
