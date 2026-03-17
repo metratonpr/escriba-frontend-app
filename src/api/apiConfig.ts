@@ -1,9 +1,32 @@
-export const DOMINIO = "http://localhost:8000";
-// export const DOMINIO = "https://www.barkema.iapotech.com.br";
+const FALLBACK_API_BASE_URL = "https://api.escriba.app";
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const ensureHasProtocol = (value: string) =>
+  /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+const ensureTls = (value: string) =>
+  value.replace(/^http:\/\//i, "https://");
+
+const resolveApiDomain = (): string => {
+  const rawEnv = import.meta.env.VITE_API_BASE_URL?.trim();
+  const candidate = rawEnv && rawEnv.length > 0 ? rawEnv : FALLBACK_API_BASE_URL;
+  const sanitized = trimTrailingSlash(ensureHasProtocol(candidate));
+  return ensureTls(sanitized);
+};
+
+export const DOMINIO = resolveApiDomain();
 export const BASE_URL = `${DOMINIO}/api`;
 
 // Exporta API_URL como alias para BASE_URL para compatibilidade
 export const API_URL = BASE_URL;
+export const API_ORIGIN = (() => {
+  try {
+    return new URL(BASE_URL).origin;
+  } catch {
+    return DOMINIO;
+  }
+})();
 
 // Recursos principais
 export const API_COMPANY_GROUPS = `${BASE_URL}/company-groups`;

@@ -1,6 +1,7 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 import { getFileDownloadUrl, getFileViewUrl } from "../../../api/apiConfig";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
@@ -217,7 +218,6 @@ const getHasAvailableFile = (row: DocumentDeadlineIndicator): boolean => {
 };
 
 export default function VencimentosPage() {
-  const [rows, setRows] = useState<DocumentDeadlineIndicator[]>([]);
   const [endpointFilter, setEndpointFilter] = useState<EndpointFilter>(DEFAULT_ENDPOINT_FILTER);
   const [sampleRange, setSampleRange] = useState<ExpiringRangeKey>(DEFAULT_SAMPLE_RANGE);
   const [search, setSearch] = useState("");
@@ -225,7 +225,6 @@ export default function VencimentosPage() {
     useState<DocumentSourceType | "">(DEFAULT_SOURCE_TYPE_FILTER);
   const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS_FILTER);
   const [hasFileFilter, setHasFileFilter] = useState<HasFileFilter>(DEFAULT_HAS_FILE_FILTER);
-  const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [toast, setToast] = useState<{
     open: boolean;
@@ -238,64 +237,88 @@ export default function VencimentosPage() {
   });
   const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
+  const selectedRange = useMemo(
+    () =>
+      EXPIRING_RANGE_OPTIONS.find((option) => option.key === sampleRange) ??
+      EXPIRING_RANGE_OPTIONS[0],
+    [sampleRange]
+  );
+
+  const expiringQuery = useQuery({
+    queryKey: ["documents-deadlines", "expiring", selectedRange.queryDays],
+    queryFn: () => getDocumentsExpiringSoon({ days: selectedRange.queryDays }),
+    enabled: endpointFilter !== "expired",
+  });
+
+  const expiredQuery = useQuery({
+    queryKey: ["documents-deadlines", "expired"],
+    queryFn: getExpiredDocuments,
+    enabled: endpointFilter !== "expiring",
+  });
+
+  const isLoading = useMemo(() => {
+    if (endpointFilter === "expired") {
+      return expiredQuery.isLoading;
+    }
+
+    if (endpointFilter === "expiring") {
+      return expiringQuery.isLoading;
+    }
+
+    return expiringQuery.isLoading || expiredQuery.isLoading;
+  }, [endpointFilter, expiringQuery.isLoading, expiredQuery.isLoading]);
+
+  const combinedRows = useMemo(() => {
+    const expiringRows = expiringQuery.data ?? [];
+    const expiredRows = expiredQuery.data ?? [];
+
+    if (endpointFilter === "expired") {
+      return expiredRows;
+    }
+
+    if (endpointFilter === "expiring") {
+      return filterExpiringRowsByRange(expiringRows, sampleRange);
+    }
+
+    return [...expiredRows, ...filterExpiringRowsByRange(expiringRows, sampleRange)];
+  }, [endpointFilter, expiringQuery.data, expiredQuery.data, sampleRange]);
+
+  const rows = useMemo(() => {
+    return [...combinedRows].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  }, [combinedRows]);
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    const error = expiringQuery.error ?? expiredQuery.error;
+
+    if (!error) {
       setFieldErrors({});
+      return;
+    }
 
-      try {
-        let result: DocumentDeadlineIndicator[] = [];
-        const selectedRange =
-          EXPIRING_RANGE_OPTIONS.find((option) => option.key === sampleRange) ??
-          EXPIRING_RANGE_OPTIONS[0];
+    let message = "Erro ao carregar vencimentos.";
 
-        if (endpointFilter === "expired") {
-          result = await getExpiredDocuments();
-        } else if (endpointFilter === "expiring") {
-          const expiring = await getDocumentsExpiringSoon({
-            days: selectedRange.queryDays,
-          });
-          result = filterExpiringRowsByRange(expiring, sampleRange);
-        } else {
-          const [expiring, expired] = await Promise.all([
-            getDocumentsExpiringSoon({ days: selectedRange.queryDays }),
-            getExpiredDocuments(),
-          ]);
-          result = [...expired, ...filterExpiringRowsByRange(expiring, sampleRange)];
-        }
+    if (axios.isAxiosError<AxiosValidationErrorResponse>(error)) {
+      const responseData = error.response?.data;
+      const errors = responseData?.errors ?? {};
 
-        setRows(result.sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")));
-      } catch (error) {
-        let message = "Erro ao carregar vencimentos.";
+      setFieldErrors({
+        endpointFilter: normalizeFieldError(
+          errors.endpointFilter ?? errors.filter ?? errors.type ?? errors.mode
+        ),
+        sampleRange: normalizeFieldError(errors.days ?? errors.sampleDays),
+      });
 
-        if (axios.isAxiosError<AxiosValidationErrorResponse>(error)) {
-          const responseData = error.response?.data;
-          const errors = responseData?.errors ?? {};
-
-          setFieldErrors({
-            endpointFilter: normalizeFieldError(
-              errors.endpointFilter ?? errors.filter ?? errors.type ?? errors.mode
-            ),
-            sampleRange: normalizeFieldError(errors.days ?? errors.sampleDays),
-          });
-
-          if (typeof responseData?.message === "string" && responseData.message.trim()) {
-            message = responseData.message;
-          }
-        }
-
-        setToast({
-          open: true,
-          message,
-          type: "error",
-        });
-      } finally {
-        setLoading(false);
+      if (typeof responseData?.message === "string" && responseData.message.trim()) {
+        message = responseData.message;
       }
-    };
+    }
 
-    void load();
-  }, [endpointFilter, sampleRange]);
+    setToast({
+      open: true,
+      message,
+      type: "error",
+    });
+  }, [expiringQuery.error, expiredQuery.error]);
 
   const filteredRows = useMemo(
     () => applyFilters(rows, search, sourceTypeFilter, statusFilter, hasFileFilter),
@@ -499,7 +522,7 @@ export default function VencimentosPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <FormPageSkeleton className="mt-4 px-0" fields={6} />
       ) : (
         <TableTailwind
