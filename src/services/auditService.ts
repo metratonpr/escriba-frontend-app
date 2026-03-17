@@ -1,6 +1,7 @@
 import { API_DASHBOARD_AUDIT } from "../api/apiConfig";
 import { request } from "../api/request";
 import type { CompanyResponse } from "./companyService";
+import type { Event } from "./eventService";
 
 export interface CompanyGroupAuditSummary {
   id: number;
@@ -91,6 +92,8 @@ export interface CompanyAuditDetail {
     id: number;
     name: string;
     cnpj: string;
+    logo_url?: string | null;
+    responsible?: string | null;
   };
   sectors: CompanySectorAudit[];
   employees: CompanyEmployeeAudit[];
@@ -106,6 +109,7 @@ export interface CompanyAuditDetail {
     responsible: string;
     role: string;
     joined_at: string;
+    event?: Partial<Event> | null;
   }>;
 }
 

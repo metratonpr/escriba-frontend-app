@@ -82,7 +82,7 @@ export default function GroupCompaniesPage() {
   const [companyView, setCompanyView] = useState<"card" | "table">("card");
   const [pendingImageLoads, setPendingImageLoads] = useState(0);
   const [groupLogoReady, setGroupLogoReady] = useState(false);
-  const [loadedCompanyLogos, setLoadedCompanyLogos] = useState<Record<number, boolean>>({});
+  const [loadedCompanyLogos, setLoadedCompanyLogos] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
 
   const companies = useMemo<CompanyResponse[]>(
@@ -90,19 +90,21 @@ export default function GroupCompaniesPage() {
     [group]
   );
 
-  const handleCompanyLogoStatus = useCallback((companyId: number, status: "success" | "error") => {
+  const handleCompanyLogoStatus = useCallback((companyId: CompanyResponse["id"]) => {
     setPendingImageLoads((prev) => Math.max(prev - 1, 0));
 
     // once the image is handled (success or error) remember it as resolved
     setLoadedCompanyLogos((prev) => {
-      if (prev[companyId]) {
+      const normalizedCompanyId = String(companyId);
+
+      if (prev[normalizedCompanyId]) {
         return prev;
       }
-      return { ...prev, [companyId]: true };
+      return { ...prev, [normalizedCompanyId]: true };
     });
   }, []);
 
-  const handleGroupLogoStatus = useCallback((status: "success" | "error") => {
+  const handleGroupLogoStatus = useCallback(() => {
     setPendingImageLoads((prev) => Math.max(prev - 1, 0));
 
     setGroupLogoReady(true);
@@ -175,7 +177,7 @@ export default function GroupCompaniesPage() {
 
     const groupPending = group.logo_url && !groupLogoReady ? 1 : 0;
     const notLoadedCompaniesCount = (group.companies ?? []).filter(
-      (company) => company.logo_url && !loadedCompanyLogos[company.id]
+      (company) => company.logo_url && !loadedCompanyLogos[String(company.id)]
     ).length;
 
     setPendingImageLoads(groupPending + notLoadedCompaniesCount);
@@ -219,8 +221,8 @@ export default function GroupCompaniesPage() {
                     src={group.logo_url}
                     alt={`Logo do grupo ${group.name}`}
                     className="h-full w-full object-contain p-2"
-                    onReady={() => handleGroupLogoStatus("success")}
-                    onFetchError={() => handleGroupLogoStatus("error")}
+                    onReady={handleGroupLogoStatus}
+                    onFetchError={handleGroupLogoStatus}
                   />
                 ) : (
                   <img
@@ -324,8 +326,8 @@ export default function GroupCompaniesPage() {
                               src={company.logo_url}
                               alt={`Logo da empresa ${company.name}`}
                               className="h-full w-full object-contain p-2 transition-opacity duration-150 opacity-100"
-                              onReady={() => handleCompanyLogoStatus(company.id, "success")}
-                              onFetchError={() => handleCompanyLogoStatus(company.id, "error")}
+                              onReady={() => handleCompanyLogoStatus(company.id)}
+                              onFetchError={() => handleCompanyLogoStatus(company.id)}
                             />
                           ) : (
                             <img

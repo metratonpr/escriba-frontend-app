@@ -50,7 +50,6 @@ const FileViewer: React.FC<FileViewerProps> = ({
     () => (mimeType ? mimeType === "application/pdf" : isPdfFile(fileName)),
     [fileName, mimeType]
   );
-  const supportsInlinePreview = isImage || isPdf;
   const containerHeightClassName = embedded ? "h-full min-h-[24rem]" : "h-screen";
 
   useEffect(() => {

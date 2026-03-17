@@ -45,8 +45,6 @@ const INITIAL_FORM_STATE: CompanyGroupFormState = {
   removeLogo: false,
 };
 
-const COMPANY_GROUP_LOGO_PLACEHOLDER = "/images/placeholderfoto.jpg";
-
 function buildCompanyGroupFormData(form: CompanyGroupFormState): FormData {
   const formData = new FormData();
 

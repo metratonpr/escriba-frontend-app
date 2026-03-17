@@ -1,7 +1,7 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import FileViewer from "../../../components/Layout/FileViewer";
 import ProtectedImage from "../../../components/Layout/ProtectedImage";
@@ -45,7 +45,7 @@ const getSearchLabel = (tab: TabKey) => {
 };
 
 const resolveEventTypeLabel = (
-  value?: string | { id?: number; nome_tipo_evento?: string; descricao?: string; name?: string } | null
+  value?: string | { id?: string | number; nome_tipo_evento?: string; descricao?: string; name?: string } | null
 ) => {
   if (typeof value === "string" && value.trim()) {
     return value;
@@ -56,22 +56,6 @@ const resolveEventTypeLabel = (
   }
 
   return "Evento";
-};
-
-const formatDate = (value?: string) => {
-  if (!value) {
-    return "—";
-  }
-
-  return dayjs(value).isValid() ? dayjs(value).format("DD/MM/YYYY") : "—";
-};
-
-const formatDateTime = (value?: string) => {
-  if (!value) {
-    return "—";
-  }
-
-  return dayjs(value).isValid() ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—";
 };
 
 const assignmentStatusClass = (status?: string) => {
@@ -219,7 +203,6 @@ function CompanyDetailSkeleton() {
 export default function CompanyAuditDetailPage() {
   const { companyId } = useParams<{ companyId: string }>();
   const location = useLocation();
-  const navigate = useNavigate();
   const stateCompany = (location.state as LocationState | null)?.company ?? null;
 
   const [detail, setDetail] = useState<CompanyAuditDetail | null>(null);

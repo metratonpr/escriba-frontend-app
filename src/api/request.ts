@@ -11,7 +11,7 @@ import { normalizeApiResponse } from "./responseNormalizer";
 export async function request<T = unknown>(
   method: Method,
   url: string,
-  data: Record<string, unknown> | FormData = {},
+  data: object | FormData = {},
   params: Record<string, unknown> = {}
 ): Promise<T> {
   try {

@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface MediaUploadItem {
   id: string;
@@ -181,13 +181,13 @@ export default function MediaUploadViewer({
     };
   }, [items, remotePreviews]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) {
       return;
     }
 
-    const newItems = Array.from(fileList).map((file) => {
+    const newItems: MediaUploadItem[] = Array.from(fileList).map((file: File) => {
       const previewUrl = URL.createObjectURL(file);
       registerPreview(previewUrl);
       return {

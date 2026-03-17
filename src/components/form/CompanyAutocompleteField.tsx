@@ -40,7 +40,7 @@ export default function CompanyAutocompleteField({
         const response = await getCompanies({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
         const mapped = list.map((company: any) => ({ id: company.id, label: company.name }));
-        setOptions((prev) => mergeSelectedOption(mapped, valueRef.current));
+        setOptions(mergeSelectedOption(mapped, valueRef.current));
       } catch {
         setOptions([]);
       }

@@ -51,7 +51,7 @@ export function logApiRequest(
   method: Method,
   url: string,
   params: Record<string, unknown> = {},
-  body?: SerializableValue,
+  body?: unknown,
   contentType:
     | "application/json"
     | "multipart/form-data" = "application/json"

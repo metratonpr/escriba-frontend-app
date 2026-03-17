@@ -83,6 +83,7 @@ interface CompanyFormState {
   sectors: AutocompleteOption[];
   logoFile: File | null;
   existingLogoUrl: string;
+  removeLogo: boolean;
   documents: CompanyDocumentFormItem[];
 }
 
@@ -97,6 +98,13 @@ const DOCUMENT_STATUS_OPTIONS = [
   value,
   label: value.charAt(0).toUpperCase() + value.slice(1),
 }));
+
+const MAX_LOGO_SIZE_MB = 5;
+const ACCEPTED_LOGO_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
 const STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
@@ -253,6 +261,7 @@ export default function CompanyFormPage() {
     sectors: [],
     logoFile: null,
     existingLogoUrl: "",
+    removeLogo: false,
     documents: [],
   });
 
@@ -373,6 +382,7 @@ export default function CompanyFormPage() {
             sectors: mappedSectors,
             logoFile: null,
             existingLogoUrl: company.logo_url ?? "",
+            removeLogo: false,
             documents: (company.documents ?? []).map(mapCompanyDocumentToForm),
           });
         }
@@ -467,14 +477,17 @@ export default function CompanyFormPage() {
     }
 
     setErrors((prev) => ({ ...prev, logo: "" }));
-    setForm((prev) => ({ ...prev, logoFile: nextFile }));
+    setForm((prev) => ({ ...prev, logoFile: nextFile, removeLogo: false }));
   };
 
   const handleRemoveLogo = () => {
     setForm((prev) => ({
       ...prev,
       logoFile: null,
-      removeLogo: Boolean(prev.existingLogoUrl),
+      removeLogo:
+        prev.logoFile && prev.existingLogoUrl && !prev.removeLogo
+          ? false
+          : Boolean(prev.existingLogoUrl),
     }));
   };
 
@@ -683,6 +696,10 @@ export default function CompanyFormPage() {
 
     if (form.logoFile) {
       formData.append("logo", form.logoFile);
+    }
+
+    if (form.removeLogo && !form.logoFile) {
+      formData.append("remove_logo", "true");
     }
 
     form.sectors.forEach((sector, index) => {

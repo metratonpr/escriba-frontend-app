@@ -54,10 +54,11 @@ export default function EpisPage() {
     setPage(1); // Resetar para a primeira página
   };
 
-  const handleAskDelete = (id: string) => {
-    const item = data.data.find((d) => d.id === Number(id));
+  const handleAskDelete = (id: string | number) => {
+    const normalizedId = String(id);
+    const item = data.data.find((d) => d.id === Number(normalizedId));
 
-    setSelectedId(id);
+    setSelectedId(normalizedId);
     setSelectedName(item?.name ?? null);
     setModalOpen(true);
   };

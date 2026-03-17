@@ -73,9 +73,10 @@ export default function CompanyDocumentUploadPage() {
     setPage(1);
   };
 
-  const handleAskDelete = (id: string) => {
-    const item = data.data.find((d: CompanyDocumentUpload) => String(d.id) === id);
-    setSelectedId(id);
+  const handleAskDelete = (id: string | number) => {
+    const normalizedId = String(id);
+    const item = data.data.find((d: CompanyDocumentUpload) => String(d.id) === normalizedId);
+    setSelectedId(normalizedId);
     setSelectedName(item?.company?.name ?? null);
     setModalOpen(true);
   };

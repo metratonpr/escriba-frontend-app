@@ -18,6 +18,10 @@ type Pagination = {
   onPerPageChange: (perPage: number) => void;
 };
 
+type BivariantCallback<Args extends unknown[]> = {
+  bivarianceHack(...args: Args): void;
+}["bivarianceHack"];
+
 type TableTailwindProps<T extends { id: string | number }> = {
   title?: string;
   createUrl?: string;
@@ -26,7 +30,7 @@ type TableTailwindProps<T extends { id: string | number }> = {
   loading?: boolean;
   pagination?: Pagination;
   getEditUrl?: (id: T["id"]) => string;
-  onDelete?: (id: T["id"]) => void;
+  onDelete?: BivariantCallback<[T["id"]]>;
   renderActions?: (row: T) => React.ReactNode;
   onSortChange?: (field: string, order: "asc" | "desc") => void;
 };
