@@ -33,6 +33,7 @@ export default function MediaUploadViewer({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const createdPreviewsRef = useRef(new Set<string>());
   const [remotePreviews, setRemotePreviews] = useState<Record<string, string>>({});
+  const [previewLoading, setPreviewLoading] = useState<Record<string, boolean>>({});
 
   const totalPages = Math.max(1, Math.ceil(items.length / perPage));
 
@@ -111,6 +112,23 @@ export default function MediaUploadViewer({
   }, [items]);
 
   useEffect(() => {
+    setPreviewLoading((prev) => {
+      const activeIds = new Set(items.map((item) => item.id));
+      const next = { ...prev };
+      let changed = false;
+
+      Object.keys(next).forEach((id) => {
+        if (!activeIds.has(id)) {
+          delete next[id];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [items]);
+
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       return;
@@ -126,6 +144,8 @@ export default function MediaUploadViewer({
       const controller = new AbortController();
       controllers.push(controller);
 
+      setPreviewLoading((prev) => ({ ...prev, [item.id]: true }));
+
       fetch(item.remoteUrl, {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal,
@@ -140,9 +160,19 @@ export default function MediaUploadViewer({
           const url = URL.createObjectURL(blob);
           registerPreview(url);
           setRemotePreviews((prev) => ({ ...prev, [item.id]: url }));
+          setPreviewLoading((prev) => {
+            const next = { ...prev };
+            delete next[item.id];
+            return next;
+          });
         })
         .catch(() => {
           // Falha silenciosa, a URL original fica disponível como fallback
+          setPreviewLoading((prev) => {
+            const next = { ...prev };
+            delete next[item.id];
+            return next;
+          });
         });
     });
 
@@ -209,13 +239,22 @@ export default function MediaUploadViewer({
   const renderPreview = (item: MediaUploadItem) => {
     const previewUrl = remotePreviews[item.id] ?? item.previewUrl;
 
+    if (previewLoading[item.id] && !previewUrl) {
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-gray-500">
+          <span className="inline-flex h-4 w-4 animate-spin rounded-full border border-t-blue-600 border-l-transparent" />
+          Carregando...
+        </div>
+      );
+    }
+
     if (previewUrl && item.mimeType?.startsWith("image/")) {
       return (
         <img
           loading="lazy"
           src={previewUrl}
           alt={item.name}
-          className="h-full w-full object-contain"
+          className="h-full w-full object-cover"
         />
       );
     }
@@ -224,7 +263,7 @@ export default function MediaUploadViewer({
       return (
         <video
           src={previewUrl}
-          className="h-full w-full object-contain"
+          className="h-full w-full object-cover"
           muted
           controls
         />

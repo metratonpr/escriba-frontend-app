@@ -99,7 +99,7 @@ export interface CompanyAuditDetail {
     id: number;
     event_id: number;
     name: string;
-    event_type: string;
+    event_type: string | { id?: number; nome_tipo_evento?: string; descricao?: string } | null;
     start_date: string;
     end_date: string;
     location: string;

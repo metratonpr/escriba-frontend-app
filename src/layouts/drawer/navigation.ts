@@ -44,11 +44,16 @@ export const BACKOFFICE_MAIN_SECTIONS: BackofficeMainSection[] = [
     to: "/backoffice/dashboard",
     icon: LayoutDashboard,
     matchPrefixes: ["/backoffice/dashboard"],
-    items: [
-      { to: "/backoffice/dashboard", label: "Visão geral", icon: LayoutDashboard },
-      { to: "/backoffice/dashboard/vencimentos", label: "Vencimentos", icon: CalendarClock },
-      { to: "/backoffice/auditoria", label: "Auditoria", icon: ShieldCheck },
-    ],
+      items: [
+        { to: "/backoffice/dashboard", label: "Visão geral", icon: LayoutDashboard },
+        { to: "/backoffice/dashboard/vencimentos", label: "Vencimentos", icon: CalendarClock },
+        {
+          to: "/backoffice/dashboard/auditoria/vencimentos-versoes-documentos",
+          label: "Vencimentos de versões",
+          icon: FileStack,
+        },
+        { to: "/backoffice/auditoria", label: "Auditoria", icon: ShieldCheck },
+      ],
   },
   {
     key: "empresas",

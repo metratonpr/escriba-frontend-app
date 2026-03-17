@@ -44,6 +44,20 @@ const getSearchLabel = (tab: TabKey) => {
   }
 };
 
+const resolveEventTypeLabel = (
+  value?: string | { id?: number; nome_tipo_evento?: string; descricao?: string; name?: string } | null
+) => {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    return value.nome_tipo_evento ?? value.descricao ?? value.name ?? "Evento";
+  }
+
+  return "Evento";
+};
+
 const formatDate = (value?: string) => {
   if (!value) {
     return "—";
@@ -290,7 +304,8 @@ export default function CompanyAuditDetailPage() {
 
     const query = globalSearch.trim().toLowerCase();
     return eventEntries.filter((event) => {
-      const haystack = `${event.name} ${event.event_type} ${event.location} ${event.role}`.toLowerCase();
+      const eventTypeLabel = resolveEventTypeLabel(event.event?.event_type ?? event.event_type);
+      const haystack = `${event.name} ${eventTypeLabel} ${event.location} ${event.role}`.toLowerCase();
       return haystack.includes(query);
     });
   }, [eventEntries, globalSearch]);
@@ -521,16 +536,9 @@ export default function CompanyAuditDetailPage() {
   }, [selectedEventEntry]);
 
   const displayEvent = eventDetail ?? selectedEventEntry?.event ?? null;
-  const displayEventTypeLabel = (() => {
-    const typeValue = displayEvent?.event_type;
-    if (typeof typeValue === "string" && typeValue.trim()) {
-      return typeValue;
-    }
-    if (typeValue && typeof typeValue === "object") {
-      return typeValue.nome_tipo_evento ?? typeValue.descricao ?? selectedEventEntry?.event_type;
-    }
-    return selectedEventEntry?.event_type ?? "Evento";
-  })();
+  const displayEventTypeLabel = resolveEventTypeLabel(
+    displayEvent?.event_type ?? selectedEventEntry?.event?.event_type ?? selectedEventEntry?.event_type
+  );
 
   const eventMediaItems = useMemo<MediaUploadItem[]>(() => {
     const remoteMedia =
@@ -799,40 +807,45 @@ export default function CompanyAuditDetailPage() {
                 filteredEventEntries.length === 0 ? (
                   <p className="text-sm text-gray-500">Nenhum evento registrado.</p>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {filteredEventEntries.map((event) => (
-                      <article
-                        key={`event-${event.id}`}
-                        className="flex h-full flex-col rounded-2xl border border-gray-100 bg-gray-50 p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-gray-900">{event.name}</p>
-                          <span className="text-[11px] text-gray-500 uppercase">{event.event_type}</span>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Local: {event.location} · Responsável: {event.responsible}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Período: {formatDate(event.start_date)} até {formatDate(event.end_date)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Papel: {event.role} · Inclusão: {formatDateTime(event.joined_at)}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-[11px] uppercase tracking-wide text-gray-400">
-                            Cadastrado em {dayjs(event.joined_at).format("DD/MM/YYYY")}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEventModal(event)}
-                            className="inline-flex items-center gap-2 rounded-md border border-blue-600 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Ver evento
-                          </button>
-                        </div>
-                      </article>
-                    ))}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {filteredEventEntries.map((event) => {
+                      const eventTypeLabel = resolveEventTypeLabel(
+                        event.event?.event_type ?? event.event_type
+                      );
+                      return (
+                        <article
+                          key={`event-${event.id}`}
+                          className="flex h-full flex-col rounded-2xl border border-gray-100 bg-gray-50 p-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-900">{event.name}</p>
+                            <span className="text-[11px] text-gray-500 uppercase">{eventTypeLabel}</span>
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500">
+                            Local: {event.location} · Responsável: {event.responsible}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Período: {formatDate(event.start_date)} até {formatDate(event.end_date)}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Papel: {event.role} · Inclusão: {formatDateTime(event.joined_at)}
+                          </p>
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-[11px] uppercase tracking-wide text-gray-400">
+                              Cadastrado em {dayjs(event.joined_at).format("DD/MM/YYYY")}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEventModal(event)}
+                              className="inline-flex items-center gap-2 rounded-md border border-blue-600 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Ver evento
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 )
               ) : (
@@ -849,32 +862,37 @@ export default function CompanyAuditDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEventEntries.map((event) => (
-                        <tr
-                          key={`event-table-${event.id}`}
-                          className="border-b border-gray-200 bg-white last:border-b-0"
-                        >
-                          <td className="px-4 py-2 font-medium text-gray-900">{event.name}</td>
-                          <td className="px-4 py-2">{event.event_type}</td>
-                          <td className="px-4 py-2">{event.location}</td>
-                          <td className="px-4 py-2">
-                            {event.start_date} até {event.end_date}
-                          </td>
-                          <td className="px-4 py-2">
-                            {event.role} · {event.responsible}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEventModal(event)}
-                              className="inline-flex items-center gap-1 rounded-md border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-50"
-                            >
-                              <Eye className="h-3 w-3" />
-                              Detalhes
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredEventEntries.map((event) => {
+                        const eventTypeLabel = resolveEventTypeLabel(
+                          event.event?.event_type ?? event.event_type
+                        );
+                        return (
+                          <tr
+                            key={`event-table-${event.id}`}
+                            className="border-b border-gray-200 bg-white last:border-b-0"
+                          >
+                            <td className="px-4 py-2 font-medium text-gray-900">{event.name}</td>
+                            <td className="px-4 py-2">{eventTypeLabel}</td>
+                            <td className="px-4 py-2">{event.location}</td>
+                            <td className="px-4 py-2">
+                              {event.start_date} até {event.end_date}
+                            </td>
+                            <td className="px-4 py-2">
+                              {event.role} · {event.responsible}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEventModal(event)}
+                                className="inline-flex items-center gap-1 rounded-md border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-50"
+                              >
+                                <Eye className="h-3 w-3" />
+                                Detalhes
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
