@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createMedicalExam,
@@ -13,8 +14,10 @@ import FormDatePickerField from "../../../../components/form/FormDatePickerField
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSwitchField from "../../../../components/form/FormSwitchField";
 import { FormActions } from "../../../../components/form/FormActions";
+import FileViewer from "../../../../components/Layout/FileViewer";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import EmployeeAutocompleteField from "../../../../components/form/EmployeeAutocompleteField";
+import TechnicianAutocompleteField from "../../../../components/form/TechnicianAutocompleteField";
 import FileUpload from "../../../../components/form/FileUpload";
 import ExamAttachmentList from "./ExamAttachmentList";
 import { getFieldError } from "../../../../utils/errorUtils";
@@ -24,9 +27,22 @@ export type UploadFile =
   | File
   | {
     id: number;
+    upload_id?: number | null;
     nome_arquivo: string;
     url_arquivo: string;
+    has_file?: boolean | null;
+    links?: {
+      view?: string;
+      download?: string;
+    };
   };
+
+type SelectedAttachment = {
+  fileId: number;
+  fileName: string;
+  viewUrl: string | null;
+  downloadUrl: string | null;
+};
 
 export default function MedicalExamFormPage() {
   const { id } = useParams();
@@ -35,20 +51,25 @@ export default function MedicalExamFormPage() {
 
   const [form, setForm] = useState({
     employee_id: "",
+    technician_id: "",
     exam_type: "",
     exam_date: "",
     cid: "",
     fit: false,
+    cost: "",
+    paid_by_company: false,
     result_attachment_url: "",
     documents: [] as UploadFile[],
   });
 
   const [deletedUploadIds, setDeletedUploadIds] = useState<number[]>([]);
   const [employeeSelected, setEmployeeSelected] = useState<{ id: string | number; label: string } | null>(null);
+  const [technicianSelected, setTechnicianSelected] = useState<{ id: string | number; label: string } | null>(null);
   const [employeeOptions, setEmployeeOptions] = useState<{ id: string | number; label: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ open: boolean; message: string; type: "success" | "error" }>({ open: false, message: "", type: "success" });
   const [isInitializing, setIsInitializing] = useState(true);
+  const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -73,15 +94,27 @@ export default function MedicalExamFormPage() {
         if (examResponse) {
           setForm({
             employee_id: String(examResponse.employee_id),
+            technician_id: examResponse.technician_id ? String(examResponse.technician_id) : "",
             exam_type: examResponse.exam_type,
             exam_date: examResponse.exam_date?.slice(0, 10),
             cid: examResponse.cid || "",
             fit: !!examResponse.fit,
+            cost:
+              examResponse.cost === null || examResponse.cost === undefined
+                ? ""
+                : String(examResponse.cost),
+            paid_by_company: !!examResponse.paid_by_company,
             result_attachment_url: examResponse.result_attachment_url || "",
             documents: examResponse.uploads?.map((upload) => ({
               id: upload.id,
+              upload_id: upload.upload_id,
               nome_arquivo: upload.nome_arquivo,
               url_arquivo: upload.url_arquivo,
+              has_file: upload.has_file,
+              links: {
+                view: upload.links?.view ?? undefined,
+                download: upload.links?.download ?? undefined,
+              },
             })) || [],
           });
 
@@ -89,6 +122,15 @@ export default function MedicalExamFormPage() {
             id: examResponse.employee_id,
             label: examResponse.employee?.name || examResponse.employee_name || "Colaborador",
           });
+
+          setTechnicianSelected(
+            examResponse.technician_id && examResponse.technician?.name
+              ? {
+                  id: examResponse.technician_id,
+                  label: examResponse.technician.name,
+                }
+              : null
+          );
         }
       } catch {
         setToast({ open: true, message: "Erro ao carregar exame", type: "error" });
@@ -123,10 +165,13 @@ export default function MedicalExamFormPage() {
 
     const formData = new FormData();
     formData.append("employee_id", form.employee_id);
+    formData.append("technician_id", form.technician_id);
     formData.append("exam_type", form.exam_type);
     formData.append("exam_date", form.exam_date);
     formData.append("cid", form.cid ?? "");
     formData.append("fit", form.fit ? "1" : "0");
+    formData.append("cost", form.cost ?? "");
+    formData.append("paid_by_company", form.paid_by_company ? "1" : "0");
     formData.append("result_attachment_url", form.result_attachment_url ?? "");
 
     form.documents.forEach((doc) => {
@@ -211,6 +256,17 @@ export default function MedicalExamFormPage() {
           }}
         />
 
+        <TechnicianAutocompleteField
+          label="Tecnico em Seguranca do Trabalho"
+          value={technicianSelected}
+          onChange={(opt) => {
+            setTechnicianSelected(opt);
+            setForm((prev) => ({ ...prev, technician_id: String(opt?.id || "") }));
+          }}
+          error={getFieldError(errors, "technician_id")}
+          required
+        />
+
 
         <FormSelectField
           label="Tipo de Exame"
@@ -237,12 +293,32 @@ export default function MedicalExamFormPage() {
 
         <FormInput id="cid" name="cid" label="CID" value={form.cid} onChange={handleChange} error={errors.cid} />
 
+        <FormInput
+          id="cost"
+          name="cost"
+          type="number"
+          step="0.01"
+          min="0"
+          label="Custo"
+          value={form.cost}
+          onChange={handleChange}
+          error={errors.cost}
+        />
+
         <FormSwitchField
           label="Apto"
           name="fit"
           checked={form.fit}
           onChange={handleChange}
           error={getFieldError(errors, "fit")}
+        />
+
+        <FormSwitchField
+          label="Pago pela empresa"
+          name="paid_by_company"
+          checked={form.paid_by_company}
+          onChange={handleChange}
+          error={getFieldError(errors, "paid_by_company")}
         />
 
         <FormInput
@@ -267,6 +343,14 @@ export default function MedicalExamFormPage() {
           persisted={persisted}
           pending={pending}
           onRemove={handleRemoveFile}
+          onViewAttachment={(attachment) =>
+            setSelectedAttachment({
+              fileId: Number(attachment.upload_id ?? attachment.id),
+              fileName: attachment.nome_arquivo,
+              viewUrl: attachment.links?.view ?? null,
+              downloadUrl: attachment.links?.download ?? null,
+            })
+          }
         />
 
         <FormActions onCancel={() => navigate("/backoffice/exames-medicos")} text={isEdit ? "Atualizar" : "Criar"} />
@@ -279,6 +363,53 @@ export default function MedicalExamFormPage() {
         type={toast.type}
         onClose={() => setToast({ ...toast, open: false })}
       />
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedAttachment && (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      viewUrl={selectedAttachment.viewUrl}
+                      downloadUrl={selectedAttachment.downloadUrl}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

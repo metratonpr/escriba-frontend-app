@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import axios from "axios";
-import { BarChart3, Boxes, ChevronDown, FileClock, ShieldAlert, Users } from "lucide-react";
+import { BarChart3, ChevronDown, DollarSign, FileClock, ShieldAlert, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
@@ -12,9 +12,11 @@ import DistributionList, {
 } from "../../../components/dashboard/DistributionList";
 import KpiStatCard from "../../../components/dashboard/KpiStatCard";
 import {
+  type CompanyCostBreakdownItem,
+  type EmployeeCostBreakdownItem,
   getSystemKpis,
   type LabelTotalItem,
-  type ModelItemKpi,
+  type SectorCostBreakdownItem,
   type SystemKpiResponse,
   type TopEventByParticipants,
   type TopEventParticipant,
@@ -24,10 +26,11 @@ import { normalizeFieldError } from "../../../utils/errorUtils";
 import {
   convertToBrazilianDateFormat,
   convertToBrazilianDateTimeFormat,
+  formatCurrency,
 } from "../../../utils/formatUtils";
 
 type ToastType = "success" | "error" | "info";
-type DashboardSection = "overview" | "events" | "occurrences" | "models";
+type DashboardSection = "overview" | "events" | "occurrences" | "costs";
 
 type DashboardToastState = {
   open: boolean;
@@ -38,7 +41,13 @@ type DashboardToastState = {
 type TopEventRow = TopEventByParticipants & { id: string };
 type TopParticipantRow = TopEventParticipant & { id: string };
 type TopInvolvedEmployeeRow = TopOccurrenceInvolvedEmployee & { id: string };
-type ModelRow = ModelItemKpi & { id: string };
+type CostBreakdownRow = {
+  id: string;
+  name: string;
+  document_cost: number;
+  epi_cost: number;
+  total_cost: number;
+};
 
 type AxiosValidationErrorResponse = {
   message?: string;
@@ -68,7 +77,7 @@ const DASHBOARD_SECTIONS: Array<{ id: DashboardSection; label: string }> = [
   { id: "overview", label: "Visão geral" },
   { id: "events", label: "Eventos" },
   { id: "occurrences", label: "Ocorrências" },
-  { id: "models", label: "Modelos" },
+  { id: "costs", label: "Custos" },
 ];
 
 const parseDaysInput = (value: string): number | null => {
@@ -121,10 +130,23 @@ const toTopInvolvedEmployeeRows = (
     id: `employee-${row.employee_id}-${index}`,
   }));
 
-const toModelRows = (rows: ModelItemKpi[]): ModelRow[] =>
+const toCostBreakdownRows = <
+  T extends {
+    document_cost: number;
+    epi_cost: number;
+    total_cost: number;
+  },
+>(
+  rows: T[],
+  prefix: string,
+  getName: (row: T) => string
+): CostBreakdownRow[] =>
   rows.map((row, index) => ({
-    ...row,
-    id: `${row.model}-${index}`,
+    id: `${prefix}-${index}`,
+    name: getName(row),
+    document_cost: row.document_cost,
+    epi_cost: row.epi_cost,
+    total_cost: row.total_cost,
   }));
 
 function HeroMetric({ icon, label, value, helperText = "" }: HeroMetricProps) {
@@ -276,7 +298,33 @@ export default function DashboardPage() {
     () => toTopInvolvedEmployeeRows(kpis?.occurrences.top_involved_employees ?? []),
     [kpis]
   );
-  const modelRows = useMemo(() => toModelRows(kpis?.models?.items ?? []), [kpis]);
+  const sectorCostRows = useMemo(
+    () =>
+      toCostBreakdownRows(
+        kpis?.costs?.period_breakdowns.by_sector ?? [],
+        "sector-cost",
+        (row: SectorCostBreakdownItem) => row.sector_name ?? "Sem setor"
+      ),
+    [kpis]
+  );
+  const companyCostRows = useMemo(
+    () =>
+      toCostBreakdownRows(
+        kpis?.costs?.period_breakdowns.by_company ?? [],
+        "company-cost",
+        (row: CompanyCostBreakdownItem) => row.company_name ?? "Sem empresa"
+      ),
+    [kpis]
+  );
+  const employeeCostRows = useMemo(
+    () =>
+      toCostBreakdownRows(
+        kpis?.costs?.period_breakdowns.by_employee ?? [],
+        "employee-cost",
+        (row: EmployeeCostBreakdownItem) => row.employee_name ?? "Sem colaborador"
+      ),
+    [kpis]
+  );
 
   const topEventsColumns: Column<TopEventRow>[] = [
     {
@@ -359,42 +407,39 @@ export default function DashboardPage() {
     },
   ];
 
-  const modelColumns: Column<ModelRow>[] = [
+  const costColumns: Column<CostBreakdownRow>[] = [
     {
-      label: "Model",
-      field: "model",
+      label: "Nome",
+      field: "name",
       sortable: true,
-      render: (row) => row.model,
+      render: (row) => row.name,
     },
     {
-      label: "Tabela",
-      field: "table",
+      label: "Documentos",
+      field: "document_cost",
       sortable: true,
-      render: (row) => row.table,
+      render: (row) => formatCurrency(row.document_cost),
     },
     {
-      label: "Ativos",
-      field: "active_count",
+      label: "EPIs",
+      field: "epi_cost",
       sortable: true,
-      render: (row) => row.active_count,
+      render: (row) => formatCurrency(row.epi_cost),
     },
     {
       label: "Total",
-      field: "all_count",
+      field: "total_cost",
       sortable: true,
-      render: (row) => row.all_count,
-    },
-    {
-      label: "Soft delete",
-      field: "supports_soft_deletes",
-      sortable: true,
-      render: (row) => (row.supports_soft_deletes ? "Sim" : "Não"),
+      render: (row) => formatCurrency(row.total_cost),
     },
   ];
 
   const generatedAtLabel = kpis?.generated_at
     ? convertToBrazilianDateTimeFormat(kpis.generated_at)
     : "";
+  const totalManagedCost =
+    (kpis?.costs?.documents.summary.total_cost ?? 0) +
+    (kpis?.costs?.epis.inventory.total_cost ?? 0);
 
   return (
     <div className="space-y-6 p-4">
@@ -736,31 +781,71 @@ export default function DashboardPage() {
             </>
           )}
 
-          {activeSection === "models" && (
-            <DashboardSectionCard
-              title="Inventário de models"
-              subtitle="Volume ativo e total por tabela"
-              action={
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Boxes size={14} />
-                  <span>{kpis.models.summary.total_models} models mapeados</span>
+          {activeSection === "costs" && (
+            <>
+              <DashboardSectionCard
+                title="Custos consolidados"
+                subtitle="Documentos e EPIs no response principal"
+                action={
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <DollarSign size={14} />
+                    <span>Total monitorado: {formatCurrency(totalManagedCost)}</span>
+                  </div>
+                }
+              >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <KpiStatCard
+                    title="Documentos"
+                    value={formatCurrency(kpis.costs?.documents.summary.total_cost ?? 0)}
+                    helperText={`${kpis.costs?.documents.summary.document_records ?? 0} registros`}
+                    tone="blue"
+                  />
+                  <KpiStatCard
+                    title="Custo médio por documento"
+                    value={formatCurrency(kpis.costs?.documents.summary.average_cost ?? 0)}
+                    helperText="Média consolidada"
+                    tone="slate"
+                  />
+                  <KpiStatCard
+                    title="Documentos obrigatórios"
+                    value={formatCurrency(kpis.costs?.documents.required_documents_cost ?? 0)}
+                    helperText={`Opcionais: ${formatCurrency(kpis.costs?.documents.optional_documents_cost ?? 0)}`}
+                    tone="amber"
+                  />
+                  <KpiStatCard
+                    title="Pago pela empresa"
+                    value={formatCurrency(kpis.costs?.documents.company_paid_cost ?? 0)}
+                    helperText={`${(kpis.costs?.documents.company_paid_percent ?? 0).toFixed(1)}% do custo documental`}
+                    tone="emerald"
+                  />
+                  <KpiStatCard
+                    title="EPIs em inventário"
+                    value={formatCurrency(kpis.costs?.epis.inventory.total_cost ?? 0)}
+                    helperText={`${kpis.costs?.epis.inventory.total_items ?? 0} itens`}
+                    tone="blue"
+                  />
+                  <KpiStatCard
+                    title="EPIs entregues"
+                    value={formatCurrency(kpis.costs?.epis.delivered.total_cost ?? 0)}
+                    helperText={`${kpis.costs?.epis.delivered.total_quantity ?? 0} unidades · média ${formatCurrency(kpis.costs?.epis.delivered.average_unit_cost ?? 0)}`}
+                    tone="slate"
+                  />
                 </div>
-              }
-            >
-              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <KpiStatCard
-                  title="Registros ativos"
-                  value={kpis.models.summary.active_records_total}
-                  tone="blue"
-                />
-                <KpiStatCard
-                  title="Registros totais"
-                  value={kpis.models.summary.all_records_total}
-                  tone="slate"
-                />
+              </DashboardSectionCard>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <DashboardSectionCard title="Custos por setor">
+                  <TableTailwind columns={costColumns} data={sectorCostRows} />
+                </DashboardSectionCard>
+                <DashboardSectionCard title="Custos por empresa">
+                  <TableTailwind columns={costColumns} data={companyCostRows} />
+                </DashboardSectionCard>
               </div>
-              <TableTailwind columns={modelColumns} data={modelRows} />
-            </DashboardSectionCard>
+
+              <DashboardSectionCard title="Custos por colaborador">
+                <TableTailwind columns={costColumns} data={employeeCostRows} />
+              </DashboardSectionCard>
+            </>
           )}
         </div>
       )}

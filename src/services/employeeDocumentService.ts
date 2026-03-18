@@ -21,6 +21,10 @@ export interface UploadFile {
   nome_arquivo: string;
   url_arquivo: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string | null;
+    download?: string | null;
+  };
 }
 
 export interface EmployeeDocumentUpload {

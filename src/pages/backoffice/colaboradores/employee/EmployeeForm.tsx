@@ -1,8 +1,10 @@
 // src/pages/backoffice/colaboradores/employee/EmployeeForm.tsx
-import { useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useState } from "react";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
+import FileViewer from "../../../../components/Layout/FileViewer";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import ImageUploadPreview from "../../../../components/form/ImageUploadPreview";
@@ -17,6 +19,7 @@ import FileUpload, {
 } from "../../../../components/form/FileUpload";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import FormSelectField from "../../../../components/form/FormSelectField";
+import FormSwitchField from "../../../../components/form/FormSwitchField";
 import EmployeeDocumentAttachmentList from "../employeedocuments/EmployeeDocumentAttachmentList";
 import { getDocumentsWithVersions } from "../../../../services/documentService";
 import {
@@ -43,6 +46,10 @@ import {
   mapDocumentsWithVersionsToOptions,
   type DocumentWithVersionOption,
 } from "../../../../utils/documentWithVersionUtils";
+import {
+  convertToBrazilianDateFormat,
+  formatCurrency,
+} from "../../../../utils/formatUtils";
 
 const EMPLOYEES_ROUTE = "/backoffice/colaboradores";
 
@@ -101,6 +108,8 @@ type EmployeeDocumentFormItem = {
   issued_at: string;
   expires_at: string;
   status: string;
+  cost: string;
+  paid_by_company: boolean;
   upload: EmployeeDocumentUpload | null;
   files: FileUploadItem[];
 };
@@ -118,6 +127,13 @@ type EmployeeFormState = {
   photoFile: File | null;
   existingPhotoUrl: string;
   photoMarkedForRemoval: boolean;
+};
+
+type SelectedAttachment = {
+  fileId: number;
+  fileName: string;
+  viewUrl: string | null;
+  downloadUrl: string | null;
 };
 
 const INITIAL_FORM_STATE: EmployeeFormState = {
@@ -157,6 +173,19 @@ function capitalizeLabel(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function formatNumberPtBr(value: number | string): string {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value).replace(",", "."));
+
+  if (!Number.isFinite(numericValue)) {
+    return "-";
+  }
+
+  return new Intl.NumberFormat("pt-BR").format(numericValue);
+}
+
 function isPendingFile(file: FileUploadItem): file is File {
   return file instanceof File;
 }
@@ -182,8 +211,38 @@ function getFirstViewablePersistedAttachment(
 function isDocumentReadyToSubmit(document: EmployeeDocumentFormItem): boolean {
   return (
     Boolean(document.document?.id) &&
+    Boolean(document.documentVersion?.id) &&
+    Boolean(document.issued_at) &&
+    Boolean(document.status) &&
     (document.files.some(isPendingFile) || Boolean(document.upload?.id))
   );
+}
+
+function getDocumentValidationMessage(
+  document: EmployeeDocumentFormItem,
+  availableVersions: VersionOption[] = []
+): string | null {
+  if (!document.document?.id) {
+    return "Selecione um documento antes de adicionar.";
+  }
+
+  if (availableVersions.length > 0 && !document.documentVersion?.id) {
+    return "Selecione a versao do documento antes de adicionar.";
+  }
+
+  if (!document.issued_at) {
+    return "Informe a data de emissao antes de adicionar o documento.";
+  }
+
+  if (!document.status) {
+    return "Selecione o status antes de adicionar o documento.";
+  }
+
+  if (!(document.files.some(isPendingFile) || Boolean(document.upload?.id))) {
+    return "Anexe um arquivo antes de adicionar o documento.";
+  }
+
+  return null;
 }
 
 function createEmptyDocument(): EmployeeDocumentFormItem {
@@ -194,6 +253,8 @@ function createEmptyDocument(): EmployeeDocumentFormItem {
     issued_at: "",
     expires_at: "",
     status: "",
+    cost: "",
+    paid_by_company: false,
     upload: null,
     files: [],
   };
@@ -319,6 +380,11 @@ function mapEmployeeDocumentToForm(document: EmployeeDocument): EmployeeDocument
     issued_at: toDateInputValue(document.issued_at),
     expires_at: toDateInputValue(document.expires_at),
     status: document.status ?? "",
+    cost:
+      document.cost === null || document.cost === undefined
+        ? ""
+        : String(document.cost),
+    paid_by_company: !!document.paid_by_company,
     upload: document.upload ?? null,
     files,
   };
@@ -433,6 +499,11 @@ function buildEmployeeFormData(form: EmployeeFormState): FormData {
       toDateInputValue(document.expires_at)
     );
     appendValue(`documents[${index}][status]`, document.status);
+    appendValueIfFilled(`documents[${index}][cost]`, document.cost);
+    appendValue(
+      `documents[${index}][paid_by_company]`,
+      document.paid_by_company ? "1" : "0"
+    );
 
     const pendingFile = document.files.find(isPendingFile);
     if (pendingFile) {
@@ -477,6 +548,7 @@ export default function EmployeeForm() {
   );
   const [activeTab, setActiveTab] = useState<EmployeeFormTab>("details");
   const [epiDeliveries, setEpiDeliveries] = useState<EmployeeEpiDelivery[]>([]);
+  const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
   const normalizedPhotoUrl = form.existingPhotoUrl ? form.existingPhotoUrl.trim() : "";
 
   useEffect(() => {
@@ -762,28 +834,15 @@ export default function EmployeeForm() {
       draftDocument.documentVersion
     );
 
-    if (!draftDocument.document?.id) {
-      setToast({
-        open: true,
-        message: "Selecione um documento antes de adicionar.",
-        type: "error",
-      });
-      return;
-    }
+    const validationMessage = getDocumentValidationMessage(
+      draftDocument,
+      availableVersions
+    );
 
-    if (availableVersions.length > 0 && !draftDocument.documentVersion?.id) {
+    if (validationMessage) {
       setToast({
         open: true,
-        message: "Selecione a versao do documento antes de adicionar.",
-        type: "error",
-      });
-      return;
-    }
-
-    if (draftDocument.files.length === 0) {
-      setToast({
-        open: true,
-        message: "Anexe um arquivo antes de adicionar o documento.",
+        message: validationMessage,
         type: "error",
       });
       return;
@@ -818,6 +877,30 @@ export default function EmployeeForm() {
   const editingDocument = draftDocument ?? activeDocument;
   const editingDocumentIndex = draftDocument ? null : activeDocumentIndex;
   const isCreatingDocument = Boolean(draftDocument);
+  const totalDocumentCost = form.documents.reduce((total, document) => {
+    const numericCost =
+      typeof document.cost === "number"
+        ? document.cost
+        : Number.parseFloat(String(document.cost ?? "").replace(",", "."));
+
+    return Number.isFinite(numericCost) ? total + numericCost : total;
+  }, 0);
+  const totalDeliveredEpiCost = epiDeliveries.reduce((deliveryTotal, delivery) => {
+    const currentDeliveryTotal = delivery.epis.reduce((itemTotal, epi) => {
+      const numericCost =
+        typeof epi.cost === "number"
+          ? epi.cost
+          : Number.parseFloat(String(epi.cost ?? "").replace(",", "."));
+
+      if (!Number.isFinite(numericCost)) {
+        return itemTotal;
+      }
+
+      return itemTotal + numericCost * Math.max(epi.quantity || 0, 0);
+    }, 0);
+
+    return deliveryTotal + currentDeliveryTotal;
+  }, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -830,6 +913,43 @@ export default function EmployeeForm() {
       setToast({ open: true, message: assignmentValidationError, type: "error" });
       setIsLoading(false);
       return;
+    }
+
+    for (const document of form.documents) {
+      const availableVersions = getVersionOptions(
+        document.document?.id,
+        document.documentVersion
+      );
+      const validationMessage = getDocumentValidationMessage(
+        document,
+        availableVersions
+      );
+
+      if (validationMessage) {
+        setActiveTab("documents");
+        setActiveDocumentLocalId(document.localId);
+        setToast({ open: true, message: validationMessage, type: "error" });
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (draftDocument) {
+      const availableVersions = getVersionOptions(
+        draftDocument.document?.id,
+        draftDocument.documentVersion
+      );
+      const validationMessage = getDocumentValidationMessage(
+        draftDocument,
+        availableVersions
+      );
+
+      if (validationMessage) {
+        setActiveTab("documents");
+        setToast({ open: true, message: validationMessage, type: "error" });
+        setIsLoading(false);
+        return;
+      }
     }
 
     const documentsForSubmission =
@@ -909,7 +1029,7 @@ export default function EmployeeForm() {
   const hasPhoto = Boolean(form.photoFile || shouldShowExistingPhoto);
   const photoButtonLabel = hasPhoto ? "Trocar foto" : "Selecionar foto";
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="mx-auto max-w-[88rem] p-6">
       <Breadcrumbs
         items={[
           { label: "Colaboradores", to: EMPLOYEES_ROUTE },
@@ -1250,6 +1370,12 @@ export default function EmployeeForm() {
                                     }
                                   : null,
                                 documentVersion: nextVersion,
+                                cost:
+                                  selectedDocument?.cost === null ||
+                                  selectedDocument?.cost === undefined
+                                    ? ""
+                                    : String(selectedDocument.cost),
+                                paid_by_company: !!selectedDocument?.paid_by_company,
                               });
                               return;
                             }
@@ -1262,6 +1388,12 @@ export default function EmployeeForm() {
                                   }
                                 : null,
                               documentVersion: nextVersion,
+                              cost:
+                                selectedDocument?.cost === null ||
+                                selectedDocument?.cost === undefined
+                                  ? ""
+                                  : String(selectedDocument.cost),
+                              paid_by_company: !!selectedDocument?.paid_by_company,
                             });
                           }}
                           placeholder="Digite para buscar documento..."
@@ -1377,6 +1509,57 @@ export default function EmployeeForm() {
                         />
                       </div>
 
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FormInput
+                          name={
+                            editingDocumentIndex !== null && editingDocumentIndex >= 0
+                              ? `documents.${editingDocumentIndex}.cost`
+                              : "documents.draft.cost"
+                          }
+                          label="Custo"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editingDocument.cost}
+                          onChange={(e) => {
+                            if (isCreatingDocument) {
+                              handleDraftDocumentPatch({ cost: e.target.value });
+                              return;
+                            }
+
+                            handleDocumentPatch(editingDocument.localId, {
+                              cost: e.target.value,
+                            });
+                          }}
+                          error={getEditingDocumentError("cost")}
+                          placeholder="0,00"
+                        />
+
+                        <FormSwitchField
+                          name={
+                            editingDocumentIndex !== null && editingDocumentIndex >= 0
+                              ? `documents.${editingDocumentIndex}.paid_by_company`
+                              : "documents.draft.paid_by_company"
+                          }
+                          label="Pago pela empresa"
+                          checked={editingDocument.paid_by_company}
+                          onChange={(e) => {
+                            if (isCreatingDocument) {
+                              handleDraftDocumentPatch({
+                                paid_by_company: e.target.checked,
+                              });
+                              return;
+                            }
+
+                            handleDocumentPatch(editingDocument.localId, {
+                              paid_by_company: e.target.checked,
+                            });
+                          }}
+                          error={getEditingDocumentError("paid_by_company")}
+                          className="flex items-end pb-2"
+                        />
+                      </div>
+
                       <FileUpload
                         label="Anexo unico (JPG, PNG ou PDF ate 50MB)"
                         files={editingDocument.files.slice(0, 1)}
@@ -1440,6 +1623,9 @@ export default function EmployeeForm() {
               })() : null}
 
                 <div className="order-2 w-full overflow-x-auto rounded-lg bg-white px-2 shadow-sm sm:px-0 dark:bg-gray-900">
+                  <div className="flex items-center justify-end border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">
+                    Total dos custos: {formatCurrency(totalDocumentCost)}
+                  </div>
                   <table className="w-full text-left text-sm text-gray-500 rtl:text-right sm:text-base dark:text-gray-400">
                     <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
                       <tr>
@@ -1456,6 +1642,12 @@ export default function EmployeeForm() {
                           Status
                         </th>
                         <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
+                          Custo
+                        </th>
+                        <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
+                          Pago empresa
+                        </th>
+                        <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
                           Anexos
                         </th>
                         <th className="px-4 py-2 text-right font-medium tracking-wider sm:px-6 sm:py-3">
@@ -1467,7 +1659,7 @@ export default function EmployeeForm() {
                       {form.documents.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={8}
                             className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                           >
                             Nenhum documento adicionado.
@@ -1510,16 +1702,30 @@ export default function EmployeeForm() {
                                 </div>
                               </td>
                               <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                                {document.issued_at || "-"}
+                                {document.issued_at
+                                  ? convertToBrazilianDateFormat(document.issued_at)
+                                  : "-"}
                               </td>
                               <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                                {document.expires_at || "-"}
+                                {document.expires_at
+                                  ? convertToBrazilianDateFormat(document.expires_at)
+                                  : "-"}
                               </td>
                               <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
                                 {document.status ? capitalizeLabel(document.status) : "-"}
                               </td>
                               <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                                {attachmentCount > 0 ? `${attachmentCount} anexo(s)` : "Sem anexo"}
+                                {document.cost ? formatCurrency(document.cost) : "-"}
+                              </td>
+                              <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                                {document.paid_by_company ? "Sim" : "Nao"}
+                              </td>
+                              <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    {attachmentCount > 0 ? `${attachmentCount} anexo(s)` : "Sem anexo"}
+                                  </span>
+                                </div>
                               </td>
                               <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">
                                 <div className="inline-flex items-center gap-2">
@@ -1527,20 +1733,22 @@ export default function EmployeeForm() {
                                     <button
                                       type="button"
                                       onClick={() =>
-                                        navigate(
-                                          id
-                                            ? `/backoffice/colaboradores/editar/${id}/visualizar-anexo/${viewableAttachment.id}`
-                                            : `/backoffice/colaboradores/documentos/visualizar-anexo/${viewableAttachment.id}`,
-                                          {
-                                            state: { attachment: viewableAttachment },
-                                          }
-                                        )
+                                        setSelectedAttachment({
+                                          fileId: Number(viewableAttachment.id),
+                                          fileName: viewableAttachment.nome_arquivo,
+                                          viewUrl:
+                                            viewableAttachment.links?.view ??
+                                            viewableAttachment.url_arquivo ??
+                                            null,
+                                          downloadUrl: viewableAttachment.links?.download ?? null,
+                                        })
                                       }
-                                      aria-label={`Visualizar documento ${index + 1}`}
-                                      title="Visualizar"
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                      aria-label={`Visualizar anexo do documento ${index + 1}`}
+                                      title="Visualizar anexo"
+                                      className="inline-flex items-center gap-1 rounded-md border border-blue-600 px-2 py-0.5 text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
                                     >
-                                      <Eye size={16} />
+                                      <Eye className="h-3 w-3" />
+                                      Visualizar
                                     </button>
                                   ) : null}
                                   <button
@@ -1603,18 +1811,41 @@ export default function EmployeeForm() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <div className="flex items-center justify-end rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                    Total de EPIs entregues: {formatCurrency(totalDeliveredEpiCost)}
+                  </div>
                   {epiDeliveries.map((delivery) => (
                     <div
                       key={String(delivery.id)}
                       className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
                     >
+                      {(() => {
+                        const deliveryTotal = delivery.epis.reduce((itemTotal, epi) => {
+                          const numericCost =
+                            typeof epi.cost === "number"
+                              ? epi.cost
+                              : Number.parseFloat(String(epi.cost ?? "").replace(",", "."));
+
+                          if (!Number.isFinite(numericCost)) {
+                            return itemTotal;
+                          }
+
+                          return itemTotal + numericCost * Math.max(epi.quantity || 0, 0);
+                        }, 0);
+
+                        return (
                       <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
                         <div>
                           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                             Entrega #{delivery.id}
                           </h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Data: {toDateInputValue(delivery.delivery_date) || "-"}
+                            Data: {delivery.delivery_date
+                              ? convertToBrazilianDateFormat(delivery.delivery_date)
+                              : "-"}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Total: {formatCurrency(deliveryTotal)}
                           </p>
                         </div>
 
@@ -1625,6 +1856,8 @@ export default function EmployeeForm() {
                           Abrir entrega
                         </Link>
                       </div>
+                        );
+                      })()}
 
                       <div className="w-full overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
@@ -1635,6 +1868,9 @@ export default function EmployeeForm() {
                               </th>
                               <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
                                 Quantidade
+                              </th>
+                              <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
+                                Custo
                               </th>
                               <th className="px-4 py-3 font-medium tracking-wider sm:px-6">
                                 Estado
@@ -1648,7 +1884,7 @@ export default function EmployeeForm() {
                             {delivery.epis.length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan={4}
+                                  colSpan={5}
                                   className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                                 >
                                   Nenhum EPI informado nesta entrega.
@@ -1664,7 +1900,10 @@ export default function EmployeeForm() {
                                     {epi.name}
                                   </td>
                                   <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
-                                    {epi.quantity}
+                                    {formatNumberPtBr(epi.quantity)}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
+                                    {epi.cost == null ? "-" : formatCurrency(epi.cost)}
                                   </td>
                                   <td className="px-4 py-3 text-gray-900 sm:px-6 dark:text-white">
                                     {getEpiItemStateLabel(epi.state)}
@@ -1701,6 +1940,53 @@ export default function EmployeeForm() {
         type={toast.type}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedAttachment ? (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      viewUrl={selectedAttachment.viewUrl}
+                      downloadUrl={selectedAttachment.downloadUrl}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  ) : null}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

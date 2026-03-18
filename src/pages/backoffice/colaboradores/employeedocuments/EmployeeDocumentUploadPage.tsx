@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   getEmployeeDocumentUploads,
   deleteEmployeeDocumentUpload,
@@ -14,9 +14,16 @@ import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FileViewer from "../../../../components/Layout/FileViewer";
+
+type SelectedAttachment = {
+  fileId: number;
+  fileName: string;
+  viewUrl: string | null;
+  downloadUrl: string | null;
+};
 
 export default function EmployeeDocumentUploadPage() {
-  const navigate = useNavigate();
   const [data, setData] = useState<PaginatedResponse<EmployeeDocumentUpload>>({
     data: [],
     total: 0,
@@ -34,6 +41,7 @@ export default function EmployeeDocumentUploadPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
   const loadDocuments = async (
     q = search,
@@ -105,6 +113,10 @@ export default function EmployeeDocumentUploadPage() {
       id: attachmentId,
       nome_arquivo: row.upload?.nome_arquivo ?? `attachment-${attachmentId}`,
       url_arquivo: row.upload?.url_arquivo ?? "",
+      links: {
+        view: row.upload?.links?.view ?? null,
+        download: row.upload?.links?.download ?? null,
+      },
     };
   };
 
@@ -184,8 +196,11 @@ export default function EmployeeDocumentUploadPage() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/backoffice/colaboradores/documentos/visualizar-anexo/${attachment.id}`, {
-                    state: { attachment },
+                  setSelectedAttachment({
+                    fileId: attachment.id,
+                    fileName: attachment.nome_arquivo,
+                    viewUrl: attachment.links?.view ?? attachment.url_arquivo ?? null,
+                    downloadUrl: attachment.links?.download ?? null,
                   })
                 }
                 aria-label="Visualizar anexo"
@@ -219,6 +234,53 @@ export default function EmployeeDocumentUploadPage() {
         type={toast.type}
         onClose={() => setToast({ ...toast, open: false })}
       />
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedAttachment && (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      viewUrl={selectedAttachment.viewUrl}
+                      downloadUrl={selectedAttachment.downloadUrl}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </>
   );
 }

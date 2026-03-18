@@ -16,15 +16,17 @@ import {
 import { getEventById, type Event } from "../../../services/eventService";
 import type { CompanyResponse } from "../../../services/companyService";
 import dayjs from "dayjs";
+import { formatCurrency } from "../../../utils/formatUtils";
 
 type ToastType = "success" | "error" | "info";
-type TabKey = "documents" | "events" | "sectors" | "employees";
+type TabKey = "costs" | "documents" | "events" | "sectors" | "employees";
 
 type LocationState = {
   company?: CompanyResponse;
 };
 
 const detailTabs: Array<{ key: TabKey; label: string }> = [
+  { key: "costs", label: "Custos" },
   { key: "documents", label: "Documentos da empresa" },
   { key: "events", label: "Eventos" },
   { key: "sectors", label: "Setores" },
@@ -33,6 +35,8 @@ const detailTabs: Array<{ key: TabKey; label: string }> = [
 
 const getSearchLabel = (tab: TabKey) => {
   switch (tab) {
+    case "costs":
+      return "Buscar custo";
     case "documents":
       return "Buscar documento";
     case "events":
@@ -75,7 +79,7 @@ const assignmentStatusClass = (status?: string) => {
   return "bg-green-100 text-green-800";
 };
 
-const categorizeDocumentDue = (due?: string) => {
+const categorizeDocumentDue = (due?: string | null) => {
   if (!due || !dayjs(due).isValid()) {
     return "Sem vencimento";
   }
@@ -117,7 +121,45 @@ const documentDueBadgeClass = (category?: string) => {
   }
 };
 
+const parseCostValue = (value?: string | number | null) => {
+  if (value === null || value === undefined || value === "") {
+    return 0;
+  }
+
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value).replace(",", "."));
+
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const getEmployeeDocumentCost = (employee: CompanyEmployeeAudit) =>
+  (employee.documents ?? []).reduce((total, document) => total + parseCostValue(document.cost), 0);
+
+const getEmployeeMedicalExamCost = (employee: CompanyEmployeeAudit) =>
+  (employee.medical_exams ?? []).reduce((total, exam) => total + parseCostValue(exam.cost), 0);
+
+const getEmployeeEpiCost = (employee: CompanyEmployeeAudit) =>
+  (employee.epi_deliveries ?? []).reduce(
+    (deliveryTotal, delivery) =>
+      deliveryTotal +
+      (delivery.items ?? []).reduce(
+        (itemTotal, item) => itemTotal + parseCostValue(item.cost) * Math.max(item.quantity ?? 0, 0),
+        0
+      ),
+    0
+  );
+
 function CompanyDetailSkeleton() {
+  const companyCostSummary = {
+    companyDocumentCost: 0,
+    employeeDocumentCost: 0,
+    employeeEpiCost: 0,
+    employeeOtherCost: 0,
+    total: 0,
+  };
+
   return (
     <section className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -159,7 +201,38 @@ function CompanyDetailSkeleton() {
         </div>
 
         <div className="space-y-4 pt-6">
-          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Empresa · Documentos</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.companyDocumentCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · Documentos</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeDocumentCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · EPIs</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeEpiCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · Outros</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeOtherCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-blue-500">Total monitorado</p>
+              <p className="mt-2 text-lg font-semibold text-blue-700">
+                {formatCurrency(companyCostSummary.total)}
+              </p>
+            </article>
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
                 <span className="h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
@@ -195,7 +268,6 @@ function CompanyDetailSkeleton() {
             </div>
           </div>
         </div>
-      </div>
     </section>
   );
 }
@@ -236,6 +308,8 @@ export default function CompanyAuditDetailPage() {
       status: document.status ?? "—",
       issuance: document.emission_date,
       due: document.due_date,
+      cost: document.cost,
+      paidByCompany: !!document.paid_by_company,
       type: document.document?.type ?? "—",
       issuer: document.document?.issuer ?? "—",
       hasFile: Boolean(document.has_file),
@@ -294,6 +368,36 @@ export default function CompanyAuditDetailPage() {
   }, [eventEntries, globalSearch]);
 
   const detailEmployees = detail?.employees ?? [];
+  const companyCostSummary = useMemo(() => {
+    const companyDocumentCost = companyDocuments.reduce(
+      (total, document) => total + parseCostValue(document.cost),
+      0
+    );
+    const employeeDocumentCost = detailEmployees.reduce(
+      (total, employee) => total + getEmployeeDocumentCost(employee),
+      0
+    );
+    const employeeEpiCost = detailEmployees.reduce(
+      (total, employee) => total + getEmployeeEpiCost(employee),
+      0
+    );
+    const employeeOtherCost = detailEmployees.reduce(
+      (total, employee) => total + getEmployeeMedicalExamCost(employee),
+      0
+    );
+
+    return {
+      companyDocumentCost,
+      employeeDocumentCost,
+      employeeEpiCost,
+      employeeOtherCost,
+      total:
+        companyDocumentCost +
+        employeeDocumentCost +
+        employeeEpiCost +
+        employeeOtherCost,
+    };
+  }, [companyDocuments, detailEmployees]);
   const filteredEmployees = useMemo(() => {
     if (!globalSearch.trim()) {
       return detailEmployees;
@@ -351,7 +455,7 @@ export default function CompanyAuditDetailPage() {
     setSectorPage(1);
   };
 
-  const formatDate = (value?: string) => {
+  const formatDate = (value?: string | null) => {
     if (!value) {
       return "—";
     }
@@ -359,7 +463,7 @@ export default function CompanyAuditDetailPage() {
     return dayjs(value).isValid() ? dayjs(value).format("DD/MM/YYYY") : "—";
   };
 
-  const formatDateTime = (value?: string) => {
+  const formatDateTime = (value?: string | null) => {
     if (!value) {
       return "—";
     }
@@ -683,6 +787,40 @@ export default function CompanyAuditDetailPage() {
         </div>
 
         <div className="space-y-4 pt-6">
+          {activeTab === "costs" ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Empresa · Documentos</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.companyDocumentCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · Documentos</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeDocumentCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · EPIs</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeEpiCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Funcionários · Outros</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {formatCurrency(companyCostSummary.employeeOtherCost)}
+              </p>
+            </article>
+            <article className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-blue-500">Total monitorado</p>
+              <p className="mt-2 text-lg font-semibold text-blue-700">
+                {formatCurrency(companyCostSummary.total)}
+              </p>
+            </article>
+            </div>
+          ) : null}
           {activeTab === "documents" ? (
             <div className="space-y-3">
               {renderTabControls(getSearchLabel("documents"), globalSearch, handleGlobalSearchChange)}
@@ -708,7 +846,10 @@ export default function CompanyAuditDetailPage() {
                           Tipo: {entry.type} · Emissor: {entry.issuer}
                         </p>
                         <p className="text-xs text-gray-400">
-                          Emissão: {entry.issuance ?? "—"} • Vencimento: {entry.due ?? "—"}
+                          Emissão: {formatDate(entry.issuance)} • Vencimento: {formatDate(entry.due)}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Custo: {formatCurrency(entry.cost ?? 0)} · Pago empresa: {entry.paidByCompany ? "Sim" : "Não"}
                         </p>
                         {entry.hasFile ? (
                           <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
@@ -740,6 +881,8 @@ export default function CompanyAuditDetailPage() {
                         <th className="px-4 py-2 font-medium text-gray-900">Tipo</th>
                         <th className="px-4 py-2 font-medium text-gray-900">Emissor</th>
                         <th className="px-4 py-2 font-medium text-gray-900">Vencimento</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Custo</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Pago empresa</th>
                         <th className="px-4 py-2 font-medium text-gray-900">Arquivo</th>
                       </tr>
                     </thead>
@@ -754,6 +897,8 @@ export default function CompanyAuditDetailPage() {
                           <td className="px-4 py-2">{entry.type}</td>
                           <td className="px-4 py-2">{entry.issuer}</td>
                           <td className="px-4 py-2">{entry.due ?? "—"}</td>
+                          <td className="px-4 py-2">{formatCurrency(entry.cost ?? 0)}</td>
+                          <td className="px-4 py-2">{entry.paidByCompany ? "Sim" : "Não"}</td>
                           <td className="px-4 py-2 text-xs">
                             {entry.uploadId ? (
                               <div className="flex items-center gap-2 text-blue-600">
@@ -1047,6 +1192,16 @@ export default function CompanyAuditDetailPage() {
                             <p>Função: {employee.assignments[0]?.job_title ?? "—"}</p>
                             <p>Status do contrato: {employee.assignments[0]?.status ?? "—"}</p>
                             <p>Documentos: {employee.documents.length}</p>
+                            <p>Custos docs: {formatCurrency(getEmployeeDocumentCost(employee))}</p>
+                            <p>Custos EPIs: {formatCurrency(getEmployeeEpiCost(employee))}</p>
+                            <p>Outros: {formatCurrency(getEmployeeMedicalExamCost(employee))}</p>
+                            <p>
+                              Total: {formatCurrency(
+                                getEmployeeDocumentCost(employee) +
+                                  getEmployeeEpiCost(employee) +
+                                  getEmployeeMedicalExamCost(employee)
+                              )}
+                            </p>
                           </div>
                           <div className="mt-3 flex justify-end">
                             <button
@@ -1071,7 +1226,10 @@ export default function CompanyAuditDetailPage() {
                         <th className="px-4 py-2 font-medium text-gray-900">CPF</th>
                         <th className="px-4 py-2 font-medium text-gray-900">Função</th>
                         <th className="px-4 py-2 font-medium text-gray-900">Status</th>
-                        <th className="px-4 py-2 font-medium text-gray-900">Documentos</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Docs</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">EPIs</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Outros</th>
+                        <th className="px-4 py-2 font-medium text-gray-900">Total</th>
                         <th className="px-4 py-2 font-medium text-gray-900 text-center">Ação</th>
                       </tr>
                     </thead>
@@ -1085,7 +1243,16 @@ export default function CompanyAuditDetailPage() {
                           <td className="px-4 py-2">{employee.cpf}</td>
                           <td className="px-4 py-2">{employee.assignments[0]?.job_title ?? "—"}</td>
                           <td className="px-4 py-2 uppercase">{employee.assignments[0]?.status ?? "—"}</td>
-                          <td className="px-4 py-2">{employee.documents.length}</td>
+                          <td className="px-4 py-2">{formatCurrency(getEmployeeDocumentCost(employee))}</td>
+                          <td className="px-4 py-2">{formatCurrency(getEmployeeEpiCost(employee))}</td>
+                          <td className="px-4 py-2">{formatCurrency(getEmployeeMedicalExamCost(employee))}</td>
+                          <td className="px-4 py-2">
+                            {formatCurrency(
+                              getEmployeeDocumentCost(employee) +
+                                getEmployeeEpiCost(employee) +
+                                getEmployeeMedicalExamCost(employee)
+                            )}
+                          </td>
                           <td className="px-4 py-2 text-center">
                             <button
                               type="button"
@@ -1201,6 +1368,43 @@ export default function CompanyAuditDetailPage() {
 
                           <section className="space-y-3">
                             <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-gray-900">Custos</h4>
+                              <span className="text-xs text-gray-500">Resumo por categoria</span>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-wide text-gray-400">Documentos</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {formatCurrency(getEmployeeDocumentCost(selectedEmployee))}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-wide text-gray-400">EPIs</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {formatCurrency(getEmployeeEpiCost(selectedEmployee))}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-wide text-gray-400">Outros</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {formatCurrency(getEmployeeMedicalExamCost(selectedEmployee))}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                                <p className="text-[11px] uppercase tracking-wide text-blue-500">Total</p>
+                                <p className="mt-1 text-sm font-semibold text-blue-700">
+                                  {formatCurrency(
+                                    getEmployeeDocumentCost(selectedEmployee) +
+                                      getEmployeeEpiCost(selectedEmployee) +
+                                      getEmployeeMedicalExamCost(selectedEmployee)
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </section>
+
+                          <section className="space-y-3">
+                            <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-gray-900">Contratos e atribuições</h4>
                               <span className="text-xs text-gray-500">
                                 {selectedEmployee.assignments.length} registro(s)
@@ -1273,6 +1477,7 @@ export default function CompanyAuditDetailPage() {
                                       <th className="px-3 py-2">Tipo</th>
                                       <th className="px-3 py-2">Emissão</th>
                                       <th className="px-3 py-2">Vencimento</th>
+                                      <th className="px-3 py-2">Custo</th>
                                       <th className="px-3 py-2">Prazo</th>
                                       <th className="px-3 py-2">Arquivo</th>
                                     </tr>
@@ -1291,6 +1496,7 @@ export default function CompanyAuditDetailPage() {
                                         </td>
                                         <td className="px-3 py-2">{formatDate(document.emission_date)}</td>
                                         <td className="px-3 py-2">{formatDate(document.due_date)}</td>
+                                        <td className="px-3 py-2">{formatCurrency(document.cost ?? 0)}</td>
                                         <td className="px-3 py-2">
                                           {(() => {
                                             const category = categorizeDocumentDue(document.due_date);

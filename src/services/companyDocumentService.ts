@@ -34,6 +34,8 @@ export interface CompanyDocumentUpload {
   document_id: number;
   document_version_id?: string | number | null;
   status: Status;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   emission_date: string | null;
   due_date: string | null;
   upload_id: number | null;
@@ -51,6 +53,8 @@ export type CompanyDocumentUploadPayload = {
   document_id: string | number;
   document_version_id: string | number;
   status: Status;
+  cost?: string | number;
+  paid_by_company?: boolean;
   emission_date: string;
   due_date?: string;
   upload_id?: string | number;

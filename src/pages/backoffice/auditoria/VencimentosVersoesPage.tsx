@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import {
@@ -62,6 +62,7 @@ const computeDueInfo = (item: AuditDocumentVersionExpirationItem) => {
 };
 
 export default function VencimentosVersoesPage() {
+  const latestRequestRef = useRef(0);
   const [filters, setFilters] = useState({
     query: "",
     days: 30,
@@ -78,27 +79,41 @@ export default function VencimentosVersoesPage() {
     type: "info",
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (nextFilters: typeof filters) => {
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
+
     setLoading(true);
     try {
       const response = await getDocumentVersionExpirationList({
-        query: filters.query.trim() || undefined,
-        days: filters.days,
-        page: filters.page,
-        perPage: filters.perPage,
+        query: nextFilters.query.trim() || undefined,
+        days: nextFilters.days,
+        page: nextFilters.page,
+        perPage: nextFilters.perPage,
       });
+
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
+
       setData(response);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
+
       console.error(error);
       setToast({ open: true, message: "Não foi possível carregar os vencimentos.", type: "error" });
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestRef.current) {
+        setLoading(false);
+      }
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void loadData(filters);
+  }, [filters, loadData]);
 
   const totalPages = useMemo(() => {
     if (!data) {

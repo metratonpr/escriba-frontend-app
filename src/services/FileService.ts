@@ -17,6 +17,9 @@ const normalizeUrl = (value?: string | null): string | null => {
   return trimmedValue ? trimmedValue : null;
 };
 
+const isBrowserObjectUrl = (value: string): boolean =>
+  value.startsWith("blob:") || value.startsWith("data:");
+
 const buildFileName = (fileId?: number | string | null, fileName?: string | null): string => {
   const normalizedName = normalizeUrl(fileName);
 
@@ -75,10 +78,17 @@ class FileService {
   private async fetchFileFromUrl(
     url: string
   ): Promise<{ blob: Blob; mimeType: string | null }> {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-    });
+    const response = await fetch(
+      url,
+      isBrowserObjectUrl(url)
+        ? {
+            method: "GET",
+          }
+        : {
+            method: "GET",
+            headers: this.getAuthHeaders(),
+          }
+    );
 
     if (!response.ok) {
       throw new Error(`Erro ${response.status}: ${response.statusText}`);
@@ -102,6 +112,13 @@ class FileService {
 
     if (!resolvedViewUrl) {
       throw new Error("URL de visualizacao indisponivel.");
+    }
+
+    if (isBrowserObjectUrl(resolvedViewUrl)) {
+      return {
+        url: resolvedViewUrl,
+        mimeType: null,
+      };
     }
 
     const { blob, mimeType } = await this.fetchFileFromUrl(resolvedViewUrl);

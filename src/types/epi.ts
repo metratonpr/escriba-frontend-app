@@ -13,6 +13,7 @@ export const getEpiItemStateLabel = (state?: string | null) =>
 export interface EpiItem {
   epi_id: number;
   quantity: number;
+  cost?: number | null;
   state?: EpiItemState | null;
   notes?: string;
   epi?: {

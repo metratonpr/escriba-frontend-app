@@ -121,6 +121,18 @@ export default function CompanyDocumentUploadPage() {
     };
   };
 
+  const handleViewAttachment = (row: CompanyDocumentUpload) => {
+    const attachment = getViewableAttachment(row);
+
+    if (!attachment) {
+      return;
+    }
+
+    navigate(`/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`, {
+      state: { attachment },
+    });
+  };
+
   const columns: Column<CompanyDocumentUpload>[] = [
     {
       label: "Empresa",
@@ -151,6 +163,29 @@ export default function CompanyDocumentUploadPage() {
       sortable: true,
     },
     {
+      label: "Anexo",
+      field: "upload.id",
+      render: (row) => {
+        const attachment = getViewableAttachment(row);
+
+        if (!attachment) {
+          return <span className="text-gray-400">Sem arquivo</span>;
+        }
+
+        return (
+          <button
+            type="button"
+            onClick={() => handleViewAttachment(row)}
+            aria-label="Visualizar anexo"
+            title="Visualizar anexo"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+          >
+            <Eye size={16} />
+          </button>
+        );
+      },
+    },
+    {
       label: "Criado em",
       field: "created_at",
       render: (row) => dayjs(row.created_at).format("DD/MM/YYYY HH:mm"),
@@ -178,29 +213,6 @@ export default function CompanyDocumentUploadPage() {
               setPage(1);
             },
           }}
-          renderActions={(row) => {
-            const attachment = getViewableAttachment(row);
-
-            if (!attachment) {
-              return null;
-            }
-
-            return (
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(`/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`, {
-                    state: { attachment },
-                  })
-                }
-                aria-label="Visualizar anexo"
-                title="Visualizar anexo"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
-              >
-                <Eye size={16} />
-              </button>
-            );
-          }}
           getEditUrl={(id) => `/backoffice/empresas/documentos/editar/${id}`}
           onDelete={handleAskDelete}
           onSortChange={(field, order) => {
@@ -227,4 +239,3 @@ export default function CompanyDocumentUploadPage() {
     </>
   );
 }
-

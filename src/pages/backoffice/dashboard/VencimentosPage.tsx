@@ -1,19 +1,16 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 import { getFileDownloadUrl, getFileViewUrl } from "../../../api/apiConfig";
-import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
 import FileViewer from "../../../components/Layout/FileViewer";
 import FormPageSkeleton from "../../../components/Layout/ui/FormPageSkeleton";
-import SearchBar from "../../../components/Layout/ui/SearchBar";
+import FilterGroup, { type FilterField } from "../../../components/Layout/FilterGroup";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
-import FormSelectField from "../../../components/form/FormSelectField";
+import DataDashboardLayout from "../../../components/Layout/DataDashboardLayout";
+import { useDocumentDeadlines, type DeadlineEndpointFilter } from "../../../hooks/useDocumentDeadlines";
 import {
-  getDocumentsExpiringSoon,
-  getExpiredDocuments,
   type DocumentDeadlineIndicator,
   type DocumentSourceType,
 } from "../../../services/documentReportService";
@@ -22,9 +19,7 @@ import { normalizeFieldError } from "../../../utils/errorUtils";
 import {
   EXPIRING_RANGE_OPTIONS,
   getDeadlineBadge,
-  getDaysUntil,
   getSourceTypeLabel,
-  matchesExpiringRange,
   type ExpiringRangeKey,
 } from "../../../utils/deadlineUtils";
 
@@ -32,7 +27,7 @@ type TableRow = DocumentDeadlineIndicator & {
   id: string;
 };
 
-type EndpointFilter = "all" | "expired" | "expiring";
+type EndpointFilter = DeadlineEndpointFilter;
 type HasFileFilter = "" | "with_file" | "without_file";
 type ToastType = "success" | "error" | "info";
 type FieldErrors = {
@@ -98,12 +93,6 @@ const toTableRows = (rows: DocumentDeadlineIndicator[], scope: string): TableRow
     ...row,
     id: `${scope}-${row.source_type}-${row.source_id}-${row.document_id}-${index}`,
   }));
-
-const filterExpiringRowsByRange = (
-  rows: DocumentDeadlineIndicator[],
-  range: ExpiringRangeKey
-): DocumentDeadlineIndicator[] =>
-  rows.filter((row) => matchesExpiringRange(getDaysUntil(row.due_date), range));
 
 const applyFilters = (
   rows: DocumentDeadlineIndicator[],
@@ -237,59 +226,86 @@ export default function VencimentosPage() {
   });
   const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
-  const selectedRange = useMemo(
-    () =>
-      EXPIRING_RANGE_OPTIONS.find((option) => option.key === sampleRange) ??
-      EXPIRING_RANGE_OPTIONS[0],
-    [sampleRange]
-  );
-
-  const expiringQuery = useQuery({
-    queryKey: ["documents-deadlines", "expiring", selectedRange.queryDays],
-    queryFn: () => getDocumentsExpiringSoon({ days: selectedRange.queryDays }),
-    enabled: endpointFilter !== "expired",
+  const { rows, isLoading, error } = useDocumentDeadlines({
+    endpointFilter,
+    rangeKey: sampleRange,
   });
 
-  const expiredQuery = useQuery({
-    queryKey: ["documents-deadlines", "expired"],
-    queryFn: getExpiredDocuments,
-    enabled: endpointFilter !== "expiring",
-  });
-
-  const isLoading = useMemo(() => {
-    if (endpointFilter === "expired") {
-      return expiredQuery.isLoading;
-    }
-
-    if (endpointFilter === "expiring") {
-      return expiringQuery.isLoading;
-    }
-
-    return expiringQuery.isLoading || expiredQuery.isLoading;
-  }, [endpointFilter, expiringQuery.isLoading, expiredQuery.isLoading]);
-
-  const combinedRows = useMemo(() => {
-    const expiringRows = expiringQuery.data ?? [];
-    const expiredRows = expiredQuery.data ?? [];
-
-    if (endpointFilter === "expired") {
-      return expiredRows;
-    }
-
-    if (endpointFilter === "expiring") {
-      return filterExpiringRowsByRange(expiringRows, sampleRange);
-    }
-
-    return [...expiredRows, ...filterExpiringRowsByRange(expiringRows, sampleRange)];
-  }, [endpointFilter, expiringQuery.data, expiredQuery.data, sampleRange]);
-
-  const rows = useMemo(() => {
-    return [...combinedRows].sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-  }, [combinedRows]);
+  const selectFields = useMemo<FilterField[]>(() => {
+    return [
+      {
+        id: "vencimentos-filter",
+        name: "endpointFilter",
+        label: "Tipo de consulta",
+        value: endpointFilter,
+        options: ENDPOINT_FILTER_OPTIONS,
+        onChange: (event) => {
+          setEndpointFilter(event.target.value as EndpointFilter);
+          if (fieldErrors.endpointFilter) {
+            setFieldErrors((prev) => ({ ...prev, endpointFilter: "" }));
+          }
+        },
+      },
+      {
+        id: "vencimentos-range",
+        name: "sampleRange",
+        label: "Faixa de vencimento",
+        value: sampleRange,
+        options: EXPIRING_RANGE_OPTIONS.map((option) => ({
+          value: option.key,
+          label: option.label,
+        })),
+        onChange: (event) => {
+          setSampleRange(event.target.value as ExpiringRangeKey);
+          if (fieldErrors.sampleRange) {
+            setFieldErrors((prev) => ({ ...prev, sampleRange: "" }));
+          }
+        },
+        disabled: endpointFilter === "expired",
+        error: fieldErrors.sampleRange,
+      },
+      {
+        id: "vencimentos-source-type",
+        name: "sourceTypeFilter",
+        label: "Tipo de origem",
+        value: sourceTypeFilter,
+        options: SOURCE_TYPE_OPTIONS,
+        onChange: (event) => {
+          setSourceTypeFilter(event.target.value as DocumentSourceType | "");
+        },
+      },
+      {
+        id: "vencimentos-status",
+        name: "statusFilter",
+        label: "Status",
+        value: statusFilter,
+        options: STATUS_OPTIONS,
+        onChange: (event) => {
+          setStatusFilter(event.target.value);
+        },
+      },
+      {
+        id: "vencimentos-has-file",
+        name: "hasFileFilter",
+        label: "Arquivo fisico",
+        value: hasFileFilter,
+        options: HAS_FILE_OPTIONS,
+        onChange: (event) => {
+          setHasFileFilter(event.target.value as HasFileFilter);
+        },
+      },
+    ];
+  }, [
+    endpointFilter,
+    fieldErrors.endpointFilter,
+    sampleRange,
+    fieldErrors.sampleRange,
+    sourceTypeFilter,
+    statusFilter,
+    hasFileFilter,
+  ]);
 
   useEffect(() => {
-    const error = expiringQuery.error ?? expiredQuery.error;
-
     if (!error) {
       setFieldErrors({});
       return;
@@ -318,7 +334,7 @@ export default function VencimentosPage() {
       message,
       type: "error",
     });
-  }, [expiringQuery.error, expiredQuery.error]);
+  }, [error]);
 
   const filteredRows = useMemo(
     () => applyFilters(rows, search, sourceTypeFilter, statusFilter, hasFileFilter),
@@ -431,119 +447,50 @@ export default function VencimentosPage() {
     },
   ];
 
+const filtersPanel = (
+  <FilterGroup
+    search={{
+      onSearch: setSearch,
+      onClear: handleClearFilters,
+      placeholder: "Buscar por tipo de origem, origem, documento ou status...",
+    }}
+    description="Campos pesquisáveis: source_type, source_name, document_name e status."
+    selectFields={selectFields}
+  />
+);
+
   return (
     <>
-      <Breadcrumbs
-        items={[
+      <DataDashboardLayout
+        breadcrumbs={[
           { label: "Dashboard", to: "/backoffice/dashboard" },
           { label: "Vencimentos", to: "#" },
         ]}
-      />
-
-      <div className="mb-4 rounded-lg bg-white p-4 shadow-sm">
-        <SearchBar
-          placeholder="Buscar por tipo de origem, origem, documento ou status..."
-          onSearch={setSearch}
-          onClear={handleClearFilters}
-          fullWidth
-        />
-
-        <p className="mb-4 text-xs text-gray-500">
-          Campos pesquisaveis: source_type, source_name, document_name e status.
-        </p>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <FormSelectField
-            id="vencimentos-filter"
-            name="endpointFilter"
-            label="Tipo de consulta"
-            value={endpointFilter}
-            onChange={(event) => {
-              setEndpointFilter(event.target.value as EndpointFilter);
-              if (fieldErrors.endpointFilter) {
-                setFieldErrors((prev) => ({ ...prev, endpointFilter: "" }));
-              }
-            }}
-            options={ENDPOINT_FILTER_OPTIONS}
-            error={fieldErrors.endpointFilter}
+        filterPanel={filtersPanel}
+      >
+        {isLoading ? (
+          <FormPageSkeleton className="mt-4 px-0" fields={6} />
+        ) : (
+          <TableTailwind
+            title="Vencimentos"
+            columns={columns}
+            data={tableRows}
+            renderActions={(row) =>
+              getHasAvailableFile(row) ? (
+                <button
+                  type="button"
+                  onClick={() => handleViewDocument(row)}
+                  aria-label="Visualizar documento"
+                  title="Visualizar documento"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <Eye size={16} />
+                </button>
+              ) : null
+            }
           />
-
-          <FormSelectField
-            id="vencimentos-range"
-            name="sampleRange"
-            label="Faixa de vencimento"
-            value={sampleRange}
-            onChange={(event) => {
-              setSampleRange(event.target.value as ExpiringRangeKey);
-              if (fieldErrors.sampleRange) {
-                setFieldErrors((prev) => ({ ...prev, sampleRange: "" }));
-              }
-            }}
-            disabled={endpointFilter === "expired"}
-            options={EXPIRING_RANGE_OPTIONS.map((option) => ({
-              value: option.key,
-              label: option.label,
-            }))}
-            error={fieldErrors.sampleRange}
-          />
-
-          <FormSelectField
-            id="vencimentos-source-type"
-            name="sourceTypeFilter"
-            label="Tipo de origem"
-            value={sourceTypeFilter}
-            onChange={(event) => {
-              setSourceTypeFilter(event.target.value as DocumentSourceType | "");
-            }}
-            options={SOURCE_TYPE_OPTIONS}
-          />
-
-          <FormSelectField
-            id="vencimentos-status"
-            name="statusFilter"
-            label="Status"
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-            }}
-            options={STATUS_OPTIONS}
-          />
-
-          <FormSelectField
-            id="vencimentos-has-file"
-            name="hasFileFilter"
-            label="Arquivo fisico"
-            value={hasFileFilter}
-            onChange={(event) => {
-              setHasFileFilter(event.target.value as HasFileFilter);
-            }}
-            options={HAS_FILE_OPTIONS}
-          />
-        </div>
-      </div>
-
-      {isLoading ? (
-        <FormPageSkeleton className="mt-4 px-0" fields={6} />
-      ) : (
-        <TableTailwind
-          title="Vencimentos"
-          columns={columns}
-          data={tableRows}
-          renderActions={(row) =>
-            getHasAvailableFile(row) ? (
-              <button
-                type="button"
-                onClick={() => handleViewDocument(row)}
-                aria-label="Visualizar documento"
-                title="Visualizar documento"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
-              >
-                <Eye size={16} />
-              </button>
-            ) : null
-          }
-        />
-      )}
+        )}
+      </DataDashboardLayout>
 
       <Transition appear show={selectedAttachment !== null} as={Fragment}>
         <Dialog as="div" className="relative z-50" onClose={handleCloseViewer}>

@@ -21,6 +21,8 @@ export interface DocumentWithVersionsResponse {
   id: number | string;
   name: string;
   code: string;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   versions: Array<{
     id: number | string;
     version: string;
@@ -44,6 +46,8 @@ export interface Document {
   description?: string;
   category: DocumentCategory;
   is_required: boolean;
+  cost?: string | number;
+  paid_by_company?: boolean;
   validity_days?: number;
   version: number;
   document_type_id: string;

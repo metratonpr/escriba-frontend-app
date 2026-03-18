@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import Breadcrumbs from "../../../components/Layout/Breadcrumbs";
 import Toast from "../../../components/Layout/Feedback/Toast";
-import SearchBar from "../../../components/Layout/ui/SearchBar";
+import FilterGroup from "../../../components/Layout/FilterGroup";
 import TableTailwind, { type Column } from "../../../components/Layout/ui/TableTailwind";
-import {
-  getDocumentsExpiringSoon,
-  getExpiredDocuments,
-  type DocumentDeadlineIndicator,
-} from "../../../services/documentReportService";
+import DataDashboardLayout from "../../../components/Layout/DataDashboardLayout";
+import { useDocumentDeadlines, type DeadlineEndpointFilter } from "../../../hooks/useDocumentDeadlines";
+import { type DocumentDeadlineIndicator } from "../../../services/documentReportService";
 import {
   convertToBrazilianDateFormat,
   convertToBrazilianDateTimeFormat,
@@ -55,10 +52,7 @@ const formatRemainingDays = (value: number | null, mode: IndicatorMode): string 
 export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorListPageProps) {
   const isExpiring = mode === "expiring";
   const title = isExpiring ? "Documentos a Vencer" : "Documentos Vencidos";
-
-  const [rows, setRows] = useState<DocumentDeadlineIndicator[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{
     open: boolean;
     message: string;
@@ -69,27 +63,23 @@ export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorL
     type: "info",
   });
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const result = isExpiring
-          ? await getDocumentsExpiringSoon({ days: 30 })
-          : await getExpiredDocuments();
-        setRows(result);
-      } catch {
-        setToast({
-          open: true,
-          message: `Erro ao carregar ${title.toLowerCase()}.`,
-          type: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const endpointFilter: DeadlineEndpointFilter = isExpiring ? "expiring" : "expired";
+  const { rows, isLoading, error } = useDocumentDeadlines({
+    endpointFilter,
+    rangeKey: "up_to_30",
+  });
 
-    void load();
-  }, [isExpiring, title]);
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    setToast({
+      open: true,
+      message: `Erro ao carregar ${title.toLowerCase()}.`,
+      type: "error",
+    });
+  }, [error, title]);
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -168,24 +158,30 @@ export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorL
     },
   ];
 
+  const filters = (
+    <>
+      <h1 className="text-2xl font-semibold mb-4">{title}</h1>
+      <FilterGroup
+        search={{
+          onSearch: setSearch,
+          onClear: () => setSearch(""),
+          placeholder: "Buscar por documento, origem ou status...",
+        }}
+      />
+    </>
+  );
+
   return (
-    <div className="p-4">
-      <Breadcrumbs
-        items={[
+    <>
+      <DataDashboardLayout
+        breadcrumbs={[
           { label: "Dashboard", to: "/backoffice/dashboard" },
           { label: title, to: "#" },
         ]}
-      />
-
-      <h1 className="text-2xl font-semibold mb-4">{title}</h1>
-
-      <SearchBar
-        placeholder="Buscar por documento, origem ou status..."
-        onSearch={setSearch}
-        onClear={() => setSearch("")}
-      />
-
-      <TableTailwind loading={loading} columns={columns} data={tableRows} />
+        filterPanel={filters}
+      >
+        <TableTailwind loading={isLoading} columns={columns} data={tableRows} />
+      </DataDashboardLayout>
 
       <Toast
         open={toast.open}
@@ -193,6 +189,6 @@ export default function DocumentsIndicatorListPage({ mode }: DocumentsIndicatorL
         type={toast.type}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
-    </div>
+    </>
   );
 }

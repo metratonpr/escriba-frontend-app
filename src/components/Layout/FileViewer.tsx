@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useFilePreview } from "../../hooks/useFilePreview";
 import fileService from "../../services/FileService";
 
 interface FileViewerProps {
@@ -32,16 +33,19 @@ const FileViewer: React.FC<FileViewerProps> = ({
   showDownload = true,
   onClose,
 }) => {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
 
   const normalizedFileId =
     typeof fileId === "number" && Number.isInteger(fileId) && fileId > 0 ? fileId : null;
+  const {
+    blobUrl,
+    mimeType,
+    loading,
+    error: loadError,
+    reload,
+    setError: setLoadError,
+  } = useFilePreview({ fileId: normalizedFileId, viewUrl });
   const isImage = useMemo(
     () => (mimeType ? mimeType.startsWith("image/") : isImageFile(fileName)),
     [fileName, mimeType]
@@ -51,60 +55,6 @@ const FileViewer: React.FC<FileViewerProps> = ({
     [fileName, mimeType]
   );
   const containerHeightClassName = embedded ? "h-full min-h-[24rem]" : "h-screen";
-
-  useEffect(() => {
-    let active = true;
-    let currentBlobUrl: string | null = null;
-
-    const loadFile = async () => {
-      if (!normalizedFileId && !viewUrl) {
-        setLoadError("Arquivo invalido.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setLoadError("");
-        setActionError("");
-        setMimeType(null);
-
-        const previewData = await fileService.getFilePreviewData(normalizedFileId, viewUrl);
-        const nextBlobUrl = previewData.url;
-
-        if (!active) {
-          fileService.revokeFileUrl(nextBlobUrl);
-          return;
-        }
-
-        currentBlobUrl = nextBlobUrl;
-        setBlobUrl(nextBlobUrl);
-        setMimeType(previewData.mimeType);
-      } catch (loadError) {
-        if (!active) {
-          return;
-        }
-
-        setBlobUrl(null);
-        setMimeType(null);
-        setLoadError(formatViewerError(loadError));
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadFile();
-
-    return () => {
-      active = false;
-
-      if (currentBlobUrl) {
-        fileService.revokeFileUrl(currentBlobUrl);
-      }
-    };
-  }, [normalizedFileId, viewUrl, reloadKey]);
 
   const handleDownload = async () => {
     try {
@@ -149,7 +99,7 @@ const FileViewer: React.FC<FileViewerProps> = ({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => setReloadKey((prev) => prev + 1)}
+              onClick={() => reload()}
               className="w-full rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
             >
               Tentar novamente

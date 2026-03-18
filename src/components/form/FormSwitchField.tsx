@@ -3,7 +3,7 @@ import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtil
 interface FormSwitchFieldProps {
   label: string;
   name: string;
-  checked: boolean;
+  checked?: boolean | null;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: FieldErrorValue;
   disabled?: boolean;
@@ -32,7 +32,7 @@ const FormSwitchField: React.FC<FormSwitchFieldProps> = ({
         id={name}
         name={name}
         type="checkbox"
-        checked={checked}
+        checked={Boolean(checked)}
         onChange={onChange}
         disabled={disabled}
         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"

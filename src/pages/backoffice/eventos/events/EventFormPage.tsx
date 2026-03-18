@@ -50,6 +50,7 @@ export default function EventFormPage() {
   const [companyOption, setCompanyOption] = useState<AutocompleteOption | null>(null);
   const [companyOptions, setCompanyOptions] = useState<AutocompleteOption[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaUploadItem[]>([]);
+  const [removedMediaIds, setRemovedMediaIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({
     open: false,
@@ -140,6 +141,7 @@ export default function EventFormPage() {
             .filter((media) => media.has_file === true)
             .map((media) => ({
               id: `remote-${media.id}`,
+              fileId: media.id,
               name: media.original_name,
               previewUrl: media.url,
               remoteUrl: media.url,
@@ -147,6 +149,7 @@ export default function EventFormPage() {
               sizeBytes: media.size_bytes ?? undefined,
             }));
           setMediaItems(normalizedMedia);
+          setRemovedMediaIds([]);
         }
       } catch {
         setToast({ open: true, message: "Erro ao carregar evento.", type: "error" });
@@ -170,6 +173,25 @@ export default function EventFormPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMediaItemsChange = (nextItems: MediaUploadItem[]) => {
+    setMediaItems((prevItems) => {
+      const removedRemoteIds = prevItems
+        .filter(
+          (item) =>
+            item.id.startsWith("remote-") &&
+            item.fileId != null &&
+            !nextItems.some((nextItem) => nextItem.id === item.id)
+        )
+        .map((item) => item.fileId as number);
+
+      if (removedRemoteIds.length > 0) {
+        setRemovedMediaIds((prevIds) => [...new Set([...prevIds, ...removedRemoteIds])]);
+      }
+
+      return nextItems;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -233,6 +255,12 @@ export default function EventFormPage() {
       });
 
       if (isEdit) {
+        removedMediaIds.forEach((mediaId) => {
+          formData.append("remove_media_ids[]", String(mediaId));
+        });
+      }
+
+      if (isEdit) {
         await updateEvent(id!, formData);
       } else {
         await createEvent(formData);
@@ -268,7 +296,7 @@ export default function EventFormPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="mx-auto max-w-[88rem] p-4">
       <Breadcrumbs
         items={[
           { label: "Parâmetros", to: "/backoffice/parametros" },
@@ -456,7 +484,7 @@ export default function EventFormPage() {
               <p className="text-xs text-gray-500">
                 Revise as mídias já existentes e envie novos arquivos direto por aqui.
               </p>
-              <MediaUploadViewer items={mediaItems} onChange={setMediaItems} />
+              <MediaUploadViewer items={mediaItems} onChange={handleMediaItemsChange} />
             </div>
           ) : null}
 

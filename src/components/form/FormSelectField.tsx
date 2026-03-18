@@ -9,7 +9,7 @@ interface FormSelectFieldProps extends React.SelectHTMLAttributes<HTMLSelectElem
   id?: string;
   label: string;
   name: string;
-  value: string | number;
+  value?: string | number | readonly string[];
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: Option[];
   placeholder?: string;
@@ -43,7 +43,7 @@ const FormSelectField = ({
       <select
         id={finalId}
         name={name}
-        value={value}
+        value={value ?? ""}
         onChange={onChange}
         required={required}
         disabled={disabled}

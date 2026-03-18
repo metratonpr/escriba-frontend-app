@@ -11,14 +11,20 @@ import {
 import { normalizeFieldError, type FieldErrorValue } from "../../utils/errorUtils";
 import { useClientPagination } from "../../hooks/useClientPagination";
 import InlinePagination from "../Layout/ui/InlinePagination";
-import type { AutocompleteOption } from "../../utils/autocompleteUtils";
+import type { EpiAutocompleteOption } from "./EpiAutocompleteField";
 
 interface Props {
   items: EpiItem[];
   onChange: (items: EpiItem[]) => void;
   error?: FieldErrorValue;
-  initialOptions?: AutocompleteOption[];
+  initialOptions?: EpiAutocompleteOption[];
 }
+
+type SelectedEpiOption = {
+  id: number;
+  label: string;
+  cost?: number | null;
+};
 
 export default function FormEpiItemsTable({
   items,
@@ -27,12 +33,14 @@ export default function FormEpiItemsTable({
   initialOptions,
 }: Props) {
   const quantityInputId = "epi-item-quantity";
+  const costInputId = "epi-item-cost";
   const [current, setCurrent] = useState<{
-    epi: { id: number; label: string } | null;
+    epi: SelectedEpiOption | null;
     quantity: number;
+    cost: string;
     state: EpiItemState | "";
     notes: string;
-  }>({ epi: null, quantity: 1, state: "", notes: "" });
+  }>({ epi: null, quantity: 1, cost: "", state: "", notes: "" });
 
   const [fieldErrors, setFieldErrors] = useState({
     epi: false,
@@ -55,8 +63,12 @@ export default function FormEpiItemsTable({
       const item = items[0];
       if (item) {
         setCurrent({
-          epi: { id: item.epi_id, label: item.epi?.name ?? "" },
+          epi: { id: item.epi_id, label: item.epi?.name ?? "", cost: item.cost ?? null },
           quantity: item.quantity,
+          cost:
+            item.cost === null || item.cost === undefined
+              ? ""
+              : String(item.cost),
           state: item.state ?? "",
           notes: item.notes ?? "",
         });
@@ -92,6 +104,7 @@ export default function FormEpiItemsTable({
       {
         epi_id: current.epi!.id,
         quantity: current.quantity,
+        cost: current.cost.trim() === "" ? null : Number(current.cost),
         state: selectedState,
         validity_days: 0,
         notes: current.notes.trim(),
@@ -99,7 +112,7 @@ export default function FormEpiItemsTable({
       },
     ]);
 
-    setCurrent({ epi: null, quantity: 1, state: "", notes: "" });
+    setCurrent({ epi: null, quantity: 1, cost: "", state: "", notes: "" });
     setFieldErrors({ epi: false, quantity: false, state: false });
   };
 
@@ -116,9 +129,16 @@ export default function FormEpiItemsTable({
           <EpiAutocompleteField
             value={current.epi}
             onChange={(value) => {
-              if (value) {
-                const id = typeof value.id === "string" ? parseInt(value.id, 10) : value.id;
-                setCurrent((prev) => ({ ...prev, epi: { id, label: value.label } }));
+            if (value) {
+              const id = typeof value.id === "string" ? parseInt(value.id, 10) : value.id;
+                setCurrent((prev) => ({
+                  ...prev,
+                  epi: { id, label: value.label, cost: value.cost ?? null },
+                  cost:
+                    value.cost === null || value.cost === undefined
+                      ? ""
+                      : String(value.cost),
+                }));
               } else {
                 setCurrent((prev) => ({ ...prev, epi: null }));
               }
@@ -157,6 +177,28 @@ export default function FormEpiItemsTable({
               </p>
             )}
           </div>
+
+          <div className="mt-2">
+            <label
+              htmlFor={costInputId}
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-white"
+            >
+              Custo
+            </label>
+            <input
+              id={costInputId}
+              type="number"
+              min={0}
+              step="0.01"
+              value={current.cost}
+              onChange={(e) =>
+                setCurrent((prev) => ({ ...prev, cost: e.target.value }))
+              }
+              placeholder="0,00"
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div className="min-h-[20px]" />
 
           <div className="mt-2">
             <FormSelectField
@@ -204,6 +246,7 @@ export default function FormEpiItemsTable({
               <tr>
                 <th className="px-4 py-2">EPI</th>
                 <th className="px-4 py-2 text-center">Quantidade</th>
+                <th className="px-4 py-2 text-center">Custo</th>
                 <th className="px-4 py-2">Estado</th>
                 <th className="px-4 py-2">Observacoes</th>
                 <th className="px-4 py-2 text-center">Acao</th>
@@ -220,6 +263,9 @@ export default function FormEpiItemsTable({
                   >
                     <td className="px-4 py-2">{item.epi?.name || `#${item.epi_id}`}</td>
                     <td className="px-4 py-2 text-center">{item.quantity}</td>
+                    <td className="px-4 py-2 text-center">
+                      {item.cost === null || item.cost === undefined ? "-" : item.cost}
+                    </td>
                     <td className="px-4 py-2">{getEpiItemStateLabel(item.state)}</td>
                     <td className="px-4 py-2">{item.notes}</td>
                     <td className="px-4 py-2 text-center">

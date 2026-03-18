@@ -41,6 +41,8 @@ export interface CompanyDocumentRef {
   description?: string | null;
   category?: string | null;
   is_required?: boolean;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   validity_days?: number | null;
   document_type_id?: CompanyId;
   document_issuer_id?: CompanyId;
@@ -52,6 +54,8 @@ export interface CompanyDocumentPayloadItem {
   upload_id?: CompanyId;
   upload?: { id: CompanyId };
   status?: string;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   emission_date?: string;
   due_date?: string;
   issued_at?: string;
@@ -69,6 +73,8 @@ export interface CompanyDocumentItem {
   document?: CompanyDocumentRef | null;
   upload_id?: CompanyId | null;
   status?: string | null;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   emission_date?: string | null;
   due_date?: string | null;
   issued_at?: string | null;

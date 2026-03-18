@@ -7,6 +7,10 @@ interface DocumentFile {
     id: number;
     nome_arquivo: string;
     url_arquivo: string;
+    links?: {
+        view?: string;
+        download?: string;
+    };
 }
 
 interface LocationState {
@@ -32,6 +36,8 @@ export default function EmployeeAttachmentViewerPage() {
 
     const fileId = attachment?.id || Number(attachmentId);
     const fileName = attachment?.nome_arquivo || `attachment-${attachmentId}`;
+    const viewUrl = attachment?.links?.view ?? attachment?.url_arquivo ?? null;
+    const downloadUrl = attachment?.links?.download ?? null;
 
     if (!fileId) {
         return (
@@ -56,10 +62,13 @@ export default function EmployeeAttachmentViewerPage() {
                 {fileName}
             </h1>
 
-            <div className="flex-1 border rounded overflow-hidden">
+            <div className="flex-1 overflow-hidden">
                 <FileViewer
+                    embedded
                     fileId={fileId}
                     fileName={fileName}
+                    viewUrl={viewUrl}
+                    downloadUrl={downloadUrl}
                 />
             </div>
 

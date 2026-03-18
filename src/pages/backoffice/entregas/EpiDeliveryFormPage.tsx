@@ -9,16 +9,17 @@ import EmployeeAutocompleteField from "../../../components/form/EmployeeAutocomp
 import TechnicianAutocompleteField from "../../../components/form/TechnicianAutocompleteField";
 import { FormInput } from "../../../components/form/FormInput";
 import FormEpiItemsTable from "../../../components/form/FormEpiItemsTable";
+import type { EpiAutocompleteOption } from "../../../components/form/EpiAutocompleteField";
 import type { EpiItem } from "../../../types/epi";
 import { createEpiDelivery, getEpiDeliveryById, updateEpiDelivery } from "../../../services/epiDeliveryService";
 import { getEmployees } from "../../../services/employeeService";
 import { getEpis } from "../../../services/epiService";
+import { formatCurrency } from "../../../utils/formatUtils";
 
 interface AutocompleteOption {
   id: number | string;
   label: string;
 }
-
 interface EpiDeliveryForm {
   employee_id: AutocompleteOption | null;
   technician_id: AutocompleteOption | null;
@@ -47,7 +48,7 @@ export default function EpiDeliveryFormPage() {
   });
   const [employeeOptions, setEmployeeOptions] = useState<AutocompleteOption[]>([]);
   const [technicianOptions, setTechnicianOptions] = useState<AutocompleteOption[]>([]);
-  const [epiOptions, setEpiOptions] = useState<AutocompleteOption[]>([]);
+  const [epiOptions, setEpiOptions] = useState<EpiAutocompleteOption[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
@@ -71,13 +72,17 @@ export default function EpiDeliveryFormPage() {
           id: item.id,
           label: item.name,
         }));
-
         setEmployeeOptions(mappedEmployees);
-        setTechnicianOptions(mappedEmployees);
+        setTechnicianOptions(
+          deliveryData?.technician_id && deliveryData.technician?.name
+            ? [{ id: deliveryData.technician_id, label: deliveryData.technician.name }]
+            : []
+        );
         setEpiOptions(
           episResponse.data.map((item) => ({
             id: item.id,
             label: item.name,
+            cost: item.cost ?? item.custo ?? null,
           }))
         );
 
@@ -128,6 +133,19 @@ export default function EpiDeliveryFormPage() {
   const handleItemsChange = (items: EpiItem[]) => {
     setForm((prev) => ({ ...prev, items }));
   };
+
+  const totalCost = form.items.reduce((total, item) => {
+    const unitCost =
+      typeof item.cost === "number"
+        ? item.cost
+        : Number.parseFloat(String(item.cost ?? "").replace(",", "."));
+
+    if (!Number.isFinite(unitCost)) {
+      return total;
+    }
+
+    return total + unitCost * Math.max(item.quantity || 0, 0);
+  }, 0);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -215,6 +233,10 @@ export default function EpiDeliveryFormPage() {
             error={errors.items}
             initialOptions={epiOptions}
           />
+
+          <div className="flex justify-end rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+            Total dos custos: {formatCurrency(totalCost)}
+          </div>
 
           <FormActions
             onCancel={() => navigate("/backoffice/entregas-epis")}

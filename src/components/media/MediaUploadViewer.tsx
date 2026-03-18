@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Eye } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import FileViewer from "../Layout/FileViewer";
 
 export interface MediaUploadItem {
   id: string;
@@ -8,6 +11,8 @@ export interface MediaUploadItem {
   file?: File;
   sizeBytes?: number;
   remoteUrl?: string;
+  downloadUrl?: string;
+  fileId?: number | null;
 }
 
 interface MediaUploadViewerProps {
@@ -34,6 +39,7 @@ export default function MediaUploadViewer({
   const createdPreviewsRef = useRef(new Set<string>());
   const [remotePreviews, setRemotePreviews] = useState<Record<string, string>>({});
   const [previewLoading, setPreviewLoading] = useState<Record<string, boolean>>({});
+  const [selectedItem, setSelectedItem] = useState<MediaUploadItem | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(items.length / perPage));
 
@@ -56,6 +62,11 @@ export default function MediaUploadViewer({
     if (category === "image") return "Imagem";
     return category.charAt(0).toUpperCase() + category.slice(1);
   };
+
+  const resolveViewUrl = (item: MediaUploadItem) =>
+    remotePreviews[item.id] ?? item.previewUrl ?? item.remoteUrl ?? null;
+
+  const canOpenViewer = (item: MediaUploadItem) => Boolean(resolveViewUrl(item) || item.fileId);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -236,45 +247,12 @@ export default function MediaUploadViewer({
     setCurrentPage((prev) => Math.min(Math.max(1, prev + next), totalPages));
   };
 
-  const renderPreview = (item: MediaUploadItem) => {
-    const previewUrl = remotePreviews[item.id] ?? item.previewUrl;
-
-    if (previewLoading[item.id] && !previewUrl) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-gray-500">
-          <span className="inline-flex h-4 w-4 animate-spin rounded-full border border-t-blue-600 border-l-transparent" />
-          Carregando...
-        </div>
-      );
+  const handleOpenViewer = (item: MediaUploadItem) => {
+    if (!canOpenViewer(item)) {
+      return;
     }
 
-    if (previewUrl && item.mimeType?.startsWith("image/")) {
-      return (
-        <img
-          loading="lazy"
-          src={previewUrl}
-          alt={item.name}
-          className="h-full w-full object-cover"
-        />
-      );
-    }
-
-    if (previewUrl && item.mimeType?.startsWith("video/")) {
-      return (
-        <video
-          src={previewUrl}
-          className="h-full w-full object-cover"
-          muted
-          controls
-        />
-      );
-    }
-
-    return (
-      <div className="flex h-full w-full items-center justify-center rounded-xl bg-gray-900/5 text-xs text-gray-500">
-        {item.name}
-      </div>
-    );
+    setSelectedItem(item);
   };
 
   return (
@@ -295,56 +273,73 @@ export default function MediaUploadViewer({
             Nenhum arquivo carregado.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {currentItems.map((item) => {
-              const typeLabel = fileCategory(item.mimeType);
-              const sizeLabel = formatBytes(item.sizeBytes);
-              return (
-                <article
-                  key={item.id}
-                  className="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="relative h-52 w-full overflow-hidden rounded-t-2xl bg-gray-100">
-                    {renderPreview(item)}
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/70 via-black/50 to-transparent opacity-0 transition group-hover:opacity-100">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-800">
-                        <svg
-                          className="h-3 w-3"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                        {item.mimeType?.startsWith("video/") ? "Assistir" : "Visualizar"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1 px-4 pb-4 pt-3">
-                    <p className="truncate text-sm font-semibold text-gray-800">{item.name}</p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                      {typeLabel && (
-                        <span className="rounded-full border border-gray-200 px-2 py-0.5">{typeLabel}</span>
-                      )}
-                      {sizeLabel && (
-                        <span className="rounded-full border border-gray-200 px-2 py-0.5">
-                          {sizeLabel}
-                        </span>
-                      )}
-                    </div>
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(item.id)}
-                        className="mt-2 text-xs font-semibold text-red-600 hover:text-red-800"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+          <div className="overflow-hidden rounded-2xl border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 bg-white">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Arquivo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Tipo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Tamanho
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {currentItems.map((item) => {
+                    const typeLabel = fileCategory(item.mimeType) ?? "-";
+                    const sizeLabel = formatBytes(item.sizeBytes) ?? "-";
+                    const loadingPreview = previewLoading[item.id] && !resolveViewUrl(item);
+
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50/80">
+                        <td className="px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-800">{item.name}</p>
+                            {loadingPreview && (
+                              <p className="mt-1 text-xs text-gray-500">Carregando visualização...</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{typeLabel}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{sizeLabel}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenViewer(item)}
+                              disabled={!canOpenViewer(item)}
+                              className="inline-flex items-center gap-1 rounded-md border border-blue-600 px-2 py-0.5 text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              aria-label={`Visualizar ${item.name}`}
+                              title="Visualizar arquivo"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Visualizar
+                            </button>
+                            {!readOnly && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemove(item.id)}
+                                className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-800"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -386,6 +381,53 @@ export default function MediaUploadViewer({
           <p className="text-xs text-blue-600/80">JPG, JPEG, PNG, WEBP, MP4 até 50MB.</p>
         </label>
       )}
+
+      <Transition appear show={selectedItem !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedItem(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedItem?.name ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedItem && (
+                    <FileViewer
+                      embedded
+                      fileId={selectedItem.fileId}
+                      fileName={selectedItem.name}
+                      viewUrl={resolveViewUrl(selectedItem)}
+                      downloadUrl={selectedItem.downloadUrl}
+                      onClose={() => setSelectedItem(null)}
+                    />
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </section>
   );
 }

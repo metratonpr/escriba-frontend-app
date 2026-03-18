@@ -8,7 +8,9 @@ import DocumentWithVersionField from "../../../../components/form/DocumentWithVe
 import FileUpload, { type UploadFile } from "../../../../components/form/FileUpload";
 import FormDatePickerField from "../../../../components/form/FormDatePickerField";
 import { FormActions } from "../../../../components/form/FormActions";
+import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
+import FormSwitchField from "../../../../components/form/FormSwitchField";
 import { getCompanies } from "../../../../services/companyService";
 import {
   createCompanyDocumentUpload,
@@ -45,6 +47,8 @@ interface FormState {
   document: Option | null;
   document_id: string;
   document_version_id: string;
+  cost: string;
+  paid_by_company: boolean;
   emission_date: string;
   due_date: string;
   documents: FormDocument[];
@@ -83,6 +87,8 @@ export default function CompanyDocumentUploadFormPage() {
     document: null,
     document_id: "",
     document_version_id: "",
+    cost: "",
+    paid_by_company: false,
     emission_date: "",
     due_date: "",
     documents: [],
@@ -176,6 +182,11 @@ export default function CompanyDocumentUploadFormPage() {
             selectedVersion?.id
               ? String(selectedVersion.id)
               : getSingleVersionId(matchedDocument),
+          cost:
+            data.cost === null || data.cost === undefined
+              ? ""
+              : String(data.cost),
+          paid_by_company: !!data.paid_by_company,
           emission_date: data.emission_date ?? "",
           due_date: data.due_date ?? "",
           documents: data.upload
@@ -275,6 +286,11 @@ export default function CompanyDocumentUploadFormPage() {
         : document,
       document_id: document ? String(document.id) : "",
       document_version_id: getNextVersionId(matchedDocument),
+      cost:
+        matchedDocument?.cost === null || matchedDocument?.cost === undefined
+          ? ""
+          : String(matchedDocument.cost),
+      paid_by_company: !!matchedDocument?.paid_by_company,
     }));
   };
 
@@ -322,6 +338,8 @@ export default function CompanyDocumentUploadFormPage() {
 
     formData.append("document_id", form.document_id);
     formData.append("document_version_id", form.document_version_id);
+    formData.append("cost", form.cost);
+    formData.append("paid_by_company", form.paid_by_company ? "1" : "0");
     formData.append("emission_date", form.emission_date);
     formData.append("due_date", form.due_date);
     formData.append("status", form.status);
@@ -416,6 +434,28 @@ export default function CompanyDocumentUploadFormPage() {
             value={form.due_date}
             onChange={handleChange}
             error={errors.due_date}
+          />
+
+          <FormInput
+            name="cost"
+            label="Custo"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.cost}
+            onChange={handleChange}
+            error={errors.cost}
+            placeholder="0,00"
+          />
+
+          <FormSwitchField
+            name="paid_by_company"
+            label="Pago pela empresa"
+            checked={form.paid_by_company}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, paid_by_company: e.target.checked }))
+            }
+            error={getFieldError(errors, "paid_by_company")}
           />
 
           <FormSelectField

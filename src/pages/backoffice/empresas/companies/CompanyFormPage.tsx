@@ -7,6 +7,7 @@ import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton"
 import CompanyDocumentAttachmentList from "../companydocumentupload/CompanyDocumentAttachmentList";
 import { FormInput } from "../../../../components/form/FormInput";
 import FormSelectField from "../../../../components/form/FormSelectField";
+import FormSwitchField from "../../../../components/form/FormSwitchField";
 import { FormActions } from "../../../../components/form/FormActions";
 import CompanyGroupAutocompleteField from "../../../../components/form/CompanyGroupAutocompleteField";
 import CompanyTypeAutocompleteField from "../../../../components/form/CompanyTypeAutocompleteField";
@@ -39,6 +40,10 @@ import {
   mapDocumentsWithVersionsToOptions,
   type DocumentWithVersionOption,
 } from "../../../../utils/documentWithVersionUtils";
+import {
+  convertToBrazilianDateFormat,
+  formatCurrency,
+} from "../../../../utils/formatUtils";
 
 interface AutocompleteOption {
   id: string | number;
@@ -58,6 +63,8 @@ type CompanyDocumentFormItem = {
   id?: string | number;
   document: AutocompleteOption | null;
   status: string;
+  cost: string;
+  paid_by_company: boolean;
   emission_date: string;
   due_date: string;
   upload: CompanyUploadRef | null;
@@ -129,6 +136,8 @@ function createEmptyDocument(): CompanyDocumentFormItem {
     localId: createLocalId(),
     document: null,
     status: "pendente",
+    cost: "",
+    paid_by_company: false,
     emission_date: "",
     due_date: "",
     upload: null,
@@ -165,6 +174,19 @@ function isDocumentReadyToSubmit(document: CompanyDocumentFormItem): boolean {
   return Boolean(document.document?.id) && (
     document.files.some(isPendingFile) || Boolean(document.upload?.id)
   );
+}
+
+function formatNumberPtBr(value: number | string): string {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value).replace(",", "."));
+
+  if (!Number.isFinite(numericValue)) {
+    return "-";
+  }
+
+  return new Intl.NumberFormat("pt-BR").format(numericValue);
 }
 
 function removeFileFromDocument(
@@ -235,6 +257,11 @@ function mapCompanyDocumentToForm(
     id: document.id,
     document: buildDocumentOption(document.document),
     status: document.status ?? "pendente",
+    cost:
+      document.cost === null || document.cost === undefined
+        ? ""
+        : String(document.cost),
+    paid_by_company: !!document.paid_by_company,
     emission_date: toDateInputValue(document.emission_date ?? document.issued_at),
     due_date: toDateInputValue(document.due_date ?? document.expires_at),
     upload: document.upload ?? null,
@@ -289,6 +316,7 @@ export default function CompanyFormPage() {
   >(null);
   const [draftDocument, setDraftDocument] =
     useState<CompanyDocumentFormItem | null>(null);
+  const [removedDocumentIds, setRemovedDocumentIds] = useState<Array<string | number>>([]);
 
   useEffect(() => {
     let active = true;
@@ -385,6 +413,9 @@ export default function CompanyFormPage() {
             removeLogo: false,
             documents: (company.documents ?? []).map(mapCompanyDocumentToForm),
           });
+          setRemovedDocumentIds([]);
+        } else {
+          setRemovedDocumentIds([]);
         }
       } catch (err) {
         console.error("Erro ao carregar formulario da empresa:", err);
@@ -447,6 +478,14 @@ export default function CompanyFormPage() {
   ) as PersistedAttachment[];
   const pendingAttachments =
     editingDocument?.files.filter(isPendingFile) ?? [];
+  const totalDocumentCost = form.documents.reduce((total, document) => {
+    const numericCost =
+      typeof document.cost === "number"
+        ? document.cost
+        : Number.parseFloat(String(document.cost ?? "").replace(",", "."));
+
+    return Number.isFinite(numericCost) ? total + numericCost : total;
+  }, 0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -561,10 +600,30 @@ export default function CompanyFormPage() {
   };
 
   const handleRemoveDocument = (localId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      documents: prev.documents.filter((document) => document.localId !== localId),
-    }));
+    let removedId: string | number | null = null;
+
+    setForm((prev) => {
+      const documentToRemove =
+        prev.documents.find((document) => document.localId === localId) ?? null;
+
+      if (documentToRemove?.id !== undefined && documentToRemove.id !== null) {
+        removedId = documentToRemove.id;
+      }
+
+      return {
+        ...prev,
+        documents: prev.documents.filter((document) => document.localId !== localId),
+      };
+    });
+
+    if (removedId !== null) {
+      const documentIdToRemove = removedId;
+      setRemovedDocumentIds((current) =>
+        current.some((id) => String(id) === String(documentIdToRemove))
+          ? current
+          : [...current, documentIdToRemove]
+      );
+    }
 
     if (activeDocumentLocalId === localId) {
       setActiveDocumentLocalId(null);
@@ -576,7 +635,20 @@ export default function CompanyFormPage() {
       return;
     }
 
-    const patch = { document: value };
+    const selectedDocument = value
+      ? documentOptions.find((option) => String(option.id) === String(value.id)) ??
+        allDocumentOptions.find((option) => String(option.id) === String(value.id)) ??
+        null
+      : null;
+
+    const patch = {
+      document: value,
+      cost:
+        selectedDocument?.cost === null || selectedDocument?.cost === undefined
+          ? ""
+          : String(selectedDocument.cost),
+      paid_by_company: !!selectedDocument?.paid_by_company,
+    };
 
     if (draftDocument) {
       handleDraftDocumentPatch(patch);
@@ -712,6 +784,11 @@ export default function CompanyFormPage() {
         appendValueIfFilled(`documents[${index}][id]`, document.id);
         appendValue(`documents[${index}][document_id]`, document.document?.id);
         appendValueIfFilled(`documents[${index}][status]`, document.status);
+        appendValueIfFilled(`documents[${index}][cost]`, document.cost);
+        appendValue(
+          `documents[${index}][paid_by_company]`,
+          document.paid_by_company ? "1" : "0"
+        );
         appendValueIfFilled(
           `documents[${index}][emission_date]`,
           toDateInputValue(document.emission_date)
@@ -729,6 +806,10 @@ export default function CompanyFormPage() {
 
         appendValueIfFilled(`documents[${index}][upload_id]`, document.upload?.id);
       });
+
+    removedDocumentIds.forEach((documentId) => {
+      appendValue("remove_document_ids[]", documentId);
+    });
 
     return formData;
   };
@@ -1090,6 +1171,53 @@ export default function CompanyFormPage() {
                       />
                     </div>
 
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormInput
+                        id={
+                          editingDocumentIndex !== null && editingDocumentIndex >= 0
+                            ? `documents.${editingDocumentIndex}.cost`
+                            : "documents.draft.cost"
+                        }
+                        name="cost"
+                        type="number"
+                        label="Custo"
+                        min="0"
+                        step="0.01"
+                        value={editingDocument.cost}
+                        onChange={(event) => {
+                          const patch = { cost: event.target.value };
+                          if (draftDocument) {
+                            handleDraftDocumentPatch(patch);
+                            return;
+                          }
+
+                          handleDocumentPatch(editingDocument.localId, patch);
+                        }}
+                        error={getEditingDocumentError("cost") || undefined}
+                      />
+
+                      <FormSwitchField
+                        name={
+                          editingDocumentIndex !== null && editingDocumentIndex >= 0
+                            ? `documents.${editingDocumentIndex}.paid_by_company`
+                            : "documents.draft.paid_by_company"
+                        }
+                        label="Pago pela empresa"
+                        checked={editingDocument.paid_by_company}
+                        onChange={(event) => {
+                          const patch = { paid_by_company: event.target.checked };
+                          if (draftDocument) {
+                            handleDraftDocumentPatch(patch);
+                            return;
+                          }
+
+                          handleDocumentPatch(editingDocument.localId, patch);
+                        }}
+                        error={getEditingDocumentError("paid_by_company") || undefined}
+                        className="flex items-end pb-2"
+                      />
+                    </div>
+
                     <FileUpload
                       label="Anexo do documento"
                       files={editingDocument.files}
@@ -1103,6 +1231,7 @@ export default function CompanyFormPage() {
 
                     <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                       <CompanyDocumentAttachmentList
+                        companyId={id}
                         persisted={persistedAttachments}
                         pending={pendingAttachments}
                         onRemove={handleDocumentFileRemove}
@@ -1125,6 +1254,9 @@ export default function CompanyFormPage() {
               ) : null}
 
               <div className="order-2 w-full overflow-x-auto rounded-lg bg-white px-2 shadow-sm sm:px-0 dark:bg-gray-900">
+                <div className="flex items-center justify-end border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">
+                  Total dos custos: {formatCurrency(totalDocumentCost)}
+                </div>
                 <table className="w-full text-left text-sm text-gray-500 rtl:text-right sm:text-base dark:text-gray-400">
                   <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
@@ -1141,6 +1273,12 @@ export default function CompanyFormPage() {
                         Status
                       </th>
                       <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
+                        Custo
+                      </th>
+                      <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
+                        Pago empresa
+                      </th>
+                      <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
                         Anexos
                       </th>
                       <th className="px-4 py-2 text-right font-medium tracking-wider sm:px-6 sm:py-3">
@@ -1152,7 +1290,7 @@ export default function CompanyFormPage() {
                     {form.documents.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={8}
                           className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                         >
                           Nenhum documento adicionado.
@@ -1207,10 +1345,14 @@ export default function CompanyFormPage() {
                               </div>
                             </td>
                             <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                              {document.emission_date || "-"}
+                              {document.emission_date
+                                ? convertToBrazilianDateFormat(document.emission_date)
+                                : "-"}
                             </td>
                             <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                              {document.due_date || "-"}
+                              {document.due_date
+                                ? convertToBrazilianDateFormat(document.due_date)
+                                : "-"}
                             </td>
                             <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
                               {document.status
@@ -1219,8 +1361,14 @@ export default function CompanyFormPage() {
                                 : "-"}
                             </td>
                             <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                              {document.cost ? formatCurrency(document.cost) : "-"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                              {document.paid_by_company ? "Sim" : "Nao"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
                               {attachmentCount > 0
-                                ? `${attachmentCount} anexo(s)`
+                                ? `${formatNumberPtBr(attachmentCount)} anexo(s)`
                                 : "Sem anexo"}
                             </td>
                             <td className="px-4 py-2 text-right text-sm sm:px-6 sm:py-4">

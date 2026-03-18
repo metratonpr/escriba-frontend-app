@@ -10,6 +10,7 @@ import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import { convertToBrazilianDateFormat } from "../../../../utils/formatUtils";
 
 export default function OccurrencesPage() {
   const [data, setData] = useState<PaginatedResponse<Occurrence>>({
@@ -86,7 +87,12 @@ export default function OccurrencesPage() {
     { label: "Colaborador", field: "employee_name", render: (row) => row.employee_name ?? "" },
     { label: "Empresa", field: "company_name", render: (row) => row.company_name ?? "" },
     { label: "Tipo", field: "type_name", render: (row) => row.type_name ?? "" },
-    { label: "Data", field: "occurrence_date", render: (row) => new Date(row.occurrence_date).toLocaleDateString("pt-BR") },
+    {
+      label: "Data",
+      field: "occurrence_date",
+      render: (row) =>
+        row.occurrence_date ? convertToBrazilianDateFormat(row.occurrence_date) : "-",
+    },
     { label: "Descrição", field: "description", render: (row) => row.description ?? "" },
   ];
 

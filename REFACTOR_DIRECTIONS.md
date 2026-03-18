@@ -19,6 +19,7 @@ Este documento resume a análise completa do projeto, explica *o que* e *como* m
 - Criar hooks por domínio (documentos expirando, documentos com versões) que retornem `{ data, isLoading, error, retry }`.
 - Encaminhar esses hooks para as páginas filtradas; por exemplo, `VencimentosPage` deve importar `useDeadlines` e transformar filtros em parâmetros de `useQuery` (`src/pages/backoffice/dashboard/VencimentosPage.tsx`, linhas ~220-330).
 - Aproveitar `queryClient.invalidateQueries` sempre que mudanças quebras ocorrerem (ex.—submissão de formulários nas páginas de empresa/colaborador).
+- Expor um hook como `useDocumentDeadlines` para unificar a chamada aos endpoints de expiração, utilizar o cache compartilhado e fornecer o status consolidado às telas que dependem desses dados.
 
 **Checklist**
 - [ ] Definir hooks compartilhados para `getDocumentsExpiringSoon`, `getExpiredDocuments`, `getDocumentsWithVersions`, etc.
@@ -37,9 +38,9 @@ Este documento resume a análise completa do projeto, explica *o que* e *como* m
 - Centralizar componentes de status/filtro em `src/components/Form/` (ex.: `FilterGroup`, `FilterField`, `useFilterState`) para reduzir duplicação de `useState` em telas similares (`Vencimentos`, `DocumentsIndicatorListPage`, formulários de empresa/colaborador).
 
 **Checklist**
-- [ ] Reorganizar `TableTailwind` em `TableTailwind.Core` (render) + hook de estado.
-- [ ] Criar `DataDashboardLayout` que recebe filtros, tabela e modal para anexos.
-- [ ] Refatorar `FileViewer`/`MediaUploadViewer` para usar `useFilePreview`.
+- [x] Reorganizar `TableTailwind` em `TableTailwind.Core` (render) + hook de estado (`useTableState`).
+- [x] Criar `DataDashboardLayout` que recebe filtros, tabela e modal para anexos.
+- [x] Refatorar `FileViewer` para usar `useFilePreview`; `MediaUploadViewer` seguirá o mesmo hook em seguida.
 - [ ] Declaração de filtros compartilhados (ex.: `const DEADLINE_FILTERS = [...]`) e uso de `FilterGroup`.
 
 ### 2.3 Infraestrutura e segurança (para referência)

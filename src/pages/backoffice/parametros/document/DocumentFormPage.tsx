@@ -16,6 +16,7 @@ import {
   getDocumentById,
   updateDocument,
   type DocumentCategory,
+  type DocumentPayload,
 } from "../../../../services/documentService";
 import { getDocumentTypes } from "../../../../services/documentTypeService";
 import { getDocumentIssuers } from "../../../../services/documentIssuerService";
@@ -32,6 +33,17 @@ interface Version {
   version?: string;
 }
 
+interface DocumentFormState {
+  code: string;
+  name: string;
+  description: string;
+  category: DocumentCategory;
+  is_required: boolean;
+  cost: string;
+  validity_days: string;
+  paid_by_company: boolean;
+}
+
 type DocumentTab = "dados" | "versoes";
 
 export default function DocumentFormPage() {
@@ -39,12 +51,15 @@ export default function DocumentFormPage() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<DocumentFormState>({
     code: "",
     name: "",
     description: "",
     category: "general" as DocumentCategory,
     is_required: false,
+    cost: "",
+    validity_days: "",
+    paid_by_company: false,
   });
   const [type, setType] = useState<Option | null>(null);
   const [issuer, setIssuer] = useState<Option | null>(null);
@@ -94,6 +109,9 @@ export default function DocumentFormPage() {
             description: document.description ?? "",
             category: document.category,
             is_required: document.is_required,
+            cost: document.cost != null ? String(document.cost) : "",
+            validity_days: document.validity_days != null ? String(document.validity_days) : "",
+            paid_by_company: document.paid_by_company ?? false,
           });
           setType({
             id: document.document_type_id,
@@ -148,12 +166,21 @@ export default function DocumentFormPage() {
     setVersionErrors({});
 
     try {
-      const payload = {
-        ...form,
+      const trimmedCost = form.cost.trim();
+      const trimmedValidityDays = form.validity_days.trim();
+      const payload: DocumentPayload = {
+        code: form.code,
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        is_required: form.is_required,
+        paid_by_company: form.paid_by_company,
         document_type_id: type?.id != null ? String(type.id) : "",
         document_issuer_id: issuer?.id != null ? String(issuer.id) : "",
         versions,
         version: 1,
+        ...(trimmedCost ? { cost: trimmedCost } : {}),
+        ...(trimmedValidityDays ? { validity_days: Number(trimmedValidityDays) } : {}),
       };
 
       if (isEdit && id) {
@@ -265,6 +292,38 @@ export default function DocumentFormPage() {
                 error={errors.description}
                 className="md:col-span-2"
               />
+
+              <div className="grid gap-6 md:grid-cols-3 md:items-end">
+                <FormInput
+                  label="Custo (R$)"
+                  name="cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.cost}
+                  onChange={handleChange}
+                  error={errors.cost}
+                />
+                <FormInput
+                  label="Validade (dias)"
+                  name="validity_days"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={form.validity_days}
+                  onChange={handleChange}
+                  error={errors.validity_days}
+                />
+                <FormSwitchField
+                  label="Pago pela empresa"
+                  name="paid_by_company"
+                  checked={form.paid_by_company}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, paid_by_company: event.target.checked }))
+                  }
+                  error={getFieldError(errors, "paid_by_company")}
+                />
+              </div>
 
               <div className="grid gap-6 md:col-span-2 md:grid-cols-2 md:items-end">
                 <FormSelectField

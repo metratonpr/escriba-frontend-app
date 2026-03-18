@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
+import FileViewer from "../../../../components/Layout/FileViewer";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
 import DocumentWithVersionField from "../../../../components/form/DocumentWithVersionField";
@@ -31,6 +33,10 @@ interface DocumentFile {
   nome_arquivo: string;
   url_arquivo: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string;
+    download?: string;
+  };
 }
 
 interface Option {
@@ -51,6 +57,13 @@ interface FormState {
   status: string;
   upload_id: string;
 }
+
+type SelectedAttachment = {
+  fileId: number;
+  fileName: string;
+  viewUrl: string | null;
+  downloadUrl: string | null;
+};
 
 const STATUS_OPTIONS = ["pendente", "enviado", "aprovado", "rejeitado"].map((value) => ({
   value,
@@ -108,6 +121,7 @@ export default function EmployeeDocumentUploadFormPage() {
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
   const [, setIsLoading] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
   const isDocumentFile = (item: FormDocument): item is DocumentFile =>
     !(item instanceof File) && typeof item === "object" && "id" in item;
@@ -187,6 +201,10 @@ export default function EmployeeDocumentUploadFormPage() {
                   nome_arquivo: data.upload.nome_arquivo,
                   url_arquivo: data.upload.url_arquivo,
                   has_file: data.upload.has_file,
+                  links: {
+                    view: data.upload.links?.view ?? undefined,
+                    download: data.upload.links?.download ?? undefined,
+                  },
                 },
               ]
             : [],
@@ -452,6 +470,14 @@ export default function EmployeeDocumentUploadFormPage() {
             persisted={persisted}
             pending={pending}
             onRemove={handleRemoveFile}
+            onViewAttachment={(attachment) =>
+              setSelectedAttachment({
+                fileId: Number(attachment.id),
+                fileName: attachment.nome_arquivo,
+                viewUrl: attachment.links?.view ?? attachment.url_arquivo ?? null,
+                downloadUrl: attachment.links?.download ?? null,
+              })
+            }
           />
 
           <FormActions
@@ -467,6 +493,53 @@ export default function EmployeeDocumentUploadFormPage() {
         type={toast.type}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedAttachment ? (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      viewUrl={selectedAttachment.viewUrl}
+                      downloadUrl={selectedAttachment.downloadUrl}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  ) : null}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

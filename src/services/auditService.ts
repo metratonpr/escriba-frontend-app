@@ -47,7 +47,9 @@ export interface CompanyDocumentAudit {
   id: number;
   status: string;
   emission_date: string;
-  due_date: string;
+  due_date: string | null;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
   upload: {
     id: number;
     file_name: string;
@@ -84,6 +86,29 @@ export interface CompanyEmployeeAudit {
   cpf: string;
   rg: string;
   documents: CompanyDocumentAudit[];
+  medical_exams: Array<{
+    id: number;
+    exam_type: string;
+    exam_date: string;
+    cid?: string | null;
+    fit?: boolean | number | null;
+    cost?: string | number | null;
+    paid_by_company?: boolean;
+  }>;
+  epi_deliveries: Array<{
+    id: number;
+    delivery_date: string;
+    items: Array<{
+      id: number;
+      epi_id: number;
+      epi_name: string;
+      quantity: number;
+      cost?: string | number | null;
+      paid_by_company?: boolean;
+      state?: string | null;
+      note?: string | null;
+    }>;
+  }>;
   assignments: CompanyAssignmentAudit[];
 }
 

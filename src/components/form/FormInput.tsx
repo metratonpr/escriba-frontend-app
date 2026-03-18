@@ -4,7 +4,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   id?: string;
   label: string;
   name: string;
-    value: string | number;
+  value?: string | number | readonly string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: FieldErrorValue;
   className?: string;
@@ -41,7 +41,7 @@ export const FormInput = ({
         type={type}
         id={inputId}
         name={name}
-        value={value}
+        value={value ?? ""}
         onChange={onChange}
         required={required}
         disabled={disabled}

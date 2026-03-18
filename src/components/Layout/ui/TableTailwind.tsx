@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import get from "lodash.get";
 import { Pencil, Trash2 } from "lucide-react";
+import { useTableState } from "../../../hooks/useTableState";
 
 export type Column<T> = {
   label: string;
@@ -47,10 +48,17 @@ export default function TableTailwind<T extends { id: string | number }>({
   renderActions,
   onSortChange,
 }: TableTailwindProps<T>) {
-  const [orderBy, setOrderBy] = useState<string>(String(columns[0].field));
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const [localPage, setLocalPage] = useState(1);
-  const [localPerPage, setLocalPerPage] = useState(10);
+  const {
+    orderBy,
+    order,
+    currentPage,
+    perPage,
+    handleSort,
+    setCurrentPage,
+    setPerPage,
+  } = useTableState({
+    defaultOrderBy: String(columns[0].field),
+  });
 
   const sortedData = useMemo(() => {
     if (onSortChange) return data;
@@ -74,28 +82,14 @@ export default function TableTailwind<T extends { id: string | number }>({
     });
   }, [data, onSortChange, order, orderBy]);
 
-  const handleSort = (field: string) => {
-    let newOrder: "asc" | "desc" = "asc";
-
-    if (orderBy === field) {
-      newOrder = order === "asc" ? "desc" : "asc";
-      setOrder(newOrder);
-    } else {
-      setOrderBy(field);
-      setOrder("asc");
-    }
-
-    onSortChange?.(field, newOrder);
-  };
-
   const effectivePagination: Pagination = pagination ?? {
     total: sortedData.length,
-    perPage: localPerPage,
-    currentPage: localPage,
-    onPageChange: setLocalPage,
+    perPage,
+    currentPage,
+    onPageChange: setCurrentPage,
     onPerPageChange: (nextPerPage) => {
-      setLocalPerPage(nextPerPage);
-      setLocalPage(1);
+      setPerPage(nextPerPage);
+      setCurrentPage(1);
     },
   };
 
@@ -185,7 +179,7 @@ export default function TableTailwind<T extends { id: string | number }>({
               <th
                 key={getColumnKey(col, colIndex)}
                 className="cursor-pointer px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3"
-                onClick={() => col.sortable && handleSort(String(col.field))}
+                onClick={() => col.sortable && handleSort(String(col.field), onSortChange)}
               >
                 <div className="flex items-center gap-1">
                   {col.label}

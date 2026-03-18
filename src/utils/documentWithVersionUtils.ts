@@ -20,6 +20,8 @@ export type DocumentVersionOption = AutocompleteOption;
 export type DocumentWithVersionOption = AutocompleteOption & {
   versions: DocumentVersionOption[];
   selectedVersionId?: string | number | null;
+  cost?: string | number | null;
+  paid_by_company?: boolean;
 };
 
 function toLabelPart(value: LabelValue): string {
@@ -70,6 +72,8 @@ export function mapDocumentsWithVersionsToOptions(
       label: baseLabel,
       versions,
       selectedVersionId: selectedVersion?.id ?? null,
+      cost: document.cost ?? null,
+      paid_by_company: !!document.paid_by_company,
     };
   });
 }

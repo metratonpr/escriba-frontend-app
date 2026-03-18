@@ -1,7 +1,7 @@
 // src/services/employeeService.ts
 import { request } from "../api/request";
 import { multipartRequest } from "../api/multipartRequest";
-import { API_EMPLOYEES } from "../api/apiConfig";
+import { API_EMPLOYEES, API_EMPLOYEES_BY_JOB_TITLE } from "../api/apiConfig";
 
 export interface EmployeeJobTitle {
   id: number | string;
@@ -124,6 +124,8 @@ export interface EmployeeDocument {
   status: string;
   issued_at?: string | null;
   expires_at?: string | null;
+  cost?: number | null;
+  paid_by_company?: boolean;
   created_at?: string;
   updated_at?: string;
   document?: EmployeeDocumentDefinition | null;
@@ -135,6 +137,7 @@ export interface EmployeeEpiDeliveryItem {
   id: number | string;
   name: string;
   quantity: number;
+  cost?: string | number | null;
   state?: string | null;
   note?: string | null;
 }
@@ -210,6 +213,11 @@ export interface GetEmployeesOptions {
   sortOrder?: "asc" | "desc";
 }
 
+export interface GetEmployeesByJobTitleOptions {
+  jobTitle: string;
+  exact?: boolean;
+}
+
 export const getEmployees = async (
   options: GetEmployeesOptions = {}
 ): Promise<PaginatedResponse<Employee>> => {
@@ -233,6 +241,23 @@ export const getEmployees = async (
       sort_order: sortOrder,
     }
   );
+};
+
+export const getEmployeesByJobTitle = async ({
+  jobTitle,
+  exact = false,
+}: GetEmployeesByJobTitleOptions): Promise<Employee[]> => {
+  const response = await request<Employee[] | PaginatedResponse<Employee>>(
+    "GET",
+    API_EMPLOYEES_BY_JOB_TITLE,
+    {},
+    {
+    job_title: jobTitle,
+    ...(exact ? { exact: 1 } : {}),
+    }
+  );
+
+  return Array.isArray(response) ? response : response.data;
 };
 
 export const getEmployeeById = (id: string): Promise<EmployeeDetailsResponse> =>

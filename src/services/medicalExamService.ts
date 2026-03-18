@@ -4,24 +4,42 @@ import { API_MEDICAL_EXAMS } from "../api/apiConfig";
 
 export interface Attachment {
   id: number;
+  medical_exam_id?: number | null;
+  document_version_id?: number | null;
+  upload_id?: number | null;
   nome_arquivo: string;
   url_arquivo: string;
+  descricao?: string | null;
+  created_at?: string;
+  updated_at?: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string | null;
+    download?: string | null;
+  };
 }
 
 export interface MedicalExam {
   id: string;
   employee_id: number;
+  technician_id?: number | null;
   employee_name?: string;
   exam_type: 'admissional' | 'periodico' | 'demissional' | 'retorno_ao_trabalho' | 'mudanca_de_funcao';
   exam_date: string;
   cid?: string;
   fit: boolean;
+  cost?: number | null;
+  paid_by_company?: boolean;
   result_attachment_url?: string;
 
   // ✅ Novos campos necessários para tela
   uploads?: Attachment[];
   employee?: {
+    id?: number | string;
+    name: string;
+  };
+  technician?: {
+    id?: number | string;
     name: string;
   };
 }

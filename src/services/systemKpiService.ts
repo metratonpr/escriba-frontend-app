@@ -14,9 +14,21 @@ export interface LabelTotalItem {
   total: number;
 }
 
+export interface JobTitleTotalItem {
+  job_title_id: number | null;
+  job_title_name: string | null;
+  total: number;
+}
+
 export interface EventTypeTotalItem {
   event_type_id: number | null;
   event_type_name: string | null;
+  total: number;
+}
+
+export interface DocumentTypeTotalItem {
+  document_type_id: number | null;
+  document_type_name: string | null;
   total: number;
 }
 
@@ -92,7 +104,7 @@ export interface SystemEmployeeKpis {
     without_assignments: number;
   };
   by_assignment_status: LabelTotalItem[];
-  by_job_title: LabelTotalItem[];
+  by_job_title: JobTitleTotalItem[];
 }
 
 export interface CompanyGroupSummaryItem {
@@ -131,7 +143,7 @@ export interface SystemDocumentKpis {
     optional_documents: number;
   };
   by_category: LabelTotalItem[];
-  by_type: LabelTotalItem[];
+  by_type: DocumentTypeTotalItem[];
   validity_days: KpiNumericStats;
 }
 
@@ -156,6 +168,65 @@ export interface SystemEpiDeliveryKpis {
     epi_name: string;
     quantity_total: number;
   }[];
+}
+
+export interface SystemDocumentCostKpis {
+  summary: {
+    document_records: number;
+    total_cost: number;
+    average_cost: number;
+  };
+  required_documents_cost: number;
+  optional_documents_cost: number;
+  company_paid_cost: number;
+  company_paid_percent: number;
+}
+
+export interface SystemEpiCostKpis {
+  inventory: {
+    total_items: number;
+    total_cost: number;
+    average_cost: number;
+  };
+  delivered: {
+    total_quantity: number;
+    total_cost: number;
+    average_unit_cost: number;
+  };
+}
+
+export interface SectorCostBreakdownItem {
+  sector_id: number | null;
+  sector_name: string | null;
+  document_cost: number;
+  epi_cost: number;
+  total_cost: number;
+}
+
+export interface CompanyCostBreakdownItem {
+  company_id: number | null;
+  company_name: string | null;
+  document_cost: number;
+  epi_cost: number;
+  total_cost: number;
+}
+
+export interface EmployeeCostBreakdownItem {
+  employee_id: number | null;
+  employee_name: string | null;
+  document_cost: number;
+  epi_cost: number;
+  total_cost: number;
+}
+
+export interface SystemCostKpis {
+  documents: SystemDocumentCostKpis;
+  epis: SystemEpiCostKpis;
+  period_breakdowns: {
+    by_sector: SectorCostBreakdownItem[];
+    by_company: CompanyCostBreakdownItem[];
+    by_employee: EmployeeCostBreakdownItem[];
+  };
 }
 
 export interface SystemKpiFilters {
@@ -194,7 +265,8 @@ export interface SystemKpiResponse {
   documents: SystemDocumentKpis;
   medical_exams: SystemMedicalExamKpis;
   epi_deliveries: SystemEpiDeliveryKpis;
-  models: SystemModelKpis;
+  costs?: SystemCostKpis;
+  models?: SystemModelKpis;
 }
 
 export interface GetSystemKpisOptions {

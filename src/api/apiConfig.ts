@@ -1,12 +1,21 @@
-const FALLBACK_API_BASE_URL = "https://api.escriba.app";
+const FALLBACK_API_BASE_URL = "http://127.0.0.1:8000";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 const ensureHasProtocol = (value: string) =>
   /^https?:\/\//i.test(value) ? value : `https://${value}`;
 
+const isLocalAddress = (value: string) => {
+  try {
+    const { hostname } = new URL(value);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname === "::1";
+  } catch {
+    return false;
+  }
+};
+
 const ensureTls = (value: string) =>
-  value.replace(/^http:\/\//i, "https://");
+  isLocalAddress(value) ? value : value.replace(/^http:\/\//i, "https://");
 
 const resolveApiDomain = (): string => {
   const rawEnv = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -36,6 +45,7 @@ export const API_COMPANIES_WITH_SECTORS = `${BASE_URL}/companies/with-sectors`;
 export const API_SECTORS = `${BASE_URL}/sectors`;
 export const API_JOB_TITLES = `${BASE_URL}/job-titles`;
 export const API_EMPLOYEES = `${BASE_URL}/employees`;
+export const API_EMPLOYEES_BY_JOB_TITLE = `${API_EMPLOYEES}/by-job-title`;
 export const API_DOCUMENT_ISSUERS = `${BASE_URL}/document-issuers`;
 export const API_DOCUMENT_TYPES = `${BASE_URL}/document-types`;
 export const API_DOCUMENTS = `${BASE_URL}/documents`;

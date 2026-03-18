@@ -1,6 +1,6 @@
-import  { useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment, useEffect, useState } from "react";
 import { Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   getMedicalExams,
   deleteMedicalExam,
@@ -12,9 +12,20 @@ import SearchBar from "../../../../components/Layout/ui/SearchBar";
 import TableTailwind, { type Column } from "../../../../components/Layout/ui/TableTailwind";
 import DeleteModal from "../../../../components/Layout/ui/DeleteModal";
 import Toast from "../../../../components/Layout/Feedback/Toast";
+import FileViewer from "../../../../components/Layout/FileViewer";
+import {
+  convertToBrazilianDateFormat,
+  formatCurrency,
+} from "../../../../utils/formatUtils";
+
+type SelectedAttachment = {
+  fileId: number;
+  fileName: string;
+  viewUrl: string | null;
+  downloadUrl: string | null;
+};
 
 export default function MedicalExamPage() {
-  const navigate = useNavigate();
   const [data, setData] = useState<PaginatedResponse<MedicalExam>>({ data: [], total: 0, page: 1, per_page: 10 });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -24,6 +35,7 @@ export default function MedicalExamPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<SelectedAttachment | null>(null);
 
   const loadMedicalExams = async (q = search, pg = page, limit = perPage) => {
     setLoading(true);
@@ -75,14 +87,18 @@ export default function MedicalExamPage() {
 
   const getViewableAttachment = (exam: MedicalExam) =>
     exam.uploads?.find((attachment) => {
-      const attachmentId = Number(attachment.id);
+      const attachmentId = Number(attachment.upload_id ?? attachment.id);
       return attachment.has_file === true && Number.isInteger(attachmentId) && attachmentId > 0;
     }) ?? null;
 
   const columns: Column<MedicalExam>[] = [
     { label: "Colaborador", field: "employee_name" },
     { label: "Tipo", field: "exam_type" },
-    { label: "Data", field: "exam_date" },
+    {
+      label: "Data",
+      field: "exam_date",
+      render: (row) => (row.exam_date ? convertToBrazilianDateFormat(row.exam_date) : "-"),
+    },
     {
       label: "Apto",
       field: "fit",
@@ -91,6 +107,11 @@ export default function MedicalExamPage() {
           {row.fit ? "Sim" : "Não"}
         </span>
       ),
+    },
+    {
+      label: "Custo",
+      field: "cost",
+      render: (row) => (row.cost == null ? "-" : formatCurrency(row.cost)),
     },
     { label: "CID", field: "cid", render: (row) => row.cid || "" },
   ];
@@ -133,8 +154,11 @@ export default function MedicalExamPage() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/backoffice/exames-medicos/editar/${row.id}/visualizar-anexo/${attachment.id}`, {
-                    state: { attachment },
+                  setSelectedAttachment({
+                    fileId: Number(attachment.upload_id ?? attachment.id),
+                    fileName: attachment.nome_arquivo,
+                    viewUrl: attachment.links?.view ?? null,
+                    downloadUrl: attachment.links?.download ?? null,
                   })
                 }
                 aria-label="Visualizar anexo"
@@ -163,6 +187,53 @@ export default function MedicalExamPage() {
         type={toast.type}
         onClose={() => setToast({ ...toast, open: false })}
       />
+
+      <Transition appear show={selectedAttachment !== null} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setSelectedAttachment(null)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-200"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-150"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-[2px]" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-200"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-150"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="h-[88vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  <Dialog.Title className="sr-only">
+                    {selectedAttachment?.fileName ?? "Visualizar arquivo"}
+                  </Dialog.Title>
+
+                  {selectedAttachment && (
+                    <FileViewer
+                      embedded
+                      fileId={selectedAttachment.fileId}
+                      fileName={selectedAttachment.fileName}
+                      viewUrl={selectedAttachment.viewUrl}
+                      downloadUrl={selectedAttachment.downloadUrl}
+                      onClose={() => setSelectedAttachment(null)}
+                    />
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </>
   );
 }

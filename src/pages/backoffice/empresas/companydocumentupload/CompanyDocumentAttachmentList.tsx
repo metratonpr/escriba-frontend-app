@@ -11,12 +11,14 @@ interface DocumentFile {
 }
 
 interface CompanyDocumentAttachmentListProps {
+  companyId?: string;
   persisted?: DocumentFile[];
   pending?: File[];
   onRemove: (index: number, type: "persisted" | "pending") => void;
 }
 
 const CompanyDocumentAttachmentList: React.FC<CompanyDocumentAttachmentListProps> = ({
+  companyId,
   persisted = [],
   pending = [],
   onRemove,
@@ -31,7 +33,11 @@ const CompanyDocumentAttachmentList: React.FC<CompanyDocumentAttachmentListProps
       return;
     }
 
-    navigate(`/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`, {
+    const targetPath = companyId
+      ? `/backoffice/empresas/editar/${companyId}/visualizar-anexo/${attachment.id}`
+      : `/backoffice/empresas/documentos/visualizar-anexo/${attachment.id}`;
+
+    navigate(targetPath, {
       state: { attachment },
     });
   };

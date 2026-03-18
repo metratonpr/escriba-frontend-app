@@ -8,6 +8,10 @@ interface DocumentFile {
   nome_arquivo: string;
   url_arquivo: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string;
+    download?: string;
+  };
 }
 
 interface EmployeeDocumentAttachmentListProps {
@@ -15,6 +19,7 @@ interface EmployeeDocumentAttachmentListProps {
   pending?: File[];
   onRemove: (index: number, type: "persisted" | "pending") => void;
   employeeId?: string | number;
+  onViewAttachment?: (attachment: DocumentFile) => void;
 }
 
 const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListProps> = ({
@@ -22,6 +27,7 @@ const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListPro
   pending = [],
   onRemove,
   employeeId,
+  onViewAttachment,
 }) => {
   const navigate = useNavigate();
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
@@ -30,6 +36,11 @@ const EmployeeDocumentAttachmentList: React.FC<EmployeeDocumentAttachmentListPro
 
   const handleViewAttachment = (attachment: DocumentFile) => {
     if (!canViewAttachment(attachment)) {
+      return;
+    }
+
+    if (onViewAttachment) {
+      onViewAttachment(attachment);
       return;
     }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import debounce from "lodash/debounce";
+import { Pencil } from "lucide-react";
 import FormAutocompleteField from "../../components/form/FormAutocompleteField";
 import FormDatePickerField from "../../components/form/FormDatePickerField";
 import FormSelectField from "../../components/form/FormSelectField";
@@ -87,6 +88,7 @@ export default function CustomAssignmentsTable({
   const [selectedStatus, setSelectedStatus] = useState("ativo");
   const [startDate, setStartDate] = useState<string>(() => getDefaultStartDate());
   const [endDate, setEndDate] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AssignmentFieldErrors>({});
 
   const [companyQuery, setCompanyQuery] = useState("");
@@ -316,7 +318,8 @@ export default function CustomAssignmentsTable({
     const jobTitleId = Number(jobTitle.id);
 
     const duplicate = value.some(
-      (item) =>
+      (item, index) =>
+        index !== editingIndex &&
         item.company_sector_id === companySectorId &&
         item.job_title_id === jobTitleId &&
         item.start_date === startDate
@@ -328,19 +331,25 @@ export default function CustomAssignmentsTable({
     }
 
     setFieldErrors({});
-    onChange([
-      ...value,
-      {
-        company_sector_id: companySectorId,
-        company_name: company.label,
-        sector_name: sector.label,
-        job_title_id: jobTitleId,
-        job_title_name: jobTitle.label,
-        status: selectedStatus,
-        start_date: startDate,
-        end_date: endDate,
-      },
-    ]);
+    const nextAssignment = {
+      company_sector_id: companySectorId,
+      company_name: company.label,
+      sector_name: sector.label,
+      job_title_id: jobTitleId,
+      job_title_name: jobTitle.label,
+      status: selectedStatus,
+      start_date: startDate,
+      end_date: endDate,
+    };
+
+    if (editingIndex !== null) {
+      const updated = [...value];
+      updated[editingIndex] = nextAssignment;
+      onChange(updated);
+    } else {
+      onChange([...value, nextAssignment]);
+    }
+
     resetFields();
   };
 
@@ -351,6 +360,7 @@ export default function CustomAssignmentsTable({
     setSelectedStatus("ativo");
     setStartDate(getDefaultStartDate());
     setEndDate("");
+    setEditingIndex(null);
     setSectorQuery("");
     setSectorOptions([]);
     setSectorLoadError(null);
@@ -361,6 +371,62 @@ export default function CustomAssignmentsTable({
     const updated = [...value];
     updated.splice(index, 1);
     onChange(updated);
+    if (editingIndex === index) {
+      resetFields();
+    } else if (editingIndex !== null && editingIndex > index) {
+      setEditingIndex(editingIndex - 1);
+    }
+  };
+
+  const handleEdit = (index: number) => {
+    const assignment = value[index];
+    if (!assignment) {
+      return;
+    }
+
+    const companyOption =
+      companyOptions.find((option) => option.label === assignment.company_name) ??
+      (initialCompanyOptions ?? [])
+        .map((company) => ({
+          id: company.id,
+          label: company.name,
+          _original: company,
+        }))
+        .find((option) => option.label === assignment.company_name) ??
+      null;
+
+    const company = (companyOption?._original as CompanyWithSectorVariants | undefined) ?? null;
+    const companySectors = company?.company_sectors ?? company?.companySectors ?? [];
+    const nextSectorOptions = companySectors.map((companySector: CompanySectorRelation) => ({
+      id: companySector.id,
+      label: companySector.sector?.name ?? "Setor desconhecido",
+      _original: companySector,
+    }));
+    const sectorOption =
+      nextSectorOptions.find(
+        (option: SectorOption) =>
+          Number(option._original?.id ?? option.id) === assignment.company_sector_id
+      ) ?? null;
+    const jobTitleOption =
+      jobTitleOptions.find((option) => Number(option.id) === assignment.job_title_id) ??
+      (initialJobTitleOptions ?? [])
+        .map((jobTitle) => ({
+          id: jobTitle.id,
+          label: jobTitle.name,
+          _original: jobTitle,
+        }))
+        .find((option) => Number(option.id) === assignment.job_title_id) ??
+      null;
+
+    setSelectedCompany(companyOption);
+    setSectorOptions(nextSectorOptions);
+    setSelectedSector(sectorOption);
+    setSelectedJobTitle(jobTitleOption);
+    setSelectedStatus(assignment.status || "ativo");
+    setStartDate(assignment.start_date || getDefaultStartDate());
+    setEndDate(assignment.end_date || "");
+    setEditingIndex(index);
+    setFieldErrors({});
   };
 
   return (
@@ -456,13 +522,24 @@ export default function CustomAssignmentsTable({
         />
 
         <div className="flex items-end">
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700"
-          >
-            Adicionar
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              {editingIndex !== null ? "Atualizar" : "Adicionar"}
+            </button>
+            {editingIndex !== null && (
+              <button
+                type="button"
+                onClick={resetFields}
+                className="h-10 rounded-md border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -514,13 +591,23 @@ export default function CustomAssignmentsTable({
                         : ""}
                     </td>
                     <td className="px-4 py-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(absoluteIndex)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Remover
-                      </button>
+                      <div className="inline-flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(absoluteIndex)}
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(absoluteIndex)}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

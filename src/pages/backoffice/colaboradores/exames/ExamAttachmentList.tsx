@@ -1,13 +1,18 @@
-import { Link } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Eye, Trash2 } from "lucide-react";
 import { useClientPagination } from "../../../../hooks/useClientPagination";
 import InlinePagination from "../../../../components/Layout/ui/InlinePagination";
 
 interface Attachment {
   id: number;
+  upload_id?: number | null;
   nome_arquivo: string;
   url_arquivo: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string;
+    download?: string;
+  };
 }
 
 interface ExamAttachmentListProps {
@@ -15,6 +20,7 @@ interface ExamAttachmentListProps {
   persisted: Attachment[];
   pending: File[];
   onRemove: (index: number, type: "persisted" | "pending") => void;
+  onViewAttachment?: (attachment: Attachment) => void;
 }
 
 const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
@@ -22,7 +28,9 @@ const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
   persisted,
   pending,
   onRemove,
+  onViewAttachment,
 }) => {
+  const navigate = useNavigate();
   const persistedPagination = useClientPagination(persisted, { initialPerPage: 5 });
   const pendingPagination = useClientPagination(pending, { initialPerPage: 5 });
   const canViewAttachment = (attachment: Attachment) => attachment.has_file === true;
@@ -41,13 +49,37 @@ const ExamAttachmentList: React.FC<ExamAttachmentListProps> = ({
               return (
                 <li key={file.id} className="flex items-center justify-between py-2 text-sm text-gray-700 dark:text-gray-200">
                   {canViewAttachment(file) ? (
-                    <Link
-                      to={`/backoffice/exames-medicos/editar/${examId}/visualizar-anexo/${file.id}`}
-                      state={{ attachment: file }}
-                      className="max-w-xs truncate text-blue-600 underline"
-                    >
-                      {file.nome_arquivo}
-                    </Link>
+                    <div className="flex flex-1 items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onViewAttachment
+                            ? onViewAttachment(file)
+                            : navigate(`/backoffice/exames-medicos/editar/${examId}/visualizar-anexo/${file.id}`, {
+                                state: { attachment: file },
+                              })
+                        }
+                        className="max-w-xs truncate text-left text-blue-600 underline hover:text-blue-800"
+                        title="Clique para visualizar o arquivo"
+                      >
+                        {file.nome_arquivo}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onViewAttachment
+                            ? onViewAttachment(file)
+                            : navigate(`/backoffice/exames-medicos/editar/${examId}/visualizar-anexo/${file.id}`, {
+                                state: { attachment: file },
+                              })
+                        }
+                        className="p-1 text-blue-500 hover:text-blue-700"
+                        aria-label="Visualizar anexo"
+                        title="Visualizar arquivo"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
                   ) : (
                     <span className="max-w-xs truncate text-gray-500" title="Arquivo fisico indisponivel">
                       {file.nome_arquivo}

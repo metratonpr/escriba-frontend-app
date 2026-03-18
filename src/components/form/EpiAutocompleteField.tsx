@@ -7,17 +7,19 @@ import {
   type AutocompleteOption,
 } from "../../utils/autocompleteUtils";
 
-type Option = AutocompleteOption;
+export type EpiAutocompleteOption = AutocompleteOption & {
+  cost?: number | null;
+};
 
 interface EpiAutocompleteFieldProps {
   label?: string;
-  value: Option | null;
-  onChange: (value: Option | null) => void;
+  value: EpiAutocompleteOption | null;
+  onChange: (value: EpiAutocompleteOption | null) => void;
   disabled?: boolean;
   className?: string;
   error?: string;
   required?: boolean;
-  initialOptions?: Option[];
+  initialOptions?: EpiAutocompleteOption[];
 }
 
 export default function EpiAutocompleteField({
@@ -30,7 +32,7 @@ export default function EpiAutocompleteField({
   required = false,
   initialOptions,
 }: EpiAutocompleteFieldProps) {
-  const [options, setOptions] = useState<Option[]>(() =>
+  const [options, setOptions] = useState<EpiAutocompleteOption[]>(() =>
     mergeSelectedOption(initialOptions ?? [], value)
   );
   const [query, setQuery] = useState("");
@@ -41,7 +43,13 @@ export default function EpiAutocompleteField({
       try {
         const response = await getEpis({ search: term, page: 1, perPage: 25 });
         const list = Array.isArray(response) ? response : response.data;
-        setOptions(list.map((epi: any) => ({ id: epi.id, label: epi.name })));
+        setOptions(
+          list.map((epi: any) => ({
+            id: epi.id,
+            label: epi.name,
+            cost: epi.cost ?? epi.custo ?? null,
+          }))
+        );
         setLoadError(null);
       } catch {
         setLoadError("Erro ao buscar EPIs.");
