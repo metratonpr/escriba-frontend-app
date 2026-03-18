@@ -18,9 +18,7 @@ const ensureTls = (value: string) =>
   isLocalAddress(value) ? value : value.replace(/^http:\/\//i, "https://");
 
 const resolveApiDomain = (): string => {
-  const rawEnv = import.meta.env.VITE_API_BASE_URL?.trim();
-  const candidate = rawEnv && rawEnv.length > 0 ? rawEnv : FALLBACK_API_BASE_URL;
-  const sanitized = trimTrailingSlash(ensureHasProtocol(candidate));
+  const sanitized = trimTrailingSlash(ensureHasProtocol(FALLBACK_API_BASE_URL));
   return ensureTls(sanitized);
 };
 
