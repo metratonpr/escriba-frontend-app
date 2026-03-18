@@ -1,4 +1,4 @@
-const FALLBACK_API_BASE_URL = "http://127.0.0.1:8000";
+const FALLBACK_API_BASE_URL = "https://barkema.iapotech.com.br/";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
