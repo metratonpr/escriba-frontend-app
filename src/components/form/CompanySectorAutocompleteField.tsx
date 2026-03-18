@@ -13,6 +13,8 @@ interface Props {
   company: Option | null;
   sector: Option | null;
   onChange: (payload: { company: Option | null; sector: Option | null }) => void;
+  companyRequired?: boolean;
+  sectorRequired?: boolean;
   disabled?: boolean;
   className?: string;
   companyLabel?: string;
@@ -47,6 +49,8 @@ export default function CompanySectorAutocompleteField({
   company,
   sector,
   onChange,
+  companyRequired = false,
+  sectorRequired = false,
   disabled = false,
   className = "",
   companyLabel = "Empresa",
@@ -210,6 +214,7 @@ export default function CompanySectorAutocompleteField({
         onInputChange={setQuery}
         disabled={disabled}
         error={companyError ?? error ?? undefined}
+        required={companyRequired}
       />
 
       <FormSelectField
@@ -220,6 +225,7 @@ export default function CompanySectorAutocompleteField({
         options={sectors.map((item) => ({ value: item.id, label: item.label }))}
         disabled={disabled || sectors.length === 0}
         error={sectorError}
+        required={sectorRequired}
       />
     </div>
   );

@@ -13,6 +13,7 @@ interface CompanyAutocompleteFieldProps {
   label?: string;
   value: Option | null;
   onChange: (value: Option | null) => void;
+  required?: boolean;
   disabled?: boolean;
   className?: string;
   error?: string;
@@ -23,6 +24,7 @@ export default function CompanyAutocompleteField({
   label = "Empresa",
   value,
   onChange,
+  required = false,
   disabled = false,
   className = "",
   error,
@@ -74,6 +76,7 @@ export default function CompanyAutocompleteField({
       disabled={disabled}
       className={className}
       error={error}
+      required={required}
       placeholder="Digite para buscar..."
     />
   );

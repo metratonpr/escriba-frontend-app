@@ -17,6 +17,8 @@ interface DocumentWithVersionFieldProps {
   versionId?: string | number;
   onVersionChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onInputChange?: (value: string) => void;
+  documentRequired?: boolean;
+  versionRequired?: boolean;
   className?: string;
   documentError?: FieldErrorValue;
   versionError?: FieldErrorValue;
@@ -29,6 +31,8 @@ export default function DocumentWithVersionField({
   versionId = "",
   onVersionChange,
   onInputChange,
+  documentRequired = false,
+  versionRequired,
   className = "",
   documentError,
   versionError,
@@ -92,6 +96,7 @@ export default function DocumentWithVersionField({
         options={documentOptions}
         error={documentError}
         onInputChange={onInputChange}
+        required={documentRequired}
       />
 
       {onVersionChange ? (
@@ -109,7 +114,7 @@ export default function DocumentWithVersionField({
           }
           error={versionError}
           disabled={!document?.id || availableVersions.length === 0}
-          required={availableVersions.length > 0}
+          required={versionRequired ?? availableVersions.length > 0}
         />
       ) : null}
     </div>

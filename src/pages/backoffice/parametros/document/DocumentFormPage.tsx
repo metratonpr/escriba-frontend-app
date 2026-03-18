@@ -332,6 +332,7 @@ export default function DocumentFormPage() {
                   value={form.category}
                   onChange={handleChange}
                   error={errors.category}
+                  required
                   options={[
                     { value: "employee", label: "Funcionario" },
                     { value: "company", label: "Empresa" },

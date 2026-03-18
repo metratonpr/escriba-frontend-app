@@ -250,6 +250,7 @@ export default function MedicalExamFormPage() {
           value={employeeSelected}
           error={getFieldError(errors, "employee_id")}
           initialOptions={employeeOptions}
+          required
           onChange={(opt) => {
             setEmployeeSelected(opt);
             setForm((prev) => ({ ...prev, employee_id: String(opt?.id || "") }));
@@ -264,7 +265,6 @@ export default function MedicalExamFormPage() {
             setForm((prev) => ({ ...prev, technician_id: String(opt?.id || "") }));
           }}
           error={getFieldError(errors, "technician_id")}
-          required
         />
 
 
@@ -281,6 +281,7 @@ export default function MedicalExamFormPage() {
             { value: "mudanca_de_funcao", label: "Mudança de Função" },
           ]}
           error={errors.exam_type}
+          required
         />
 
         <FormDatePickerField
@@ -289,6 +290,7 @@ export default function MedicalExamFormPage() {
           value={form.exam_date}
           onChange={handleChange}
           error={errors.exam_date}
+          required
         />
 
         <FormInput id="cid" name="cid" label="CID" value={form.cid} onChange={handleChange} error={errors.cid} />

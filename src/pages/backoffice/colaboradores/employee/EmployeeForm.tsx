@@ -1187,6 +1187,7 @@ export default function EmployeeForm() {
                   value={form.birth_date}
                   onChange={handleDateChange("birth_date")}
                   error={errors.birth_date}
+                  required
                 />
                 <FormSelectField
                   name="driver_license_type"
@@ -1195,6 +1196,7 @@ export default function EmployeeForm() {
                   onChange={handleChange}
                   options={LICENSE_TYPES}
                   error={errors.driver_license_type}
+                  required
                 />
                 <FormDatePickerField
                   name="first_license_date"

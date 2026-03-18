@@ -200,6 +200,7 @@ export default function EpiFormPage() {
             value={form.epi_type}
             onChange={(v) => setForm((prev) => ({ ...prev, epi_type: v }))}
             error={errors.epi_type_id}
+            required
             initialOptions={epiTypeOptions}
           />
 
@@ -207,6 +208,7 @@ export default function EpiFormPage() {
             value={form.brand}
             onChange={(v) => setForm((prev) => ({ ...prev, brand: v }))}
             error={errors.brand_id}
+            required
             initialOptions={brandOptions}
           />
 
@@ -214,6 +216,7 @@ export default function EpiFormPage() {
             value={form.company}
             onChange={(v) => setForm((prev) => ({ ...prev, company: v }))}
             error={errors.company_id}
+            required
             initialOptions={companyOptions}
           />
 
@@ -245,6 +248,7 @@ export default function EpiFormPage() {
             value={form.ca_expiration}
             onChange={handleChange}
             error={errors.ca_expiration}
+            required
           />
 
           <FormActions

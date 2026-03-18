@@ -13,6 +13,7 @@ interface BrandAutocompleteFieldProps {
   label?: string;
   value: Option | null;
   onChange: (value: Option | null) => void;
+  required?: boolean;
   disabled?: boolean;
   className?: string;
   error?: string;
@@ -23,6 +24,7 @@ export default function BrandAutocompleteField({
   label = "Marca",
   value,
   onChange,
+  required = false,
   disabled = false,
   className = "",
   error,
@@ -76,6 +78,7 @@ export default function BrandAutocompleteField({
       disabled={disabled}
       className={className}
       error={error}
+      required={required}
       placeholder="Digite para buscar..."
     />
   );

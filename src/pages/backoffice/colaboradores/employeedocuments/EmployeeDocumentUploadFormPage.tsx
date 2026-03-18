@@ -420,6 +420,7 @@ export default function EmployeeDocumentUploadFormPage() {
             onInputChange={setDocumentSearchQuery}
             documentError={getFieldError(errors, "document_id", "document")}
             versionError={getFieldError(errors, "document_version_id")}
+            documentRequired
             initialOptions={documentOptions}
           />
 

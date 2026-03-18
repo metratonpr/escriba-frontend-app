@@ -199,6 +199,7 @@ export default function EpiDeliveryFormPage() {
             value={form.employee_id}
             onChange={(value) => handleAutocompleteChange("employee_id", value)}
             error={errors.employee_id}
+            required
             initialOptions={employeeOptions}
           />
 
@@ -206,6 +207,7 @@ export default function EpiDeliveryFormPage() {
             value={form.technician_id}
             onChange={(value) => handleAutocompleteChange("technician_id", value)}
             error={errors.technician_id}
+            required
             initialOptions={technicianOptions}
           />
 
@@ -225,6 +227,7 @@ export default function EpiDeliveryFormPage() {
             value={form.delivery_date}
             onChange={handleChange}
             error={errors.delivery_date}
+            required
           />
 
           <FormEpiItemsTable

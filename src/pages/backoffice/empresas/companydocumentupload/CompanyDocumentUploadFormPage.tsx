@@ -404,6 +404,7 @@ export default function CompanyDocumentUploadFormPage() {
               setForm((prev) => ({ ...prev, company_id: value }))
             }
             error={errors.company_id}
+            required
             initialOptions={companyOptions}
           />
 
@@ -417,6 +418,7 @@ export default function CompanyDocumentUploadFormPage() {
             onInputChange={setDocumentSearchQuery}
             documentError={getFieldError(errors, "document_id", "document")}
             versionError={getFieldError(errors, "document_version_id")}
+            documentRequired
             initialOptions={documentOptions}
           />
 
@@ -426,6 +428,7 @@ export default function CompanyDocumentUploadFormPage() {
             value={form.emission_date}
             onChange={handleChange}
             error={getFieldError(errors, "emission_date")}
+            required
           />
 
           <FormDatePickerField

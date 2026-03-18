@@ -208,6 +208,7 @@ export default function OccurrenceFormPage() {
               companyName="company_id"
               sectorName="sector_id"
               sectorValueMode="sector"
+              companyRequired
               companyError={errors.company_id}
               sectorError={errors.sector_id}
               initialCompanies={companyOptions}
@@ -224,6 +225,7 @@ export default function OccurrenceFormPage() {
                 setForm((prev: any) => ({ ...prev, occurrence_type_id: value }))
               }
               error={errors.occurrence_type_id}
+              required
               initialOptions={occurrenceTypeOptions}
             />
             <FormDatePickerField
@@ -232,6 +234,7 @@ export default function OccurrenceFormPage() {
               value={form.occurrence_date}
               onChange={handleChange}
               error={errors.occurrence_date}
+              required
             />
             <FormTimePickerField
               name="occurrence_time"
@@ -239,6 +242,7 @@ export default function OccurrenceFormPage() {
               value={form.occurrence_time}
               onChange={handleChange}
               error={errors.occurrence_time}
+              required
             />
             <FormInput
               name="location"
@@ -246,6 +250,7 @@ export default function OccurrenceFormPage() {
               value={form.location}
               onChange={handleChange}
               error={errors.location}
+              required
             />
             <FormTextArea
               name="description"
@@ -253,6 +258,7 @@ export default function OccurrenceFormPage() {
               value={form.description}
               onChange={handleChange}
               error={errors.description}
+              required
             />
             <FormTextArea
               name="probable_cause"
@@ -260,6 +266,7 @@ export default function OccurrenceFormPage() {
               value={form.probable_cause}
               onChange={handleChange}
               error={errors.probable_cause}
+              required
             />
             <FormTextArea
               name="actual_consequence"
@@ -267,6 +274,7 @@ export default function OccurrenceFormPage() {
               value={form.actual_consequence}
               onChange={handleChange}
               error={errors.actual_consequence}
+              required
             />
             <FormTextArea
               name="immediate_action"
@@ -274,6 +282,7 @@ export default function OccurrenceFormPage() {
               value={form.immediate_action}
               onChange={handleChange}
               error={errors.immediate_action}
+              required
             />
             <FormTextArea
               name="corrective_action"
@@ -281,6 +290,7 @@ export default function OccurrenceFormPage() {
               value={form.corrective_action}
               onChange={handleChange}
               error={errors.corrective_action}
+              required
             />
             <FormInput
               name="witnesses"
@@ -296,6 +306,7 @@ export default function OccurrenceFormPage() {
               onChange={handleChange}
               options={["Com Afastamento", "Sem Afastamento", "Quase Acidente", "Desvio", "Outro"].map((value) => ({ label: value, value }))}
               error={errors.classification}
+              required
             />
             <FormSelectField
               name="severity"
@@ -304,6 +315,7 @@ export default function OccurrenceFormPage() {
               onChange={handleChange}
               options={["Leve", "Moderada", "Grave"].map((value) => ({ label: value, value }))}
               error={errors.severity}
+              required
             />
             <FormSelectField
               name="status"
@@ -312,6 +324,7 @@ export default function OccurrenceFormPage() {
               onChange={handleChange}
               options={["Aberta", "Em Analise", "Encerrada"].map((value) => ({ label: value, value }))}
               error={errors.status}
+              required
             />
             <FormInput
               name="attachment_url"

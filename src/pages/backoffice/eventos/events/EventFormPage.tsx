@@ -367,6 +367,7 @@ export default function EventFormPage() {
                   value={companyOption}
                   onChange={(option) => setCompanyOption(option)}
                   error={errors.company_id}
+                  required
                   initialOptions={companyOptions}
                 />
               </div>
@@ -398,6 +399,7 @@ export default function EventFormPage() {
                       value={form.start_date}
                       onChange={handleChange}
                       error={errors.start_date}
+                      required
                     />
                     <FormDatePickerField
                       label="Data de término"
@@ -414,6 +416,7 @@ export default function EventFormPage() {
                     value={eventTypeOption}
                     onChange={setEventTypeOption}
                     error={errors.event_type_id}
+                    required
                     initialOptions={eventTypeOptions}
                   />
                 </div>
