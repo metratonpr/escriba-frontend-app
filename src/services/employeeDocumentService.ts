@@ -35,6 +35,8 @@ export interface EmployeeDocumentUpload {
   status: "pendente" | "enviado" | "aprovado" | "rejeitado";
   emission_date: string | null;
   due_date: string | null;
+  issued_at?: string | null;
+  expires_at?: string | null;
   upload_id: string | number | null;
   created_at: string;
   updated_at: string;

@@ -21,6 +21,10 @@ export interface UploadFile {
   nome_arquivo: string;
   url_arquivo: string;
   has_file?: boolean | null;
+  links?: {
+    view?: string | null;
+    download?: string | null;
+  };
   descricao?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -46,6 +50,7 @@ export interface CompanyDocumentUpload {
   // fallback para contrato antigo
   document_version?: DocumentRef;
   upload?: UploadFile;
+  has_file?: boolean | null;
 }
 
 export type CompanyDocumentUploadPayload = {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import dayjs from "dayjs";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
 import FormPageSkeleton from "../../../../components/Layout/ui/FormPageSkeleton";
@@ -187,6 +188,37 @@ function formatNumberPtBr(value: number | string): string {
   }
 
   return new Intl.NumberFormat("pt-BR").format(numericValue);
+}
+
+function getTemporalidadeBadge(dueDateValue?: string | null) {
+  if (!dueDateValue) {
+    return { label: "Sem Vencimento", className: "" };
+  }
+
+  const dueDate = dayjs(dueDateValue);
+  if (!dueDate.isValid()) {
+    return { label: "Sem Vencimento", className: "" };
+  }
+
+  const daysRemaining = dueDate.startOf("day").diff(dayjs().startOf("day"), "day");
+
+  if (daysRemaining < 0) {
+    return { label: "Vencido", className: "bg-red-100 text-red-700 border border-red-200" };
+  }
+
+  if (daysRemaining <= 30) {
+    return { label: `${daysRemaining} dias`, className: "bg-yellow-100 text-yellow-800 border border-yellow-200" };
+  }
+
+  if (daysRemaining <= 60) {
+    return { label: `${daysRemaining} dias`, className: "bg-green-100 text-green-700 border border-green-200" };
+  }
+
+  if (daysRemaining <= 90) {
+    return { label: `${daysRemaining} dias`, className: "bg-blue-100 text-blue-700 border border-blue-200" };
+  }
+
+  return { label: `${daysRemaining} dias`, className: "bg-white text-gray-700 border border-gray-200" };
 }
 
 function removeFileFromDocument(
@@ -1270,6 +1302,9 @@ export default function CompanyFormPage() {
                         Vencimento
                       </th>
                       <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
+                        Temporalidade
+                      </th>
+                      <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
                         Status
                       </th>
                       <th className="px-4 py-2 font-medium tracking-wider sm:px-6 sm:py-3">
@@ -1290,7 +1325,7 @@ export default function CompanyFormPage() {
                     {form.documents.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={9}
                           className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                         >
                           Nenhum documento adicionado.
@@ -1349,14 +1384,31 @@ export default function CompanyFormPage() {
                                 ? convertToBrazilianDateFormat(document.emission_date)
                                 : "-"}
                             </td>
-                            <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                              {document.due_date
-                                ? convertToBrazilianDateFormat(document.due_date)
-                                : "-"}
-                            </td>
-                            <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
-                              {document.status
-                                ? document.status.charAt(0).toUpperCase() +
+                              <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                                {document.due_date
+                                  ? convertToBrazilianDateFormat(document.due_date)
+                                  : "-"}
+                              </td>
+                              <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                                {(() => {
+                                  const badge = getTemporalidadeBadge(document.due_date);
+
+                                  if (!badge.className) {
+                                    return <span className="font-medium text-gray-900 dark:text-white">Sem Vencimento</span>;
+                                  }
+
+                                  return (
+                                    <span
+                                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${badge.className}`}
+                                    >
+                                      {badge.label}
+                                    </span>
+                                  );
+                                })()}
+                              </td>
+                              <td className="px-4 py-2 text-gray-900 sm:px-6 sm:py-4 dark:text-white">
+                                {document.status
+                                  ? document.status.charAt(0).toUpperCase() +
                                   document.status.slice(1)
                                 : "-"}
                             </td>

@@ -16,6 +16,50 @@ import Toast from "../../../../components/Layout/Feedback/Toast";
 
 type ToastType = "success" | "error";
 
+type TemporalidadeBadge = {
+  label: string;
+  className: string;
+};
+
+const getTemporalidadeBadge = (dueDateValue?: string | null): TemporalidadeBadge => {
+  if (!dueDateValue) {
+    return { label: "Sem Vencimento", className: "" };
+  }
+
+  const dueDate = dayjs(dueDateValue);
+  if (!dueDate.isValid()) {
+    return { label: "Sem Vencimento", className: "" };
+  }
+
+  const daysRemaining = dueDate.startOf("day").diff(dayjs().startOf("day"), "day");
+
+  if (daysRemaining < 0) {
+    return { label: "Vencido", className: "bg-red-100 text-red-700 border border-red-200" };
+  }
+
+  if (daysRemaining <= 30) {
+    return { label: `${daysRemaining} dias`, className: "bg-yellow-100 text-yellow-800 border border-yellow-200" };
+  }
+
+  if (daysRemaining <= 60) {
+    return { label: `${daysRemaining} dias`, className: "bg-green-100 text-green-700 border border-green-200" };
+  }
+
+  if (daysRemaining <= 90) {
+    return { label: `${daysRemaining} dias`, className: "bg-blue-100 text-blue-700 border border-blue-200" };
+  }
+
+  return { label: `${daysRemaining} dias`, className: "bg-white text-gray-700 border border-gray-200" };
+};
+
+const formatDateOrEmpty = (value?: string | null) => {
+  if (!value || !dayjs(value).isValid()) {
+    return "Sem vencimento";
+  }
+
+  return dayjs(value).format("DD/MM/YYYY");
+};
+
 export default function CompanyDocumentUploadPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<PaginatedResponse<CompanyDocumentUpload>>({
@@ -105,7 +149,8 @@ export default function CompanyDocumentUploadPage() {
   };
 
   const getViewableAttachment = (row: CompanyDocumentUpload) => {
-    if (row.upload?.has_file !== true) {
+    const hasFile = row.upload?.has_file === true || row.has_file === true;
+    if (!hasFile) {
       return null;
     }
 
@@ -118,6 +163,10 @@ export default function CompanyDocumentUploadPage() {
       id: attachmentId,
       nome_arquivo: row.upload?.nome_arquivo ?? `attachment-${attachmentId}`,
       url_arquivo: row.upload?.url_arquivo ?? "",
+      links: {
+        view: row.upload?.links?.view ?? null,
+        download: row.upload?.links?.download ?? null,
+      },
     };
   };
 
@@ -158,37 +207,48 @@ export default function CompanyDocumentUploadPage() {
       sortable: true,
     },
     {
-      label: "Status",
-      field: "status",
+      label: "Vencimento",
+      field: "due_date",
       sortable: true,
+      render: (row) => <div className="font-medium text-gray-900 dark:text-white">{formatDateOrEmpty(row.due_date)}</div>,
     },
     {
-      label: "Anexo",
-      field: "upload.id",
+      label: "Temporalidade",
+      field: "due_date",
+      sortable: true,
       render: (row) => {
-        const attachment = getViewableAttachment(row);
+        const badge = getTemporalidadeBadge(row.due_date);
 
-        if (!attachment) {
-          return <span className="text-gray-400">Sem arquivo</span>;
+        if (!badge.className) {
+          return <span className="font-medium text-gray-900 dark:text-white">Sem Vencimento</span>;
         }
 
         return (
-          <button
-            type="button"
-            onClick={() => handleViewAttachment(row)}
-            aria-label="Visualizar anexo"
-            title="Visualizar anexo"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${badge.className}`}
           >
-            <Eye size={16} />
-          </button>
+            {badge.label}
+          </span>
         );
+      },
+    },
+    {
+      label: "Status",
+      field: "status",
+      sortable: true,
+      render: (row) => {
+        if (!row.status) return "";
+        const clean = row.status.trim().toLowerCase();
+        return clean.charAt(0).toUpperCase() + clean.slice(1);
       },
     },
     {
       label: "Criado em",
       field: "created_at",
-      render: (row) => dayjs(row.created_at).format("DD/MM/YYYY HH:mm"),
+      render: (row) =>
+        row.created_at && dayjs(row.created_at).isValid()
+          ? dayjs(row.created_at).format("DD/MM/YYYY HH:mm")
+          : "",
       sortable: true,
     },
   ];
@@ -212,6 +272,25 @@ export default function CompanyDocumentUploadPage() {
               setPerPage(pp);
               setPage(1);
             },
+          }}
+          renderActions={(row) => {
+            const attachment = getViewableAttachment(row);
+
+            if (!attachment) {
+              return null;
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={() => handleViewAttachment(row)}
+                aria-label="Visualizar anexo"
+                title="Visualizar anexo"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
+                <Eye size={16} />
+              </button>
+            );
           }}
           getEditUrl={(id) => `/backoffice/empresas/documentos/editar/${id}`}
           onDelete={handleAskDelete}

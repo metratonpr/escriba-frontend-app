@@ -23,6 +23,104 @@ type SelectedAttachment = {
   downloadUrl: string | null;
 };
 
+type DeadlineInfo = {
+  dueDate: dayjs.Dayjs | null;
+  daysRemaining: number | null;
+  label: string;
+  className: string;
+};
+
+const getDocumentValidityDays = (row: EmployeeDocumentUpload): number | null => {
+  const validityDays =
+    row.document_version?.validity_days ?? row.document?.validity_days ?? null;
+
+  return typeof validityDays === "number" && Number.isFinite(validityDays) ? validityDays : null;
+};
+
+const getBaseDate = (row: EmployeeDocumentUpload): string | null =>
+  row.issued_at ?? row.emission_date ?? row.created_at ?? null;
+
+const resolveDueDate = (row: EmployeeDocumentUpload): dayjs.Dayjs | null => {
+  const explicitDueDate = row.due_date ?? row.expires_at ?? null;
+  if (explicitDueDate && dayjs(explicitDueDate).isValid()) {
+    return dayjs(explicitDueDate);
+  }
+
+  const baseDate = getBaseDate(row);
+  const validityDays = getDocumentValidityDays(row);
+
+  if (!baseDate || validityDays === null) {
+    return null;
+  }
+
+  const parsedBaseDate = dayjs(baseDate);
+  if (!parsedBaseDate.isValid()) {
+    return null;
+  }
+
+  return parsedBaseDate.add(validityDays, "day");
+};
+
+const getDeadlineInfo = (row: EmployeeDocumentUpload): DeadlineInfo => {
+  const dueDate = resolveDueDate(row);
+
+  if (!dueDate) {
+    return {
+      dueDate: null,
+      daysRemaining: null,
+      label: "Sem vencimento",
+      className: "",
+    };
+  }
+
+  const today = dayjs().startOf("day");
+  const dueDay = dueDate.startOf("day");
+  const daysRemaining = dueDay.diff(today, "day");
+
+  if (daysRemaining < 0) {
+    return {
+      dueDate,
+      daysRemaining,
+      label: "Vencido",
+      className: "bg-red-100 text-red-700 border border-red-200",
+    };
+  }
+
+  if (daysRemaining <= 30) {
+    return {
+      dueDate,
+      daysRemaining,
+      label: `${daysRemaining} dias`,
+      className: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+    };
+  }
+
+  if (daysRemaining <= 60) {
+    return {
+      dueDate,
+      daysRemaining,
+      label: `${daysRemaining} dias`,
+      className: "bg-green-100 text-green-700 border border-green-200",
+    };
+  }
+
+  if (daysRemaining <= 90) {
+    return {
+      dueDate,
+      daysRemaining,
+      label: `${daysRemaining} dias`,
+      className: "bg-blue-100 text-blue-700 border border-blue-200",
+    };
+  }
+
+  return {
+    dueDate,
+    daysRemaining,
+    label: `${daysRemaining} dias`,
+    className: "bg-white text-gray-700 border border-gray-200",
+  };
+};
+
 export default function EmployeeDocumentUploadPage() {
   const [data, setData] = useState<PaginatedResponse<EmployeeDocumentUpload>>({
     data: [],
@@ -143,6 +241,40 @@ export default function EmployeeDocumentUploadPage() {
         return `${doc.code}${doc.version ? ` (${doc.version})` : ""}`;
       },
       sortable: true,
+    },
+    {
+      label: "Vencimento",
+      field: "due_date",
+      sortable: true,
+      render: (row) => {
+        const deadlineInfo = getDeadlineInfo(row);
+
+        return (
+          <div className="font-medium text-gray-900 dark:text-white">
+            {deadlineInfo.dueDate ? deadlineInfo.dueDate.format("DD/MM/YYYY") : "Sem vencimento"}
+          </div>
+        );
+      },
+    },
+    {
+      label: "Temporalidade",
+      field: "due_date",
+      sortable: true,
+      render: (row) => {
+        const deadlineInfo = getDeadlineInfo(row);
+
+        if (!deadlineInfo.dueDate) {
+          return <span className="font-medium text-gray-900 dark:text-white">Sem Vencimento</span>;
+        }
+
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${deadlineInfo.className}`}
+          >
+            {deadlineInfo.label}
+          </span>
+        );
+      },
     },
     {
       label: "Status",
