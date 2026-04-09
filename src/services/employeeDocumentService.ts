@@ -45,6 +45,7 @@ export interface EmployeeDocumentUpload {
   // fallback para contrato antigo
   document_version?: DocumentRef;
   upload?: UploadFile;
+  has_file?: boolean | null;
 }
 
 export type EmployeeDocumentUploadPayload = {

@@ -52,9 +52,9 @@ const getTemporalidadeBadge = (dueDateValue?: string | null): TemporalidadeBadge
   return { label: `${daysRemaining} dias`, className: "bg-white text-gray-700 border border-gray-200" };
 };
 
-const formatDateOrEmpty = (value?: string | null) => {
+const formatDateOrEmpty = (value?: string | null, emptyLabel = "Sem vencimento") => {
   if (!value || !dayjs(value).isValid()) {
-    return "Sem vencimento";
+    return emptyLabel;
   }
 
   return dayjs(value).format("DD/MM/YYYY");
@@ -205,6 +205,12 @@ export default function CompanyDocumentUploadPage() {
         return `${doc.code}${doc.version ? ` (${doc.version})` : ""}`;
       },
       sortable: true,
+    },
+    {
+      label: "Emissão",
+      field: "emission_date",
+      sortable: true,
+      render: (row) => <div className="font-medium text-gray-900 dark:text-white">{formatDateOrEmpty(row.emission_date, "Sem emissão")}</div>,
     },
     {
       label: "Vencimento",

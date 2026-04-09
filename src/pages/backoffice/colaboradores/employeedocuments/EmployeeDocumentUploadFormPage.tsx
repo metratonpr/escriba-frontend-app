@@ -65,6 +65,14 @@ type SelectedAttachment = {
   downloadUrl: string | null;
 };
 
+interface EmployeeDocumentUploadFormPageViewProps {
+  title?: string;
+  breadcrumbLabel?: string;
+  breadcrumbTo?: string;
+  cancelUrl?: string;
+  documentSearchSuffix?: string;
+}
+
 const STATUS_OPTIONS = ["pendente", "enviado", "aprovado", "rejeitado"].map((value) => ({
   value,
   label: value.charAt(0).toUpperCase() + value.slice(1),
@@ -86,7 +94,13 @@ function getNextVersionId(document: DocumentWithVersionOption | null): string {
   return getSingleVersionId(document);
 }
 
-export default function EmployeeDocumentUploadFormPage() {
+export function EmployeeDocumentUploadFormPageView({
+  title = "Novo Documento de Colaborador",
+  breadcrumbLabel = "Documentos do Colaborador",
+  breadcrumbTo = "/backoffice/colaboradores/documentos",
+  cancelUrl = "/backoffice/colaboradores/documentos",
+  documentSearchSuffix = "",
+}: EmployeeDocumentUploadFormPageViewProps) {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -140,7 +154,7 @@ export default function EmployeeDocumentUploadFormPage() {
           getDocumentsWithVersions({
             page: 1,
             perPage: 25,
-            search: "",
+            search: documentSearchSuffix || "",
             sortBy: "name",
             sortOrder: "asc",
           }),
@@ -217,7 +231,7 @@ export default function EmployeeDocumentUploadFormPage() {
         setToast({ open: true, message: "Erro ao carregar registro.", type: "error" });
 
         if (isEdit) {
-          navigate("/backoffice/colaboradores/documentos");
+          navigate(cancelUrl);
         }
       } finally {
         if (active) {
@@ -231,7 +245,7 @@ export default function EmployeeDocumentUploadFormPage() {
     return () => {
       active = false;
     };
-  }, [id, isEdit, navigate]);
+  }, [cancelUrl, documentSearchSuffix, id, isEdit, navigate]);
 
   useEffect(() => {
     if (isInitializing) {
@@ -250,7 +264,7 @@ export default function EmployeeDocumentUploadFormPage() {
       getDocumentsWithVersions({
         page: 1,
         perPage: 25,
-        search: trimmedQuery,
+        search: [trimmedQuery, documentSearchSuffix.trim()].filter(Boolean).join(" "),
         sortBy: "name",
         sortOrder: "asc",
       })
@@ -274,7 +288,7 @@ export default function EmployeeDocumentUploadFormPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [documentSearchQuery, initialDocumentOptions, isInitializing]);
+  }, [documentSearchQuery, documentSearchSuffix, initialDocumentOptions, isInitializing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -368,7 +382,7 @@ export default function EmployeeDocumentUploadFormPage() {
         type: "success",
       });
 
-      navigate("/backoffice/colaboradores/documentos");
+      navigate(cancelUrl);
     } catch (err: unknown) {
       const error = err as {
         response?: { data?: { errors?: Record<string, string> } };
@@ -388,7 +402,7 @@ export default function EmployeeDocumentUploadFormPage() {
     <div className="max-w-4xl mx-auto p-6">
       <Breadcrumbs
         items={[
-          { label: "Documentos do Colaborador", to: "/backoffice/colaboradores/documentos" },
+          { label: breadcrumbLabel, to: breadcrumbTo },
           { label: isEdit ? "Editar" : "Novo", to: "#" },
         ]}
       />
@@ -396,6 +410,8 @@ export default function EmployeeDocumentUploadFormPage() {
       {isInitializing ? (
         <FormPageSkeleton className="px-0" fields={7} />
       ) : (
+        <>
+          <h1 className="text-2xl font-bold mb-6">{isEdit ? `Editar ${title}` : `Novo ${title}`}</h1>
         <form
           onSubmit={handleSubmit}
           className="space-y-6 rounded-lg bg-white p-6 shadow dark:bg-gray-800"
@@ -482,10 +498,11 @@ export default function EmployeeDocumentUploadFormPage() {
           />
 
           <FormActions
-            onCancel={() => navigate("/backoffice/colaboradores/documentos")}
+            onCancel={() => navigate(cancelUrl)}
             text={isEdit ? "Atualizar" : "Criar"}
           />
         </form>
+        </>
       )}
 
       <Toast
@@ -543,4 +560,8 @@ export default function EmployeeDocumentUploadFormPage() {
       </Transition>
     </div>
   );
+}
+
+export default function EmployeeDocumentUploadFormPage() {
+  return <EmployeeDocumentUploadFormPageView />;
 }

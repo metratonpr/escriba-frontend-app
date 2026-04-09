@@ -74,6 +74,7 @@ export const BACKOFFICE_MAIN_SECTIONS: BackofficeMainSection[] = [
     matchPrefixes: [
       "/backoffice/equipes",
       "/backoffice/colaboradores",
+      "/backoffice/aso",
       "/backoffice/exames-medicos",
       "/backoffice/entregas-epis",
       "/backoffice/ocorrencias",
@@ -81,7 +82,7 @@ export const BACKOFFICE_MAIN_SECTIONS: BackofficeMainSection[] = [
     items: [
       { to: "/backoffice/colaboradores", label: "Colaboradores", icon: Users },
       { to: "/backoffice/colaboradores/documentos", label: "Documentos colaboradores", icon: FileText },
-      { to: "/backoffice/exames-medicos", label: "Exames médicos", icon: Stethoscope },
+      { to: "/backoffice/aso", label: "ASO", icon: Stethoscope },
       { to: "/backoffice/entregas-epis", label: "Entregas EPI", icon: HardHat },
       { to: "/backoffice/ocorrencias", label: "Ocorrências", icon: ClipboardList },
     ],

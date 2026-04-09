@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 import EmpresasDashboard from '../pages/backoffice/empresas/EmpresasDashboard'
 import Login from '../pages/Login'
 import BackofficeLayout from '../layouts/BackofficeLayout'
@@ -41,9 +41,8 @@ import CompanyFormPage from '../pages/backoffice/empresas/companies/CompanyFormP
 import CompaniesPage from '../pages/backoffice/empresas/companies/CompaniesPage'
 import EmployeesPage from '../pages/backoffice/colaboradores/employee/EmployeesPage'
 import EmployeeForm from '../pages/backoffice/colaboradores/employee/EmployeeForm.tsx'
-import MedicalExamPage from '../pages/backoffice/colaboradores/exames/MedicalExamPage'
-import MedicalExamFormPage from '../pages/backoffice/colaboradores/exames/MedicalExamFormPage'
-import ExamAttachmentViewerPage from '../pages/backoffice/colaboradores/exames/ExamAttachmentViewerPage'
+import AsoDocumentUploadPage from '../pages/backoffice/colaboradores/aso/AsoDocumentUploadPage'
+import AsoDocumentUploadFormPage from '../pages/backoffice/colaboradores/aso/AsoDocumentUploadFormPage'
 import EpiDeliveriesPage from '../pages/backoffice/entregas/EpiDeliveriesPage'
 import EpiDeliveryFormPage from '../pages/backoffice/entregas/EpiDeliveryFormPage'
 import EventFormPage from '../pages/backoffice/eventos/events/EventFormPage'
@@ -64,6 +63,11 @@ import UserFormPage from "../pages/backoffice/parametros/users/UserFormPage";
 import AdminRoute from "../components/auth/AdminRoute";
 import ResetPassword from "../pages/ResetPassword";
 import CertificateVerificationPage from "../pages/CertificateVerificationPage";
+
+const RedirectToAsoEdit = () => {
+  const { id } = useParams();
+  return <Navigate to={id ? `/backoffice/aso/editar/${id}` : "/backoffice/aso"} replace />;
+};
 
 export const router = createBrowserRouter([
     {
@@ -194,11 +198,14 @@ export const router = createBrowserRouter([
             { path: 'colaboradores/documentos/editar/:id', element: <EmployeeDocumentUploadFormPage /> },
             { path: 'colaboradores/documentos/visualizar-anexo/:attachmentId', element: <EmployeeAttachmentViewerPage /> },
             { path: 'colaboradores/editar/:employeeId/visualizar-anexo/:attachmentId', element: <EmployeeAttachmentViewerPage /> },
-            // EXAMES MÉDICOS
-            { path: 'exames-medicos/novo', element: <MedicalExamFormPage /> },
-            { path: 'exames-medicos/editar/:id', element: <MedicalExamFormPage /> },
-            { path: "exames-medicos/editar/:examId/visualizar-anexo/:attachmentId", element: <ExamAttachmentViewerPage /> },
-            { path: 'exames-medicos', element: <MedicalExamPage /> },
+            // ASO
+            { path: 'aso', element: <AsoDocumentUploadPage /> },
+            { path: 'aso/novo', element: <AsoDocumentUploadFormPage /> },
+            { path: 'aso/editar/:id', element: <AsoDocumentUploadFormPage /> },
+            { path: 'exames-medicos', element: <Navigate to="/backoffice/aso" replace /> },
+            { path: 'exames-medicos/novo', element: <Navigate to="/backoffice/aso/novo" replace /> },
+            { path: 'exames-medicos/editar/:id', element: <RedirectToAsoEdit /> },
+            { path: "exames-medicos/editar/:examId/visualizar-anexo/:attachmentId", element: <Navigate to="/backoffice/aso" replace /> },
 
             // ENTREGAS EPI
             { path: 'entregas-epis/nova', element: <EpiDeliveryFormPage /> },

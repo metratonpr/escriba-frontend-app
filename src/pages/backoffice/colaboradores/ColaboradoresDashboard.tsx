@@ -20,7 +20,7 @@ export default function ColaboradoresDashboard() {
             href: "/backoffice/entregas-epis",
         },
         // futuramente:
-        // { title: "Exames Médicos", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/exames-medicos" },
+        // { title: "ASO", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/aso" },
         // { title: "Eventos", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/eventos" },
         // { title: "Ocorrências", imageSrc: `${import.meta.env.BASE_URL}images/logo.png`, href: "/backoffice/ocorrencias" },
     ];

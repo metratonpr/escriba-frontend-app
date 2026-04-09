@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -32,7 +32,9 @@ export default function DocumentIssuerFormPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -66,6 +68,12 @@ export default function DocumentIssuerFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     setErrors({});
     try {
       if (isEdit) {
@@ -78,6 +86,9 @@ export default function DocumentIssuerFormPage() {
     } catch (err: any) {
       setErrors(err.response?.data?.errors ?? {});
       setToast({ open: true, message: "Erro ao salvar órgão emissor.", type: "error" });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -114,7 +125,11 @@ export default function DocumentIssuerFormPage() {
           />
           <FormInput id="postal_code" label="CEP" name="postal_code" value={form.postal_code} onChange={handleChange} error={errors.postal_code} />
           <div className="md:col-span-2">
-            <FormActions onCancel={() => navigate("/backoffice/orgaos-emissores")} text={isEdit ? "Atualizar" : "Criar"} />
+            <FormActions
+              onCancel={() => navigate("/backoffice/orgaos-emissores")}
+              text={isEdit ? "Atualizar" : "Criar"}
+              isSubmitting={isSubmitting}
+            />
           </div>
         </form>
       )}

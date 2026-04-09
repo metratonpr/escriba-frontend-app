@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -23,7 +23,9 @@ export default function DocumentTypeFormPage() {
     message: "",
     type: "success" as "success" | "error",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -49,6 +51,12 @@ export default function DocumentTypeFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     setErrors({});
     try {
       if (isEdit && id) {
@@ -69,6 +77,9 @@ export default function DocumentTypeFormPage() {
         message: "Erro ao salvar tipo de documento.",
         type: "error",
       });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -104,6 +115,7 @@ export default function DocumentTypeFormPage() {
           <FormActions
             onCancel={() => navigate("/backoffice/tipos-documento")}
             text={isEdit ? "Atualizar" : "Criar"}
+            isSubmitting={isSubmitting}
           />
         </form>
       )}

@@ -30,6 +30,16 @@ type DeadlineInfo = {
   className: string;
 };
 
+interface EmployeeDocumentUploadPageViewProps {
+  title?: string;
+  breadcrumbLabel?: string;
+  breadcrumbTo?: string;
+  createUrl?: string;
+  editUrlBase?: string;
+  deleteTitle?: string;
+  searchSuffix?: string;
+}
+
 const getDocumentValidityDays = (row: EmployeeDocumentUpload): number | null => {
   const validityDays =
     row.document_version?.validity_days ?? row.document?.validity_days ?? null;
@@ -37,28 +47,46 @@ const getDocumentValidityDays = (row: EmployeeDocumentUpload): number | null => 
   return typeof validityDays === "number" && Number.isFinite(validityDays) ? validityDays : null;
 };
 
-const getBaseDate = (row: EmployeeDocumentUpload): string | null =>
-  row.issued_at ?? row.emission_date ?? row.created_at ?? null;
-
 const resolveDueDate = (row: EmployeeDocumentUpload): dayjs.Dayjs | null => {
   const explicitDueDate = row.due_date ?? row.expires_at ?? null;
   if (explicitDueDate && dayjs(explicitDueDate).isValid()) {
     return dayjs(explicitDueDate);
   }
 
-  const baseDate = getBaseDate(row);
   const validityDays = getDocumentValidityDays(row);
+  const emissionDate = row.emission_date ?? row.issued_at ?? null;
 
-  if (!baseDate || validityDays === null) {
+  if (!emissionDate || validityDays === null || validityDays <= 0) {
     return null;
   }
 
-  const parsedBaseDate = dayjs(baseDate);
-  if (!parsedBaseDate.isValid()) {
+  const parsedEmissionDate = dayjs(emissionDate);
+  if (!parsedEmissionDate.isValid()) {
     return null;
   }
 
-  return parsedBaseDate.add(validityDays, "day");
+  return parsedEmissionDate.add(validityDays, "day");
+};
+
+const formatDateOrEmpty = (value?: string | null, emptyLabel = "Sem vencimento") => {
+  if (!value || !dayjs(value).isValid()) {
+    return emptyLabel;
+  }
+
+  return dayjs(value).format("DD/MM/YYYY");
+};
+
+const getEmissionDate = (row: EmployeeDocumentUpload): string | null =>
+  row.emission_date ?? row.issued_at ?? row.created_at ?? null;
+
+const getEmissionDateLabel = (row: EmployeeDocumentUpload): string => {
+  const emissionDate = getEmissionDate(row);
+
+  if (!emissionDate) {
+    return "Sem data";
+  }
+
+  return formatDateOrEmpty(emissionDate, "Sem data");
 };
 
 const getDeadlineInfo = (row: EmployeeDocumentUpload): DeadlineInfo => {
@@ -121,7 +149,15 @@ const getDeadlineInfo = (row: EmployeeDocumentUpload): DeadlineInfo => {
   };
 };
 
-export default function EmployeeDocumentUploadPage() {
+export function EmployeeDocumentUploadPageView({
+  title = "Documentos de Colaboradores",
+  breadcrumbLabel = "Documentos de Colaboradores",
+  breadcrumbTo = "/backoffice/colaboradores/documentos",
+  createUrl = "/backoffice/colaboradores/documentos/novo",
+  editUrlBase = "/backoffice/colaboradores/documentos/editar",
+  deleteTitle = "Excluir Documento",
+  searchSuffix = "",
+}: EmployeeDocumentUploadPageViewProps) {
   const [data, setData] = useState<PaginatedResponse<EmployeeDocumentUpload>>({
     data: [],
     total: 0,
@@ -150,8 +186,9 @@ export default function EmployeeDocumentUploadPage() {
   ) => {
     setLoading(true);
     try {
+      const effectiveSearch = [q.trim(), searchSuffix.trim()].filter(Boolean).join(" ");
       const response = await getEmployeeDocumentUploads({
-        search: q,
+        search: effectiveSearch,
         page: pg,
         perPage: limit,
         sortBy: sort,
@@ -167,11 +204,31 @@ export default function EmployeeDocumentUploadPage() {
 
   useEffect(() => {
     loadDocuments();
-  }, [search, page, perPage, sortBy, sortOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = (q: string) => {
     setSearch(q);
     setPage(1);
+    loadDocuments(q, 1, perPage, sortBy, sortOrder);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+    loadDocuments(search, nextPage, perPage, sortBy, sortOrder);
+  };
+
+  const handlePerPageChange = (nextPerPage: number) => {
+    setPerPage(nextPerPage);
+    setPage(1);
+    loadDocuments(search, 1, nextPerPage, sortBy, sortOrder);
+  };
+
+  const handleSortChange = (field: string, order: "asc" | "desc") => {
+    setSortBy(field);
+    setSortOrder(order);
+    setPage(1);
+    loadDocuments(search, 1, perPage, field, order);
   };
 
   const handleAskDelete = (id: string) => {
@@ -198,7 +255,8 @@ export default function EmployeeDocumentUploadPage() {
   };
 
   const getViewableAttachment = (row: EmployeeDocumentUpload) => {
-    if (row.upload?.has_file !== true) {
+    const hasFile = row.upload?.has_file === true || row.has_file === true;
+    if (!hasFile) {
       return null;
     }
 
@@ -241,6 +299,12 @@ export default function EmployeeDocumentUploadPage() {
         return `${doc.code}${doc.version ? ` (${doc.version})` : ""}`;
       },
       sortable: true,
+    },
+    {
+      label: "Emissão",
+      field: "emission_date",
+      sortable: true,
+      render: (row) => <div className="font-medium text-gray-900 dark:text-white">{getEmissionDateLabel(row)}</div>,
     },
     {
       label: "Vencimento",
@@ -299,23 +363,20 @@ export default function EmployeeDocumentUploadPage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Documentos de Colaboradores", to: "/backoffice/colaboradores/documentos" }]} />
+      <Breadcrumbs items={[{ label: breadcrumbLabel, to: breadcrumbTo }]} />
       <SearchBar onSearch={handleSearch} onClear={() => handleSearch("")} />
               <TableTailwind
           loading={loading}
-          title="Documentos de Colaboradores"
-          createUrl="/backoffice/colaboradores/documentos/novo"
+          title={title}
+          createUrl={createUrl}
           columns={columns}
           data={data.data}
           pagination={{
             total: data.total,
             perPage: data.per_page,
             currentPage: page,
-            onPageChange: (p) => setPage(p),
-            onPerPageChange: (pp) => {
-              setPerPage(pp);
-              setPage(1);
-            },
+            onPageChange: handlePageChange,
+            onPerPageChange: handlePerPageChange,
           }}
           renderActions={(row) => {
             const attachment = getViewableAttachment(row);
@@ -343,13 +404,9 @@ export default function EmployeeDocumentUploadPage() {
               </button>
             );
           }}
-          getEditUrl={(id) => `/backoffice/colaboradores/documentos/editar/${id}`}
+          getEditUrl={(id) => `${editUrlBase}/${id}`}
           onDelete={handleAskDelete}
-          onSortChange={(field, order) => {
-            setSortBy(field);
-            setSortOrder(order);
-            setPage(1);
-          }}
+          onSortChange={handleSortChange}
         />
 
       <DeleteModal
@@ -357,7 +414,7 @@ export default function EmployeeDocumentUploadPage() {
         onClose={() => setModalOpen(false)}
         onConfirm={handleConfirmDelete}
         itemName={selectedName ?? undefined}
-        title="Excluir Documento"
+        title={deleteTitle}
       />
 
       <Toast
@@ -415,5 +472,9 @@ export default function EmployeeDocumentUploadPage() {
       </Transition>
     </>
   );
+}
+
+export default function EmployeeDocumentUploadPage() {
+  return <EmployeeDocumentUploadPageView />;
 }
 

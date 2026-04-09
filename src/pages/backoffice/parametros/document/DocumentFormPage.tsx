@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Breadcrumbs from "../../../../components/Layout/Breadcrumbs";
 import Toast from "../../../../components/Layout/Feedback/Toast";
@@ -75,8 +75,10 @@ export default function DocumentFormPage() {
     message: "",
     type: "success" as "success" | "error",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DocumentTab>("dados");
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -162,6 +164,12 @@ export default function DocumentFormPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     setErrors({});
     setVersionErrors({});
 
@@ -219,6 +227,9 @@ export default function DocumentFormPage() {
         setActiveTab("versoes");
       }
       setToast({ open: true, message: "Erro ao salvar documento.", type: "error" });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -382,6 +393,7 @@ export default function DocumentFormPage() {
             <FormActions
               onCancel={() => navigate("/backoffice/documentos")}
               text={isEdit ? "Atualizar" : "Criar"}
+              isSubmitting={isSubmitting}
             />
           </div>
         </form>
